@@ -1,0 +1,182 @@
+﻿namespace BookStack.Data;
+
+using System.Linq.Expressions;
+using System.Reflection;
+using Features.Identity.Data.Models;
+using Features.UserProfile.Data.Models;
+using Infrastructure.Services.CurrentUser;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Models.Base;
+
+public class BookStackDbContext(
+    DbContextOptions<BookStackDbContext> options,
+    ICurrentUserService userService) : IdentityDbContext<UserDbModel>(options)
+{
+    public string? CurrentUserId { get; } = userService.GetId();
+
+    public bool IsAdmin { get; } = userService.IsAdmin();
+
+    public DbSet<UserProfileDbModel> Profiles { get; init; }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        this.ApplyAuditInfo();
+
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess, 
+        CancellationToken cancellationToken = default)
+    {
+        this.ApplyAuditInfo();
+
+        return base.SaveChangesAsync(
+            acceptAllChangesOnSuccess,
+            cancellationToken);
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            Assembly.GetExecutingAssembly());
+
+        this.FilterModels(modelBuilder);
+    }
+
+    private void ApplyAuditInfo() 
+        => this.ChangeTracker
+            .Entries()
+            .ToList()
+            .ForEach(entry =>
+            {
+                var utcNow = DateTime.UtcNow;
+                var username = userService.GetUsername();
+
+                if (entry.State == EntityState.Deleted && 
+                    entry.Entity is IDeletableEntity deletableEntity)
+                {
+                    deletableEntity.DeletedOn = utcNow;
+                    deletableEntity.DeletedBy = username;
+                    deletableEntity.IsDeleted = true;
+
+                    entry.State = EntityState.Modified;
+
+                    return;
+                }
+
+                if (entry.Entity is IDeletableEntity entity)
+                {
+                    if (entry.State == EntityState.Added)
+                    {
+                        entity.CreatedOn = utcNow;
+                        entity.CreatedBy = username!;
+                    }
+                    else if (entry.State == EntityState.Modified)
+                    {
+                        entity.ModifiedOn = utcNow;
+                        entity.ModifiedBy = username;
+                    }
+                }
+            });
+
+    private void FilterModels(ModelBuilder modelBuilder)
+        => modelBuilder
+            .Model
+            .GetEntityTypes()
+            .ToList()
+            .ForEach(entityType =>
+            {
+                var clrType = entityType.ClrType;
+                var filter = BuildFilterExpression(clrType);
+
+                if (filter is not null)
+                {
+                    modelBuilder.Entity(clrType).HasQueryFilter(filter);
+                }
+            });
+
+    private LambdaExpression? BuildFilterExpression(Type entityType)
+    {
+        var entityTypeParam = Expression.Parameter(entityType, "e");
+        Expression? combined = null;
+
+        if (typeof(IDeletableEntity).IsAssignableFrom(entityType))
+        {
+            var isDeleted = Expression.Property(
+                entityTypeParam,
+                nameof(IDeletableEntity.IsDeleted));
+
+            var isNotDeleted = Expression.Equal(
+                isDeleted,
+                Expression.Constant(false));
+
+            combined = isNotDeleted;
+        }
+
+        var thisContext = Expression.Constant(this);
+
+        if (typeof(IApprovableEntity).IsAssignableFrom(entityType))
+        {
+            var isApprovedProp = Expression.Property(
+                entityTypeParam,
+                nameof(IApprovableEntity.IsApproved));
+
+            var isApproved = Expression.Equal(
+                isApprovedProp,
+                Expression.Constant(true));
+
+            var isAdmin = Expression.Property(
+                thisContext,
+                nameof(this.IsAdmin));
+
+            var isAdminTrue = Expression.Equal(
+                isAdmin,
+                Expression.Constant(true));
+
+            Expression creatorOr = Expression.OrElse(
+                isApproved,
+                isAdminTrue);
+
+            var creatorIdProp = entityType.GetProperty("CreatorId");
+            if (creatorIdProp is not null &&
+                creatorIdProp.PropertyType == typeof(string))
+            {
+                var creatorId = Expression.Property(
+                    entityTypeParam,
+                    creatorIdProp);
+
+                var currentUserId = Expression.Property(
+                    thisContext,
+                    nameof(this.CurrentUserId));
+
+                var currentUserNotNull = Expression.NotEqual(
+                    currentUserId,
+                    Expression.Constant(null, typeof(string)));
+
+                var isCreator = Expression.Equal(
+                    creatorId,
+                    currentUserId);
+
+                var creatorAllowed = Expression.AndAlso(
+                    currentUserNotNull,
+                    isCreator);
+
+                creatorOr = Expression.OrElse(
+                    creatorOr,
+                    creatorAllowed);
+            }
+
+            combined = combined is null
+                ? creatorOr
+                : Expression.AndAlso(combined, creatorOr);
+        }
+
+        return combined is null
+            ? null
+            : Expression.Lambda(combined, entityTypeParam);
+    }
+}

@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dev
+WORKDIR /src
+COPY ["server/BookStack/BookStack.csproj", "server/BookStack/"]
+RUN dotnet restore "server/BookStack/BookStack.csproj"
+COPY server/ server/
+WORKDIR "/src/server/BookStack"
+EXPOSE 8080
+EXPOSE 8081
+ENV ASPNETCORE_URLS=http://+:8080
+CMD ["dotnet", "watch", "run", "--no-launch-profile", "--urls", "http://0.0.0.0:8080"]

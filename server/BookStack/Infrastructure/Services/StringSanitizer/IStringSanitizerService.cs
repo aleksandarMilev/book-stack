@@ -1,0 +1,8 @@
+﻿namespace BookStack.Infrastructure.Services.StringSanitizer;
+
+using ServiceLifetimes;
+
+public interface IStringSanitizerService : ITransientService
+{
+    string SanitizeStringForLog(string value);
+}

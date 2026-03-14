@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+ENV ASPNETCORE_URLS=http://+:8080
+RUN useradd -m appuser
+USER appuser
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY ["server/BookStack/BookStack.csproj", "server/BookStack/"]
+RUN dotnet restore "server/BookStack/BookStack.csproj"
+COPY server/ server/
+WORKDIR "/src/server/BookStack"
+RUN dotnet publish "BookStack.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "BookStack.dll"]
