@@ -2,9 +2,10 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
-using Features.Books.Data.Models;
 using Features.BookListings.Data.Models;
+using Features.Books.Data.Models;
 using Features.Identity.Data.Models;
+using Features.Orders.Data.Models;
 using Features.UserProfile.Data.Models;
 using Infrastructure.Services.CurrentUser;
 using Infrastructure.Services.DateTimeProvider;
@@ -31,6 +32,10 @@ public class BookStackDbContext(
     public DbSet<BookListingDbModel> BookListings { get; init; }
 
     public DbSet<UserProfileDbModel> Profiles { get; init; }
+
+    public DbSet<OrderDbModel> Orders { get; init; }
+
+    public DbSet<OrderItemDbModel> OrderItems { get; init; }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

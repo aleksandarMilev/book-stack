@@ -167,6 +167,14 @@ public class BookListingService(
                 model.BookId);
         }
 
+        var currentUserIsAdmin = this._userService.IsAdmin();
+        var currentUserIsCreator = book.CreatorId == creatorId;
+
+        if (!book.IsApproved && !currentUserIsAdmin && !currentUserIsCreator)
+        {
+            return "Book listing can only be created for an approved book.";
+        }
+
         var dbModel = model.ToDbModel(creatorId);
 
         await this._imageWriter.Write(
@@ -232,6 +240,11 @@ public class BookListingService(
                 ErrorMessages.DbEntityNotFound,
                 nameof(BookDbModel),
                 model.BookId);
+        }
+
+        if (!book.IsApproved && userIsNotAdmin && userIsNotCreator)
+        {
+            return "Book listing can only be assigned to an approved book.";
         }
 
         var oldImagePath = dbModel.ImagePath;
@@ -363,6 +376,18 @@ public class BookListingService(
         if (DoesNotExistOrDeleted(listing))
         {
             return this.LogAndReturnNotFoundMessage(id);
+        }
+
+        var book = await this._data
+            .Books
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(
+                b => b.Id == listing!.BookId,
+                cancellationToken);
+
+        if (book is null || book.IsDeleted || !book.IsApproved)
+        {
+            return "Book listing can not be approved because its book is not approved.";
         }
 
         listing!.IsApproved = true;

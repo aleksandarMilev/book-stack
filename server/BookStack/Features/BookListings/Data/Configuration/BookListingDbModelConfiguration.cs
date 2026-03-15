@@ -83,5 +83,8 @@ public sealed class BookListingDbModelConfiguration : IEntityTypeConfiguration<B
 
         builder
             .HasIndex(static l => l.CreatedOn);
+
+        builder
+            .HasIndex(static l => l.Quantity);
     }
 }
