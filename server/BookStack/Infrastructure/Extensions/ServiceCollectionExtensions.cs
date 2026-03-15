@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Services.DateTimeProvider;
 using Services.ServiceLifetimes;
 using Settings;
 
@@ -367,6 +368,8 @@ public static class ServiceCollectionExtensions
                         services.AddTransient(type.Service, type.Implementation);
                     }
                 });
+
+            services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
 
             return services;
         }

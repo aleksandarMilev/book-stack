@@ -2,20 +2,33 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
+using Features.Books.Data.Models;
+using Features.BookListings.Data.Models;
 using Features.Identity.Data.Models;
 using Features.UserProfile.Data.Models;
 using Infrastructure.Services.CurrentUser;
+using Infrastructure.Services.DateTimeProvider;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Models.Base;
 
 public class BookStackDbContext(
     DbContextOptions<BookStackDbContext> options,
-    ICurrentUserService userService) : IdentityDbContext<UserDbModel>(options)
+    ICurrentUserService userService,
+    IDateTimeProvider dateTimeProvider) : IdentityDbContext<UserDbModel>(options)
 {
-    public string? CurrentUserId { get; } = userService.GetId();
+    private readonly ICurrentUserService _userService = userService;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public bool IsAdmin { get; } = userService.IsAdmin();
+    public string? CurrentUserId
+        => this._userService.GetId();
+
+    public bool IsAdmin
+        => this._userService.IsAdmin();
+
+    public DbSet<BookDbModel> Books { get; init; }
+
+    public DbSet<BookListingDbModel> BookListings { get; init; }
 
     public DbSet<UserProfileDbModel> Profiles { get; init; }
 
@@ -53,8 +66,8 @@ public class BookStackDbContext(
             .ToList()
             .ForEach(entry =>
             {
-                var utcNow = DateTime.UtcNow;
-                var username = userService.GetUsername();
+                var utcNow = this._dateTimeProvider.UtcNow;
+                var username = this._userService.GetUsername();
 
                 if (entry.State == EntityState.Deleted && 
                     entry.Entity is IDeletableEntity deletableEntity)
@@ -73,7 +86,7 @@ public class BookStackDbContext(
                     if (entry.State == EntityState.Added)
                     {
                         entity.CreatedOn = utcNow;
-                        entity.CreatedBy = username!;
+                        entity.CreatedBy = username;
                     }
                     else if (entry.State == EntityState.Modified)
                     {

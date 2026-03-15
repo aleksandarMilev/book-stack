@@ -16,6 +16,8 @@ public static class Constants
 
     public static class ErrorMessages
     {
+        public const string CurrentUserNotAuthenticated = "Current user is not authenticated!";
+
         public const string DbEntityNotFound = "{0} with Id: {1} was not found!";
 
         public const string DbEntityNotFoundTemplate = $"{{Entity}} with Id: {{Id}} was not found!";
