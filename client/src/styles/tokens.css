@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600;7..72,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-heading: 'Literata', Georgia, serif;
+  --font-body: 'Manrope', 'Segoe UI', sans-serif;
+
+  --color-bg: #f1eee6;
+  --color-bg-soft: #f7f5ee;
+  --color-surface: #fffdf8;
+  --color-surface-muted: #f6f2e8;
+  --color-text: #1f2825;
+  --color-text-muted: #5f6f67;
+  --color-primary: #1d685b;
+  --color-primary-strong: #155045;
+  --color-accent: #9a6a33;
+  --color-border: #d6dbd1;
+  --color-border-strong: #b3c0b5;
+  --color-focus: #2f8d7d;
+  --color-success: #3d6f57;
+  --color-danger: #a64646;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.9rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+
+  --shadow-soft: 0 10px 30px rgba(33, 44, 38, 0.08);
+  --shadow-card: 0 14px 32px rgba(31, 46, 40, 0.12);
+  --transition-fast: 180ms ease;
+  --transition-normal: 260ms ease;
+
+  --container-md: 44rem;
+  --container-lg: 64rem;
+  --container-xl: 76rem;
+}
