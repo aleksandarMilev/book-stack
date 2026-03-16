@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { Button, Container } from '@/components/ui';
@@ -82,6 +82,7 @@ function HeaderGroup({ title, items, onItemClick }: HeaderGroupProps) {
 
 export function AppHeader() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const session = useAuthStore((state) => state.session);
   const capabilities = useAuthCapabilities();
   const { close, isOpen, toggle } = useDisclosure();
@@ -97,6 +98,7 @@ export function AppHeader() {
 
   const handleLogout = (): void => {
     authService.logout();
+    navigate(ROUTES.home, { replace: true });
     close();
   };
 

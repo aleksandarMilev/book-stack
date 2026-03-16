@@ -13,6 +13,8 @@ export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.profile]: 'authenticated',
   [ROUTES.myOrders]: 'authenticated',
   [ROUTES.myListings]: 'seller',
+  [ROUTES.myListingCreate]: 'seller',
+  [ROUTES.myListingEdit]: 'seller',
   [ROUTES.sellerSoldOrders]: 'seller',
   [ROUTES.paymentReturn]: 'public',
   [ROUTES.adminDashboard]: 'admin',

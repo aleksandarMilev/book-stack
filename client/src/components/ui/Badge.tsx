@@ -2,7 +2,7 @@ import type { HTMLAttributes } from 'react';
 
 import { classNames } from '@/utils/classNames';
 
-type BadgeVariant = 'neutral' | 'accent' | 'success';
+type BadgeVariant = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;

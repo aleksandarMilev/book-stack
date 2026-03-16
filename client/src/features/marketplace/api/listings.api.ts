@@ -1,5 +1,6 @@
 import { httpClient } from '@/api/httpClient';
 import type { PaginatedResponse } from '@/api/types/api.types';
+import { resolveAssetUrl } from '@/api/utils/assetUrl';
 import type { MarketplaceListing, MarketplaceListingCondition } from '@/types/marketplace.types';
 import type { CurrencyCode, PriceDisplayValue } from '@/types/pricing.types';
 
@@ -115,26 +116,6 @@ const toPriceDisplayValue = (price: number, currency: string): PriceDisplayValue
   },
 });
 
-const toImageUrl = (imagePath: string): string => {
-  if (!imagePath) {
-    return '';
-  }
-
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
-  }
-
-  const serverBaseUrl = import.meta.env.VITE_REACT_APP_SERVER_URL ?? '';
-  if (!serverBaseUrl) {
-    return imagePath;
-  }
-
-  const normalizedBaseUrl = serverBaseUrl.endsWith('/') ? serverBaseUrl.slice(0, -1) : serverBaseUrl;
-  const normalizedImagePath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-
-  return `${normalizedBaseUrl}${normalizedImagePath}`;
-};
-
 const mapListing = (listing: ListingApiModel): MarketplaceListing => ({
   id: listing.id,
   bookId: listing.bookId,
@@ -148,8 +129,9 @@ const mapListing = (listing: ListingApiModel): MarketplaceListing => ({
   condition: toListingCondition(listing.condition),
   quantity: listing.quantity,
   description: listing.description,
-  imageUrl: toImageUrl(listing.imagePath),
+  imageUrl: resolveAssetUrl(listing.imagePath),
   isApproved: listing.isApproved,
+  rejectionReason: listing.rejectionReason ?? null,
   createdOn: listing.createdOn,
   modifiedOn: listing.modifiedOn ?? null,
   price: toPriceDisplayValue(listing.price, listing.currency),
@@ -188,10 +170,38 @@ export const listingsApi = {
       items: response.data.items.map(mapListing),
     };
   },
+  async getMineListings(query: ListingFilterQuery): Promise<PaginatedResponse<MarketplaceListing>> {
+    const backendQuery: ListingBackendFilterQuery = {
+      SearchTerm: query.searchTerm,
+      Title: query.title,
+      Author: query.author,
+      Genre: query.genre,
+      Condition: query.condition,
+      PriceFrom: query.priceFrom,
+      PriceTo: query.priceTo,
+      Sorting: query.sorting,
+      PageIndex: query.pageIndex,
+      PageSize: query.pageSize,
+      IsApproved: query.isApproved,
+    };
+
+    const response = await httpClient.get<PaginatedResponse<ListingApiModel>>(`${LISTINGS_BASE_PATH}/mine/`, {
+      params: removeEmptyQueryValues(backendQuery),
+    });
+
+    return {
+      ...response.data,
+      items: response.data.items.map(mapListing),
+    };
+  },
 
   async getListingById(id: string): Promise<MarketplaceListing> {
     const response = await httpClient.get<ListingApiModel>(`${LISTINGS_BASE_PATH}/${id}/`);
 
     return mapListing(response.data);
+  },
+
+  async deleteListing(id: string): Promise<void> {
+    await httpClient.delete(`${LISTINGS_BASE_PATH}/${id}/`);
   },
 };

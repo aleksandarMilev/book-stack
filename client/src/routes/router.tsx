@@ -9,6 +9,8 @@ import { HomePage } from '@/pages/HomePage';
 import { ListingDetailsPage } from '@/pages/ListingDetailsPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { MarketplacePage } from '@/pages/MarketplacePage';
+import { MyListingCreatePage } from '@/pages/MyListingCreatePage';
+import { MyListingEditPage } from '@/pages/MyListingEditPage';
 import { MyListingsPage } from '@/pages/MyListingsPage';
 import { MyOrdersPage } from '@/pages/MyOrdersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -44,6 +46,8 @@ export const appRouter = createBrowserRouter([
         element: <GuardedRouteOutlet level="seller" />,
         children: [
           { path: ROUTES.myListings, element: <MyListingsPage /> },
+          { path: ROUTES.myListingCreate, element: <MyListingCreatePage /> },
+          { path: ROUTES.myListingEdit, element: <MyListingEditPage /> },
           { path: ROUTES.sellerSoldOrders, element: <SellerSoldOrdersPage /> },
         ],
       },

@@ -7,6 +7,8 @@ export const ROUTES = {
   register: '/register',
   profile: '/profile',
   myListings: '/my-listings',
+  myListingCreate: '/my-listings/new',
+  myListingEdit: '/my-listings/:listingId/edit',
   myOrders: '/my-orders',
   sellerSoldOrders: '/seller/sold-orders',
   paymentReturn: '/payment/return',
@@ -16,3 +18,4 @@ export const ROUTES = {
 } as const;
 
 export const getListingDetailsRoute = (listingId: string): string => `${ROUTES.marketplace}/${listingId}`;
+export const getMyListingEditRoute = (listingId: string): string => `${ROUTES.myListings}/${listingId}/edit`;

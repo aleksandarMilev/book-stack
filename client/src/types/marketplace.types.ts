@@ -17,6 +17,7 @@ export interface MarketplaceListing {
   description: string;
   imageUrl: string;
   isApproved: boolean;
+  rejectionReason?: string | null;
   createdOn: string;
   modifiedOn?: string | null;
   price: PriceDisplayValue;
