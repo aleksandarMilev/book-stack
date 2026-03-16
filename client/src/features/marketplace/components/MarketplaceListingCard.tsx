@@ -15,15 +15,25 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
 
   return (
     <Card className="marketplace-listing-card" elevated>
+      {listing.imageUrl ? (
+        <img
+          alt={t('marketplace.listingImageAlt', { title: listing.title })}
+          className="marketplace-listing-image"
+          src={listing.imageUrl}
+        />
+      ) : (
+        <div className="marketplace-listing-image-placeholder" />
+      )}
+
       <div className="marketplace-listing-top">
         <Badge variant="success">{t(`taxonomy.conditions.${listing.condition}`)}</Badge>
         <PriceDisplay className="marketplace-listing-price" value={listing.price} />
       </div>
 
-      <h3>{t(listing.titleKey)}</h3>
-      <p className="marketplace-listing-author">{t(listing.authorKey)}</p>
+      <h3>{listing.title}</h3>
+      <p className="marketplace-listing-author">{listing.author}</p>
       <p className="marketplace-listing-meta">
-        {t(`taxonomy.genres.${listing.genre}`)} | {t(listing.cityKey)}
+        {listing.genre}
       </p>
 
       <Link to={getListingDetailsRoute(listing.id)}>

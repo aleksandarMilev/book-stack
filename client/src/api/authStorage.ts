@@ -1,3 +1,4 @@
+import { isExpirationIsoExpired, mapJwtToSession } from '@/features/auth/utils/jwtSession';
 import type { AuthSession, UserRole } from '@/types/auth.types';
 
 const AUTH_STORAGE_KEY = 'bookstack.auth.session';
@@ -17,6 +18,11 @@ const normalizeSession = (value: unknown): AuthSession | null => {
     return null;
   }
 
+  const mappedSession = mapJwtToSession(candidate.accessToken);
+  if (!mappedSession) {
+    return null;
+  }
+
   const userCandidate =
     candidate.user && typeof candidate.user === 'object'
       ? (candidate.user as Record<string, unknown>)
@@ -24,10 +30,10 @@ const normalizeSession = (value: unknown): AuthSession | null => {
 
   if (userCandidate && isUserRole(userCandidate.role) && typeof userCandidate.id === 'string') {
     return {
-      accessToken: candidate.accessToken,
+      ...mappedSession,
       ...(typeof candidate.refreshToken === 'string' ? { refreshToken: candidate.refreshToken } : {}),
-      ...(typeof candidate.expiresAtUtc === 'string' ? { expiresAtUtc: candidate.expiresAtUtc } : {}),
       user: {
+        ...mappedSession.user,
         id: userCandidate.id,
         role: userCandidate.role,
         ...(typeof userCandidate.displayName === 'string' ? { displayName: userCandidate.displayName } : {}),
@@ -38,16 +44,21 @@ const normalizeSession = (value: unknown): AuthSession | null => {
 
   if (isUserRole(candidate.role)) {
     return {
-      accessToken: candidate.accessToken,
+      ...mappedSession,
       ...(typeof candidate.refreshToken === 'string' ? { refreshToken: candidate.refreshToken } : {}),
       user: {
-        id: 'legacy-user',
+        ...mappedSession.user,
+        id: mappedSession.user.id || 'legacy-user',
         role: candidate.role,
       },
     };
   }
 
-  return null;
+  if (isExpirationIsoExpired(mappedSession.expiresAtUtc)) {
+    return null;
+  }
+
+  return mappedSession;
 };
 
 export const authStorage = {
@@ -62,7 +73,13 @@ export const authStorage = {
     }
 
     try {
-      return normalizeSession(JSON.parse(rawValue));
+      const normalizedSession = normalizeSession(JSON.parse(rawValue));
+
+      if (!normalizedSession) {
+        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+
+      return normalizedSession;
     } catch {
       window.localStorage.removeItem(AUTH_STORAGE_KEY);
       return null;

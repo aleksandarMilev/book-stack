@@ -2,11 +2,13 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 
 import { authStorage } from '@/api/authStorage';
+import { isExpirationIsoExpired, mapJwtToSession } from '@/features/auth/utils/jwtSession';
 import type { AuthCapabilities, AuthSession, UserRole } from '@/types/auth.types';
 
 interface AuthState {
   session: AuthSession | null;
   setSession: (session: AuthSession) => void;
+  setSessionFromToken: (token: string) => boolean;
   clearSession: () => void;
 }
 
@@ -27,20 +29,39 @@ const hasRoleAccess = (role: UserRole | undefined, requiredRole: UserRole): bool
 };
 
 export const deriveAuthCapabilities = (session: AuthSession | null): AuthCapabilities => {
+  const isAuthenticated = Boolean(session?.accessToken) && !isExpirationIsoExpired(session?.expiresAtUtc);
   const role = session?.user.role;
 
   return {
-    isAuthenticated: Boolean(session?.accessToken),
-    canAccessSellerArea: hasRoleAccess(role, 'seller'),
-    canAccessAdminArea: hasRoleAccess(role, 'admin'),
+    isAuthenticated,
+    canAccessSellerArea: isAuthenticated && hasRoleAccess(role, 'seller'),
+    canAccessAdminArea: isAuthenticated && hasRoleAccess(role, 'admin'),
   };
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
   session: authStorage.getSession(),
   setSession: (session) => {
+    if (isExpirationIsoExpired(session.expiresAtUtc)) {
+      authStorage.clearSession();
+      set({ session: null });
+      return;
+    }
+
     authStorage.setSession(session);
     set({ session });
+  },
+  setSessionFromToken: (token) => {
+    const session = mapJwtToSession(token);
+    if (!session) {
+      authStorage.clearSession();
+      set({ session: null });
+      return false;
+    }
+
+    authStorage.setSession(session);
+    set({ session });
+    return true;
   },
   clearSession: () => {
     authStorage.clearSession();

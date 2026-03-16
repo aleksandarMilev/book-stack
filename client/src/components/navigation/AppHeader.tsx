@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { Button, Container } from '@/components/ui';
+import { authService } from '@/features/auth/services/auth.service';
 import { useDisclosure } from '@/hooks/useDisclosure';
 import { ROUTES } from '@/routes/paths';
 import { useAuthCapabilities, useAuthStore } from '@/store/auth.store';
@@ -94,6 +95,11 @@ export function AppHeader() {
   const desktopQuickItems = isAuthenticated ? userItems : guestItems;
   const mobileAccountItems = isAuthenticated ? userItems : guestItems;
 
+  const handleLogout = (): void => {
+    authService.logout();
+    close();
+  };
+
   return (
     <header className="site-header">
       <Container className="site-header-main">
@@ -116,6 +122,11 @@ export function AppHeader() {
             {desktopQuickItems.map((item) => (
               <HeaderLink key={item.to} labelKey={item.labelKey} to={item.to} />
             ))}
+            {isAuthenticated ? (
+              <Button onClick={handleLogout} size="sm" variant="ghost">
+                {t('common.actions.logout')}
+              </Button>
+            ) : null}
           </nav>
           <LanguageSwitcher compact />
           <Button aria-expanded={isOpen} className="mobile-menu-button" onClick={toggle} variant="ghost">
@@ -156,6 +167,11 @@ export function AppHeader() {
           ) : null}
           {capabilities.canAccessAdminArea ? (
             <HeaderGroup items={adminItems} onItemClick={close} title={t('shell.adminArea')} />
+          ) : null}
+          {isAuthenticated ? (
+            <Button fullWidth onClick={handleLogout} variant="secondary">
+              {t('common.actions.logout')}
+            </Button>
           ) : null}
           <LanguageSwitcher />
         </div>

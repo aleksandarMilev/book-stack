@@ -3,9 +3,9 @@ import type { InputHTMLAttributes } from 'react';
 import { classNames } from '@/utils/classNames';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  hint?: string;
-  error?: string;
+  label?: string | undefined;
+  hint?: string | undefined;
+  error?: string | undefined;
 }
 
 export function Input({ className, label, hint, error, id, ...props }: InputProps) {

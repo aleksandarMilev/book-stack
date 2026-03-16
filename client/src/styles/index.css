@@ -556,6 +556,59 @@ select {
   padding-top: var(--space-4);
 }
 
+.auth-page {
+  align-items: start;
+  display: grid;
+  justify-content: center;
+  padding-top: var(--space-4);
+}
+
+.auth-card {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 32rem;
+  width: min(100%, 32rem);
+}
+
+.auth-card h1 {
+  font-size: clamp(1.7rem, 1.3rem + 1vw, 2.2rem);
+}
+
+.auth-card > p {
+  color: var(--color-text-muted);
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.auth-remember {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.auth-remember input {
+  accent-color: var(--color-primary);
+}
+
+.auth-error {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.auth-switch-text {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.auth-switch-link {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 .home-page {
   display: grid;
   gap: var(--space-2);
@@ -759,6 +812,11 @@ select {
   font-size: 1rem;
 }
 
+.marketplace-price-range {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .marketplace-filters-options {
   display: grid;
   gap: var(--space-2);
@@ -795,6 +853,19 @@ select {
 .marketplace-listing-card {
   display: grid;
   gap: var(--space-3);
+}
+
+.marketplace-listing-image {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  width: 100%;
+}
+
+.marketplace-listing-image-placeholder {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(140deg, rgba(29, 104, 91, 0.16), rgba(154, 106, 51, 0.16));
+  border-radius: var(--radius-md);
 }
 
 .marketplace-listing-top {
@@ -835,6 +906,147 @@ select {
 .marketplace-listing-meta {
   color: var(--color-text-muted);
   font-size: 0.9rem;
+}
+
+.marketplace-pagination {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-5);
+}
+
+.marketplace-pagination p {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.listing-details-page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.listing-details-layout {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.listing-details-media,
+.listing-details-content {
+  height: 100%;
+}
+
+.listing-details-image {
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  width: 100%;
+}
+
+.listing-details-image-placeholder {
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(140deg, rgba(29, 104, 91, 0.16), rgba(154, 106, 51, 0.16));
+  border-radius: var(--radius-md);
+}
+
+.listing-details-content {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.listing-details-genre {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.listing-details-content h1 {
+  font-size: clamp(1.7rem, 1.25rem + 1.4vw, 2.5rem);
+}
+
+.listing-details-author {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.listing-details-price {
+  align-items: start;
+}
+
+.listing-details-metadata {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: auto 1fr;
+  margin: 0;
+}
+
+.listing-details-metadata dt {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.listing-details-metadata dd {
+  margin: 0;
+}
+
+.listing-details-description {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.listing-details-description p {
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+
+.listing-details-actions {
+  display: flex;
+  justify-content: start;
+}
+
+.books-page {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.books-toolbar {
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.books-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.book-card {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.book-card h3 {
+  font-size: 1.12rem;
+}
+
+.book-card-author {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.book-card-genre {
+  color: var(--color-text-muted);
+}
+
+.book-card-meta {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.book-card-description {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
 }
 
 .marketplace-desktop-filters {
@@ -932,7 +1144,15 @@ select {
   }
 
   .marketplace-toolbar {
-    grid-template-columns: minmax(0, 1.5fr) minmax(12rem, 1fr) auto;
+    grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(10rem, 0.8fr)) auto;
+  }
+
+  .marketplace-price-range {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .listing-details-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   }
 }
 
