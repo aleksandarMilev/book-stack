@@ -27,6 +27,7 @@ public static class Constants
 
 		public const int CurrencyMinLength = 3;
 		public const int CurrencyMaxLength = 3;
+		public const int GuestPaymentTokenHashLength = 64;
 
 		public const int MinItemsCount = 1;
 		public const int MaxItemsCount = 20;
@@ -49,5 +50,10 @@ public static class Constants
 	public static class Pagination
 	{
 		public const int MaxPageSize = 100;
+	}
+
+	public static class Reservation
+	{
+		public const int DefaultDurationMinutes = 30;
 	}
 }

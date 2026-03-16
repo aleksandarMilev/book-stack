@@ -128,11 +128,25 @@ public class BookService(
     public async Task<BookServiceModel?> Details(
         Guid bookId,
         CancellationToken cancellationToken = default)
-        => await this
+    {
+        var currentUserId = this._userService.GetId();
+        var currentUserIsAdmin = this._userService.IsAdmin();
+
+        var query = this
             .AllBooksAsNoTracking()
-            .Where(b => b.Id == bookId)
+            .Where(b => b.Id == bookId);
+
+        if (!currentUserIsAdmin)
+        {
+            query = currentUserId is null
+                ? query.Where(b => b.IsApproved)
+                : query.Where(b => b.IsApproved || b.CreatorId == currentUserId);
+        }
+
+        return await query
             .ToServiceModels()
             .SingleOrDefaultAsync(cancellationToken);
+    }
 
     public async Task<ResultWith<Guid>> Create(
         CreateBookServiceModel model,
@@ -144,39 +158,41 @@ public class BookService(
             return ErrorMessages.CurrentUserNotAuthenticated;
         }
 
-        var normalizedTitle = model.Title.Trim();
-        var normalizedAuthor = model.Author.Trim();
-        var normalizedIsbn = string.IsNullOrWhiteSpace(model.Isbn)
+        var title = model.Title.Trim();
+        var author = model.Author.Trim();
+        var isbn = string.IsNullOrWhiteSpace(model.Isbn)
             ? null
             : model.Isbn.Trim();
+        var normalizedTitle = BookMapping.NormalizeIdentityText(model.Title);
+        var normalizedAuthor = BookMapping.NormalizeIdentityText(model.Author);
+        var normalizedIsbn = BookMapping.NormalizeIdentityIsbn(model.Isbn);
 
         var existingQuery = this._data
             .Books
-            .IgnoreQueryFilters()
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(normalizedIsbn))
         {
             var isbnExists = await existingQuery
                 .AnyAsync(
-                    b => b.Isbn != null && b.Isbn == normalizedIsbn,
+                    b => b.NormalizedIsbn == normalizedIsbn,
                     cancellationToken);
 
             if (isbnExists)
             {
-                return $"Book with ISBN '{normalizedIsbn}' already exists.";
+                return $"Book with ISBN '{isbn}' already exists.";
             }
         }
         else
         {
             var titleAuthorAndAuthorExists = await existingQuery
                 .AnyAsync(
-                    b => b.Title == normalizedTitle && b.Author == normalizedAuthor,
+                    b => b.NormalizedTitle == normalizedTitle && b.NormalizedAuthor == normalizedAuthor,
                     cancellationToken);
 
             if (titleAuthorAndAuthorExists)
             {
-                return $"Book '{normalizedTitle}' by '{normalizedAuthor}' already exists.";
+                return $"Book '{title}' by '{author}' already exists.";
             }
         }
 
@@ -207,7 +223,6 @@ public class BookService(
 
         var dbModel = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == bookId,
                 cancellationToken);
@@ -227,39 +242,41 @@ public class BookService(
                 bookId);
         }
 
-        var normalizedTitle = model.Title.Trim();
-        var normalizedAuthor = model.Author.Trim();
-        var normalizedIsbn = string.IsNullOrWhiteSpace(model.Isbn)
+        var title = model.Title.Trim();
+        var author = model.Author.Trim();
+        var isbn = string.IsNullOrWhiteSpace(model.Isbn)
             ? null
             : model.Isbn.Trim();
+        var normalizedTitle = BookMapping.NormalizeIdentityText(model.Title);
+        var normalizedAuthor = BookMapping.NormalizeIdentityText(model.Author);
+        var normalizedIsbn = BookMapping.NormalizeIdentityIsbn(model.Isbn);
 
         var existingQuery = this._data
             .Books
-            .IgnoreQueryFilters()
             .Where(b => b.Id != bookId);
 
         if (!string.IsNullOrWhiteSpace(normalizedIsbn))
         {
             var isbnExists = await existingQuery
                 .AnyAsync(
-                    b => b.Isbn != null && b.Isbn == normalizedIsbn,
+                    b => b.NormalizedIsbn == normalizedIsbn,
                     cancellationToken);
 
             if (isbnExists)
             {
-                return $"Book with ISBN '{normalizedIsbn}' already exists.";
+                return $"Book with ISBN '{isbn}' already exists.";
             }
         }
         else
         {
             var titleAndAuthorExists = await existingQuery
                 .AnyAsync(
-                    b => b.Title == normalizedTitle && b.Author == normalizedAuthor,
+                    b => b.NormalizedTitle == normalizedTitle && b.NormalizedAuthor == normalizedAuthor,
                     cancellationToken);
 
             if (titleAndAuthorExists)
             {
-                return $"Book '{normalizedTitle}' by '{normalizedAuthor}' already exists.";
+                return $"Book '{title}' by '{author}' already exists.";
             }
         }
 
@@ -287,7 +304,6 @@ public class BookService(
 
         var dbModel = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == bookId,
                 cancellationToken);
@@ -336,7 +352,6 @@ public class BookService(
     {
         var book = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == bookId,
                 cancellationToken);
@@ -368,7 +383,6 @@ public class BookService(
     {
         var book = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == bookId,
                 cancellationToken);
@@ -555,7 +569,7 @@ public class BookService(
         };
 
     private static string NormalizeSearchFilter(string filter)
-        => filter.Trim().ToLower();
+        => filter.Trim();
 
     private string LogAndReturnNotFoundMessage(Guid bookId)
     {

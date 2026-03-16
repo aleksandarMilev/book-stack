@@ -71,6 +71,17 @@ public sealed class OrderDbModelConfiguration : IEntityTypeConfiguration<OrderDb
             .IsRequired();
 
         builder
+            .Property(static o => o.GuestPaymentTokenHash)
+            .HasMaxLength(Validation.GuestPaymentTokenHashLength);
+
+        builder
+            .Property(static o => o.ReservationExpiresOnUtc)
+            .IsRequired();
+
+        builder
+            .Property(static o => o.ReservationReleasedOnUtc);
+
+        builder
             .Property(static o => o.IsDeleted)
             .IsRequired()
             .HasDefaultValue(false);
@@ -92,6 +103,9 @@ public sealed class OrderDbModelConfiguration : IEntityTypeConfiguration<OrderDb
 
         builder
             .HasIndex(static o => o.PaymentStatus);
+
+        builder
+            .HasIndex(static o => o.ReservationExpiresOnUtc);
 
         builder
             .HasIndex(static o => o.CreatedOn);

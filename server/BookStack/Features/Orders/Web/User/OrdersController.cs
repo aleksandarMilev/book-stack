@@ -13,20 +13,22 @@ using Shared;
 [Route("[controller]")]
 public class OrdersController(IOrderService service) : ControllerBase
 {
+    private readonly IOrderService _service = service;
+
     [AllowAnonymous]
     [HttpPost]
-    public async Task<ActionResult<Guid>> Create(
+    public async Task<ActionResult<CreateOrderResultWebModel>> Create(
         CreateOrderWebModel webModel,
         CancellationToken cancellationToken = default)
     {
         var serviceModel = webModel.ToCreateServiceModel();
-        var result = await service.Create(
+        var result = await this._service.Create(
             serviceModel,
             cancellationToken);
 
         return this.OkOrBadRequest(
             result,
-            static id => id);
+            static createResult => createResult.ToWebModel());
     }
 
     [Authorize]
@@ -36,7 +38,21 @@ public class OrdersController(IOrderService service) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var serviceModel = webModel.ToFilterServiceModel();
-        var result = await service.Mine(
+        var result = await this._service.Mine(
+            serviceModel,
+            cancellationToken);
+
+        return this.Ok(result);
+    }
+
+    [Authorize]
+    [HttpGet(ApiRoutes.Sold)]
+    public async Task<ActionResult<PaginatedModel<SellerOrderServiceModel>>> Sold(
+        [FromQuery] OrderFilterWebModel webModel,
+        CancellationToken cancellationToken = default)
+    {
+        var serviceModel = webModel.ToFilterServiceModel();
+        var result = await this._service.Sold(
             serviceModel,
             cancellationToken);
 
@@ -48,5 +64,12 @@ public class OrdersController(IOrderService service) : ControllerBase
     public async Task<ActionResult<OrderServiceModel>> Details(
         Guid id,
         CancellationToken cancellationToken = default)
-        => this.Ok(await service.Details(id, cancellationToken));
+        => this.Ok(await this._service.Details(id, cancellationToken));
+
+    [Authorize]
+    [HttpGet($"{ApiRoutes.Sold}{Common.Constants.ApiRoutes.Id}")]
+    public async Task<ActionResult<SellerOrderServiceModel>> SoldDetails(
+        Guid id,
+        CancellationToken cancellationToken = default)
+        => this.Ok(await this._service.SoldDetails(id, cancellationToken));
 }

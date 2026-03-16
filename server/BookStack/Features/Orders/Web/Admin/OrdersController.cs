@@ -11,13 +11,15 @@ using Web.Models;
 
 public class OrdersController(IOrderService service) : AdminApiController
 {
+    private readonly IOrderService _service = service;
+
     [HttpGet]
     public async Task<ActionResult<PaginatedModel<OrderServiceModel>>> All(
         [FromQuery] OrderFilterWebModel webModel,
         CancellationToken cancellationToken = default)
     {
         var serviceModel = webModel.ToFilterServiceModel();
-        var result = await service.All(
+        var result = await this._service.All(
             serviceModel,
             cancellationToken);
 
@@ -28,7 +30,7 @@ public class OrdersController(IOrderService service) : AdminApiController
     public async Task<ActionResult<OrderServiceModel>> Details(
         Guid id,
         CancellationToken cancellationToken = default)
-        => this.Ok(await service.Details(id, cancellationToken));
+        => this.Ok(await this._service.Details(id, cancellationToken));
 
     [HttpPut(ApiRoutes.Status)]
     public async Task<ActionResult> ChangeStatus(
@@ -36,7 +38,7 @@ public class OrdersController(IOrderService service) : AdminApiController
         ChangeOrderStatusWebModel webModel,
         CancellationToken cancellationToken = default)
     {
-        var result = await service.ChangeStatus(
+        var result = await this._service.ChangeStatus(
             id,
             webModel.Status,
             cancellationToken);
@@ -50,7 +52,7 @@ public class OrdersController(IOrderService service) : AdminApiController
         ChangePaymentStatusWebModel webModel,
         CancellationToken cancellationToken = default)
     {
-        var result = await service.ChangePaymentStatus(
+        var result = await this._service.ChangePaymentStatus(
             id,
             webModel.PaymentStatus,
             cancellationToken);

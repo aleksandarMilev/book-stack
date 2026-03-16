@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Data;
 using Features.Identity.Data.Models;
+using Features.Payments.Service;
+using Features.Payments.Service.Providers;
 using Filters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
@@ -370,6 +372,7 @@ public static class ServiceCollectionExtensions
                 });
 
             services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
+            services.AddScoped<IPaymentProvider, MockPaymentProvider>();
 
             return services;
         }

@@ -10,6 +10,10 @@ public class BookDbModel:
 
     public string Author { get; set; } = default!;
 
+    public string NormalizedTitle { get; set; } = default!;
+
+    public string NormalizedAuthor { get; set; } = default!;
+
     public string Genre { get; set; } = default!;
 
     public string? Description { get; set; }
@@ -19,6 +23,8 @@ public class BookDbModel:
     public DateOnly? PublishedOn { get; set; }
 
     public string? Isbn { get; set; }
+
+    public string? NormalizedIsbn { get; set; }
 
     public string CreatorId { get; set; } = default!;
 

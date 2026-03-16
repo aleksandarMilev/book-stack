@@ -93,13 +93,16 @@ public static class AppBuilderExtensions
             var identityService = services
                 .GetRequiredService<IIdentityService>();
 
+            var config = services
+                .GetRequiredService<IConfiguration>();
+
             var serviceModel = new RegisterServiceModel()
             {
-                Username = "mileww.sasho",
-                Email = "aleksandarmilev23@gmail.com",
-                Password = "123456",
-                FirstName = "Alexandar",
-                LastName = "Milev",
+                Username = config["BootstrapSeedUser:Username"] ?? "seed-user",
+                Email = config["BootstrapSeedUser:Email"] ?? "seed-user@localhost",
+                Password = config["BootstrapSeedUser:Password"] ?? "ChangeMe123!",
+                FirstName = config["BootstrapSeedUser:FirstName"] ?? "Seed",
+                LastName = config["BootstrapSeedUser:LastName"] ?? "User",
                 Image = null,
             };
 
@@ -134,16 +137,19 @@ public static class AppBuilderExtensions
 
             await roleManager.CreateAsync(role);
 
-            const string AdminEmail = "admin@mail.com";
-            const string AdminPassword = "admin1234";
+            var config = services
+                .GetRequiredService<IConfiguration>();
+
+            var adminEmail = config["BootstrapAdmin:DevEmail"] ?? "admin@localhost";
+            var adminPassword = config["BootstrapAdmin:DevPassword"] ?? "ChangeMe123!";
 
             var user = new UserDbModel
             {
-                Email = AdminEmail,
+                Email = adminEmail,
                 UserName = Names.AdminRoleName
             };
 
-            await userManager.CreateAsync(user, AdminPassword);
+            await userManager.CreateAsync(user, adminPassword);
             await userManager.AddToRoleAsync(user, role.Name);
 
             return app;

@@ -31,5 +31,11 @@ public class OrderDbModel : DeletableEntity<Guid>
 
     public PaymentStatus PaymentStatus { get; set; }
 
+    public string? GuestPaymentTokenHash { get; set; }
+
+    public DateTime ReservationExpiresOnUtc { get; set; }
+
+    public DateTime? ReservationReleasedOnUtc { get; set; }
+
     public ICollection<OrderItemDbModel> Items { get; init; } = [];
 }

@@ -180,6 +180,20 @@ namespace BookStack.Data.Migrations
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("NormalizedAuthor")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NormalizedIsbn")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("NormalizedTitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<DateOnly?>("PublishedOn")
                         .HasColumnType("date");
 
@@ -207,11 +221,19 @@ namespace BookStack.Data.Migrations
 
                     b.HasIndex("Isbn");
 
+                    b.HasIndex("NormalizedIsbn")
+                        .IsUnique()
+                        .HasFilter("[NormalizedIsbn] IS NOT NULL AND [IsDeleted] = 0");
+
                     b.HasIndex("PublishedOn");
 
                     b.HasIndex("Publisher");
 
                     b.HasIndex("Title");
+
+                    b.HasIndex("NormalizedTitle", "NormalizedAuthor")
+                        .IsUnique()
+                        .HasFilter("[NormalizedIsbn] IS NULL AND [IsDeleted] = 0");
 
                     b.ToTable("Books");
                 });
@@ -363,6 +385,10 @@ namespace BookStack.Data.Migrations
                         .HasMaxLength(254)
                         .HasColumnType("nvarchar(254)");
 
+                    b.Property<string>("GuestPaymentTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -385,6 +411,12 @@ namespace BookStack.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime>("ReservationExpiresOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReservationReleasedOnUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -401,6 +433,8 @@ namespace BookStack.Data.Migrations
                     b.HasIndex("Email");
 
                     b.HasIndex("PaymentStatus");
+
+                    b.HasIndex("ReservationExpiresOnUtc");
 
                     b.HasIndex("Status");
 
@@ -517,6 +551,181 @@ namespace BookStack.Data.Migrations
                     b.HasIndex("SellerId");
 
                     b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("BookStack.Features.Payments.Data.Models.PaymentDbModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("CanceledOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FailedOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastEventOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastProviderEventId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ProviderPaymentId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("RefundedOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedOn");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Provider", "ProviderPaymentId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("BookStack.Features.Payments.Data.Models.PaymentWebhookEventDbModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Payload")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ProcessedOnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ProcessingResult")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ProviderEventId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ProviderPaymentId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("ProcessedOnUtc");
+
+                    b.HasIndex("Provider", "ProviderEventId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("PaymentWebhookEvents");
                 });
 
             modelBuilder.Entity("BookStack.Features.UserProfile.Data.Models.UserProfileDbModel", b =>
@@ -735,6 +944,34 @@ namespace BookStack.Data.Migrations
                     b.Navigation("Listing");
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("BookStack.Features.Payments.Data.Models.PaymentDbModel", b =>
+                {
+                    b.HasOne("BookStack.Features.Orders.Data.Models.OrderDbModel", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("BookStack.Features.Payments.Data.Models.PaymentWebhookEventDbModel", b =>
+                {
+                    b.HasOne("BookStack.Features.Orders.Data.Models.OrderDbModel", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BookStack.Features.Payments.Data.Models.PaymentDbModel", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("BookStack.Features.UserProfile.Data.Models.UserProfileDbModel", b =>

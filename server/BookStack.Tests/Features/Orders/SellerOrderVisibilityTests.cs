@@ -1,0 +1,205 @@
+namespace BookStack.Tests.Features.Orders;
+
+using BookStack.Features.Orders.Service.Models;
+using BookStack.Tests.TestInfrastructure;
+using BookStack.Features.BookListings.Data.Models;
+using BookStack.Data;
+
+public class SellerOrderVisibilityTests
+{
+    [Fact]
+    public async Task SellerViews_ShowOnlyOrdersContainingSellersItems_AndDetailsContainOnlySellerItems()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService
+        {
+            UserId = "buyer-1",
+            Username = "buyer-1",
+        };
+
+        var utc = new DateTime(2026, 03, 10, 0, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var sellerAListing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-a",
+            title: "Seller A Book");
+
+        var sellerBListing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-b",
+            title: "Seller B Book");
+
+        var createMixedOrderServiceModel = MarketplaceTestData.CreateOrderModel(
+            (sellerAListing.Id, 1),
+            (sellerBListing.Id, 1));
+
+        var mixedOrderResult = await orderService.Create(
+           createMixedOrderServiceModel,
+           CancellationToken.None);
+
+        var sellerBOnlyCreateServiceModel = MarketplaceTestData
+            .CreateOrderModel((sellerBListing.Id, 1));
+
+        var sellerBOnlyOrderResult = await orderService.Create(
+            sellerBOnlyCreateServiceModel,
+            CancellationToken.None);
+
+        currentUserService.UserId = "seller-a";
+        currentUserService.Username = "seller-a";
+        currentUserService.Admin = false;
+
+        var filterServiceModel = new OrderFilterServiceModel();
+        var soldOrders = await orderService.Sold(
+            filterServiceModel,
+            CancellationToken.None);
+
+        var soldOrderDetails = await orderService.SoldDetails(
+            mixedOrderResult.Data!.OrderId,
+            CancellationToken.None);
+
+        var forbiddenOrderDetails = await orderService.SoldDetails(
+            sellerBOnlyOrderResult.Data!.OrderId,
+            CancellationToken.None);
+
+        Assert.Equal(1, soldOrders.TotalItems);
+        Assert.Single(soldOrders.Items);
+        Assert.Equal(
+            mixedOrderResult.Data.OrderId,
+            soldOrders.Items.Single().Id);
+
+        Assert.NotNull(soldOrderDetails);
+        Assert.Single(soldOrderDetails!.Items);
+        Assert.Equal(
+            sellerAListing.Id,
+            soldOrderDetails.Items.Single().ListingId);
+
+        Assert.Null(forbiddenOrderDetails);
+    }
+
+    [Fact]
+    public async Task BuyerAndAdminViews_AreUnaffectedBySellerFiltering()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService
+        {
+            UserId = "buyer-1",
+            Username = "buyer-1",
+        };
+
+        var utc = new DateTime(2026, 03, 11, 0, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var sellerAListing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-a",
+            title: "Seller A Book");
+
+        var sellerBListing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-b",
+            title: "Seller B Book");
+
+        var mixedOrderCreateServiceModel = MarketplaceTestData.CreateOrderModel(
+            (sellerAListing.Id, 1),
+            (sellerBListing.Id, 1));
+
+        var mixedOrderResult = await orderService.Create(
+            mixedOrderCreateServiceModel,
+            CancellationToken.None);
+
+        var sellerBOnlyCreateServiceModel = MarketplaceTestData
+            .CreateOrderModel((sellerBListing.Id, 1));
+
+        var sellerBOnlyOrderResult = await orderService.Create(
+            sellerBOnlyCreateServiceModel,
+            CancellationToken.None);
+
+        var buyerOrdersFilterServiceModel = new OrderFilterServiceModel();
+        var buyerOrders = await orderService.Mine(
+            buyerOrdersFilterServiceModel,
+            CancellationToken.None);
+
+        var buyerOrderDetails = await orderService.Details(
+            mixedOrderResult.Data!.OrderId,
+            CancellationToken.None);
+
+        currentUserService.UserId = "admin-1";
+        currentUserService.Username = "admin-1";
+        currentUserService.Admin = true;
+
+        var adminOrdersFilterServiceModel = new OrderFilterServiceModel();
+        var adminOrders = await orderService.All(
+            adminOrdersFilterServiceModel,
+            CancellationToken.None);
+
+        var adminOrderDetails = await orderService.Details(
+            mixedOrderResult.Data.OrderId,
+            CancellationToken.None);
+
+        Assert.Equal(2, buyerOrders.TotalItems);
+        Assert.NotNull(buyerOrderDetails);
+        Assert.Equal(2, buyerOrderDetails!.Items.Count());
+        Assert.Contains(
+            buyerOrders.Items,
+            o => o.Id == sellerBOnlyOrderResult.Data!.OrderId);
+
+        Assert.Equal(2, adminOrders.TotalItems);
+        Assert.NotNull(adminOrderDetails);
+        Assert.Equal(2, adminOrderDetails!.Items.Count());
+    }
+
+    private static async Task<BookListingDbModel> SeedApprovedListing(
+        BookStackDbContext data,
+        string sellerId,
+        string title)
+    {
+        var book = MarketplaceTestData.CreateApprovedBook(
+            creatorId: sellerId,
+            title,
+            author: "Seller Author");
+
+        data.Add(book);
+        await data.SaveChangesAsync();
+
+        var listing = MarketplaceTestData.CreateApprovedListing(
+            book.Id,
+            creatorId: sellerId,
+            quantity: 10);
+
+        data.Add(listing);
+        await data.SaveChangesAsync(CancellationToken.None);
+
+        return listing;
+    }
+}

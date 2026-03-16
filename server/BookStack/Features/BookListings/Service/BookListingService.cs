@@ -136,11 +136,25 @@ public class BookListingService(
     public async Task<BookListingServiceModel?> Details(
         Guid id,
         CancellationToken cancellationToken = default)
-        => await this
+    {
+        var currentUserId = this._userService.GetId();
+        var currentUserIsAdmin = this._userService.IsAdmin();
+
+        var query = this
             .AllListingsAsNoTracking()
-            .Where(l => l.Id == id)
+            .Where(l => l.Id == id);
+
+        if (!currentUserIsAdmin)
+        {
+            query = currentUserId is null
+                ? query.Where(l => l.IsApproved && l.Book.IsApproved)
+                : query.Where(l => (l.IsApproved && l.Book.IsApproved) || l.CreatorId == currentUserId);
+        }
+
+        return await query
             .ToServiceModels()
             .SingleOrDefaultAsync(cancellationToken);
+    }
 
     public async Task<ResultWith<Guid>> Create(
         CreateBookListingServiceModel model,
@@ -154,12 +168,11 @@ public class BookListingService(
 
         var book = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == model.BookId,
                 cancellationToken);
 
-        if (book is null || book.IsDeleted)
+        if (book is null)
         {
             return string.Format(
                 ErrorMessages.DbEntityNotFound,
@@ -168,9 +181,9 @@ public class BookListingService(
         }
 
         var currentUserIsAdmin = this._userService.IsAdmin();
-        var currentUserIsCreator = book.CreatorId == creatorId;
+        var currentUserIsBookCreator = book.CreatorId == creatorId;
 
-        if (!book.IsApproved && !currentUserIsAdmin && !currentUserIsCreator)
+        if (!book.IsApproved && !currentUserIsAdmin && !currentUserIsBookCreator)
         {
             return "Book listing can only be created for an approved book.";
         }
@@ -209,7 +222,6 @@ public class BookListingService(
 
         var dbModel = await this._data
             .BookListings
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 l => l.Id == id,
                 cancellationToken);
@@ -219,22 +231,21 @@ public class BookListingService(
             return this.LogAndReturnNotFoundMessage(id);
         }
 
-        var userIsNotAdmin = !this._userService.IsAdmin();
-        var userIsNotCreator = dbModel!.CreatorId != currentUserId;
+        var currentUserIsAdmin = this._userService.IsAdmin();
+        var currentUserIsListingCreator = dbModel!.CreatorId == currentUserId;
 
-        if (userIsNotAdmin && userIsNotCreator)
+        if (!currentUserIsAdmin && !currentUserIsListingCreator)
         {
             return this.LogAndReturnUnauthorizedMessage(currentUserId, id);
         }
 
         var book = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == model.BookId,
                 cancellationToken);
 
-        if (book is null || book.IsDeleted)
+        if (book is null)
         {
             return string.Format(
                 ErrorMessages.DbEntityNotFound,
@@ -242,7 +253,9 @@ public class BookListingService(
                 model.BookId);
         }
 
-        if (!book.IsApproved && userIsNotAdmin && userIsNotCreator)
+        var currentUserIsBookCreator = book.CreatorId == currentUserId;
+
+        if (!book.IsApproved && !currentUserIsAdmin && !currentUserIsBookCreator)
         {
             return "Book listing can only be assigned to an approved book.";
         }
@@ -320,7 +333,6 @@ public class BookListingService(
 
         var dbModel = await this._data
             .BookListings
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 l => l.Id == id,
                 cancellationToken);
@@ -368,7 +380,6 @@ public class BookListingService(
     {
         var listing = await this._data
             .BookListings
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 l => l.Id == id,
                 cancellationToken);
@@ -380,12 +391,11 @@ public class BookListingService(
 
         var book = await this._data
             .Books
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 b => b.Id == listing!.BookId,
                 cancellationToken);
 
-        if (book is null || book.IsDeleted || !book.IsApproved)
+        if (book is null || !book.IsApproved)
         {
             return "Book listing can not be approved because its book is not approved.";
         }
@@ -412,7 +422,6 @@ public class BookListingService(
     {
         var listing = await this._data
             .BookListings
-            .IgnoreQueryFilters()
             .SingleOrDefaultAsync(
                 l => l.Id == id,
                 cancellationToken);
@@ -453,7 +462,7 @@ public class BookListingService(
         var listingsQuery = this._data
             .BookListings
             .AsNoTracking()
-            .Where(l => l.IsApproved);
+            .Where(l => l.IsApproved && l.Book.IsApproved);
 
         if (!string.IsNullOrWhiteSpace(query))
         {
@@ -486,7 +495,7 @@ public class BookListingService(
         if (forceOnlyApprovedForPublic)
         {
             query = query
-                .Where(l => l.IsApproved);
+                .Where(l => l.IsApproved && l.Book.IsApproved);
         }
         else if (filter.IsApproved.HasValue)
         {
@@ -508,44 +517,50 @@ public class BookListingService(
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
+            var normalizedSearchTerm = NormalizeSearchFilter(filter.SearchTerm);
             query = query.Where(l =>
-                EF.Functions.Like(l.Book.Title, $"%{filter.SearchTerm}%") ||
-                EF.Functions.Like(l.Book.Author, $"%{filter.SearchTerm}%") ||
-                EF.Functions.Like(l.Book.Genre, $"%{filter.SearchTerm}%") ||
-                EF.Functions.Like(l.Description, $"%{filter.SearchTerm}%") ||
-                (l.Book.Publisher != null && EF.Functions.Like(l.Book.Publisher, $"%{filter.SearchTerm}%")) ||
-                (l.Book.Isbn != null && EF.Functions.Like(l.Book.Isbn, $"%{filter.SearchTerm}%")) ||
-                EF.Functions.Like(l.CreatorId, $"%{filter.SearchTerm}%"));
+                EF.Functions.Like(l.Book.Title, $"%{normalizedSearchTerm}%") ||
+                EF.Functions.Like(l.Book.Author, $"%{normalizedSearchTerm}%") ||
+                EF.Functions.Like(l.Book.Genre, $"%{normalizedSearchTerm}%") ||
+                EF.Functions.Like(l.Description, $"%{normalizedSearchTerm}%") ||
+                (l.Book.Publisher != null && EF.Functions.Like(l.Book.Publisher, $"%{normalizedSearchTerm}%")) ||
+                (l.Book.Isbn != null && EF.Functions.Like(l.Book.Isbn, $"%{normalizedSearchTerm}%")) ||
+                EF.Functions.Like(l.CreatorId, $"%{normalizedSearchTerm}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Title))
         {
+            var normalizedTitle = NormalizeSearchFilter(filter.Title);
             query = query
-                .Where(l => EF.Functions.Like(l.Book.Title, $"%{filter.Title}%"));
+                .Where(l => EF.Functions.Like(l.Book.Title, $"%{normalizedTitle}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Author))
         {
+            var normalizedAuthor = NormalizeSearchFilter(filter.Author);
             query = query
-                .Where(l => EF.Functions.Like(l.Book.Author, $"%{filter.Author}%"));
+                .Where(l => EF.Functions.Like(l.Book.Author, $"%{normalizedAuthor}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Genre))
         {
+            var normalizedGenre = NormalizeSearchFilter(filter.Genre);
             query = query
-                .Where(l => EF.Functions.Like(l.Book.Genre, $"%{filter.Genre}%"));
+                .Where(l => EF.Functions.Like(l.Book.Genre, $"%{normalizedGenre}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Publisher))
         {
+            var normalizedPublisher = NormalizeSearchFilter(filter.Publisher);
             query = query
-                .Where(l => l.Book.Publisher != null && EF.Functions.Like(l.Book.Publisher, $"%{filter.Publisher}%"));
+                .Where(l => l.Book.Publisher != null && EF.Functions.Like(l.Book.Publisher, $"%{normalizedPublisher}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Isbn))
         {
+            var normalizedIsbn = NormalizeSearchFilter(filter.Isbn);
             query = query
-                .Where(l => l.Book.Isbn != null && EF.Functions.Like(l.Book.Isbn, $"%{filter.Isbn}%"));
+                .Where(l => l.Book.Isbn != null && EF.Functions.Like(l.Book.Isbn, $"%{normalizedIsbn}%"));
         }
 
         if (filter.Condition.HasValue)
@@ -586,11 +601,20 @@ public class BookListingService(
         ListingSorting sorting)
         => sorting switch
         {
-            ListingSorting.Oldest => query.OrderBy(static l => l.CreatedOn),
-            ListingSorting.PriceAscending => query.OrderBy(static l => l.Price).ThenBy(static l => l.CreatedOn),
-            ListingSorting.PriceDescending => query.OrderByDescending(static l => l.Price).ThenByDescending(static l => l.CreatedOn),
-            ListingSorting.TitleAscending => query.OrderBy(static l => l.Book.Title).ThenBy(static l => l.Price),
-            ListingSorting.TitleDescending => query.OrderByDescending(static l => l.Book.Title).ThenByDescending(static l => l.Price),
+            ListingSorting.Oldest => query
+                .OrderBy(static l => l.CreatedOn),
+            ListingSorting.PriceAscending => query
+                .OrderBy(static l => l.Price)
+                .ThenBy(static l => l.CreatedOn),
+            ListingSorting.PriceDescending => query
+                .OrderByDescending(static l => l.Price)
+                .ThenByDescending(static l => l.CreatedOn),
+            ListingSorting.TitleAscending => query
+                .OrderBy(static l => l.Book.Title)
+                .ThenBy(static l => l.Price),
+            ListingSorting.TitleDescending => query
+                .OrderByDescending(static l => l.Book.Title)
+                .ThenByDescending(static l => l.Price),
             ListingSorting.PublishedDateAscending => query
                 .OrderByDescending(static l => l.Book.PublishedOn.HasValue)
                 .ThenBy(static l => l.Book.PublishedOn)
@@ -599,11 +623,15 @@ public class BookListingService(
                 .OrderByDescending(static l => l.Book.PublishedOn.HasValue)
                 .ThenByDescending(static l => l.Book.PublishedOn)
                 .ThenBy(static l => l.Book.Title),
-            _ => query.OrderByDescending(static l => l.CreatedOn),
+            _ => query
+                .OrderByDescending(static l => l.CreatedOn),
         };
 
     private static bool DoesNotExistOrDeleted(BookListingDbModel? listing)
         => listing is null || listing.IsDeleted;
+
+    private static string NormalizeSearchFilter(string filter)
+        => filter.Trim();
 
     private string LogAndReturnNotFoundMessage(Guid id)
     {

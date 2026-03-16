@@ -24,6 +24,16 @@ public sealed class BookDbModelConfiguration : IEntityTypeConfiguration<BookDbMo
             .HasMaxLength(Validation.AuthorMaxLength);
 
         builder
+            .Property(static b => b.NormalizedTitle)
+            .IsRequired()
+            .HasMaxLength(Validation.TitleMaxLength);
+
+        builder
+            .Property(static b => b.NormalizedAuthor)
+            .IsRequired()
+            .HasMaxLength(Validation.AuthorMaxLength);
+
+        builder
             .Property(static b => b.Genre)
             .IsRequired()
             .HasMaxLength(Validation.GenreMaxLength);
@@ -38,6 +48,10 @@ public sealed class BookDbModelConfiguration : IEntityTypeConfiguration<BookDbMo
 
         builder
             .Property(static b => b.Isbn)
+            .HasMaxLength(Validation.IsbnMaxLength);
+
+        builder
+            .Property(static b => b.NormalizedIsbn)
             .HasMaxLength(Validation.IsbnMaxLength);
 
         builder
@@ -68,6 +82,16 @@ public sealed class BookDbModelConfiguration : IEntityTypeConfiguration<BookDbMo
 
         builder
             .HasIndex(static b => b.Isbn);
+
+        builder
+            .HasIndex(static b => b.NormalizedIsbn)
+            .IsUnique()
+            .HasFilter("[NormalizedIsbn] IS NOT NULL AND [IsDeleted] = 0");
+
+        builder
+            .HasIndex(static b => new { b.NormalizedTitle, b.NormalizedAuthor })
+            .IsUnique()
+            .HasFilter("[NormalizedIsbn] IS NULL AND [IsDeleted] = 0");
 
         builder
             .HasIndex(static b => b.CreatorId);

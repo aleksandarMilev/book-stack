@@ -6,6 +6,7 @@ using Features.BookListings.Data.Models;
 using Features.Books.Data.Models;
 using Features.Identity.Data.Models;
 using Features.Orders.Data.Models;
+using Features.Payments.Data.Models;
 using Features.UserProfile.Data.Models;
 using Infrastructure.Services.CurrentUser;
 using Infrastructure.Services.DateTimeProvider;
@@ -21,12 +22,6 @@ public class BookStackDbContext(
     private readonly ICurrentUserService _userService = userService;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public string? CurrentUserId
-        => this._userService.GetId();
-
-    public bool IsAdmin
-        => this._userService.IsAdmin();
-
     public DbSet<BookDbModel> Books { get; init; }
 
     public DbSet<BookListingDbModel> BookListings { get; init; }
@@ -36,6 +31,10 @@ public class BookStackDbContext(
     public DbSet<OrderDbModel> Orders { get; init; }
 
     public DbSet<OrderItemDbModel> OrderItems { get; init; }
+
+    public DbSet<PaymentDbModel> Payments { get; init; }
+
+    public DbSet<PaymentWebhookEventDbModel> PaymentWebhookEvents { get; init; }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -117,84 +116,23 @@ public class BookStackDbContext(
                 }
             });
 
-    private LambdaExpression? BuildFilterExpression(Type entityType)
+    private static LambdaExpression? BuildFilterExpression(Type entityType)
     {
+        if (!typeof(IDeletableEntity).IsAssignableFrom(entityType))
+        {
+            return null;
+        }
+
         var entityTypeParam = Expression.Parameter(entityType, "e");
-        Expression? combined = null;
 
-        if (typeof(IDeletableEntity).IsAssignableFrom(entityType))
-        {
-            var isDeleted = Expression.Property(
-                entityTypeParam,
-                nameof(IDeletableEntity.IsDeleted));
+        var isDeleted = Expression.Property(
+            entityTypeParam,
+            nameof(IDeletableEntity.IsDeleted));
 
-            var isNotDeleted = Expression.Equal(
-                isDeleted,
-                Expression.Constant(false));
+        var isNotDeleted = Expression.Equal(
+            isDeleted,
+            Expression.Constant(false));
 
-            combined = isNotDeleted;
-        }
-
-        var thisContext = Expression.Constant(this);
-
-        if (typeof(IApprovableEntity).IsAssignableFrom(entityType))
-        {
-            var isApprovedProp = Expression.Property(
-                entityTypeParam,
-                nameof(IApprovableEntity.IsApproved));
-
-            var isApproved = Expression.Equal(
-                isApprovedProp,
-                Expression.Constant(true));
-
-            var isAdmin = Expression.Property(
-                thisContext,
-                nameof(this.IsAdmin));
-
-            var isAdminTrue = Expression.Equal(
-                isAdmin,
-                Expression.Constant(true));
-
-            Expression creatorOr = Expression.OrElse(
-                isApproved,
-                isAdminTrue);
-
-            var creatorIdProp = entityType.GetProperty("CreatorId");
-            if (creatorIdProp is not null &&
-                creatorIdProp.PropertyType == typeof(string))
-            {
-                var creatorId = Expression.Property(
-                    entityTypeParam,
-                    creatorIdProp);
-
-                var currentUserId = Expression.Property(
-                    thisContext,
-                    nameof(this.CurrentUserId));
-
-                var currentUserNotNull = Expression.NotEqual(
-                    currentUserId,
-                    Expression.Constant(null, typeof(string)));
-
-                var isCreator = Expression.Equal(
-                    creatorId,
-                    currentUserId);
-
-                var creatorAllowed = Expression.AndAlso(
-                    currentUserNotNull,
-                    isCreator);
-
-                creatorOr = Expression.OrElse(
-                    creatorOr,
-                    creatorAllowed);
-            }
-
-            combined = combined is null
-                ? creatorOr
-                : Expression.AndAlso(combined, creatorOr);
-        }
-
-        return combined is null
-            ? null
-            : Expression.Lambda(combined, entityTypeParam);
+        return Expression.Lambda(isNotDeleted, entityTypeParam);
     }
 }

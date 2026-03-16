@@ -8,7 +8,7 @@ using Shared;
 
 public interface IOrderService : IScopedService
 {
-    Task<ResultWith<Guid>> Create(
+    Task<ResultWith<CreateOrderResultServiceModel>> Create(
         CreateOrderServiceModel model,
         CancellationToken cancellationToken = default);
 
@@ -17,6 +17,14 @@ public interface IOrderService : IScopedService
         CancellationToken cancellationToken = default);
 
     Task<OrderServiceModel?> Details(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
+
+    Task<PaginatedModel<SellerOrderServiceModel>> Sold(
+        OrderFilterServiceModel filter,
+        CancellationToken cancellationToken = default);
+
+    Task<SellerOrderServiceModel?> SoldDetails(
         Guid orderId,
         CancellationToken cancellationToken = default);
 

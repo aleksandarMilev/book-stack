@@ -1,5 +1,6 @@
 ﻿namespace BookStack.Features.Books.Shared;
 
+using System.Text;
 using Common;
 using Data.Models;
 using Service.Models;
@@ -50,6 +51,8 @@ public static class BookMapping
         {
             Title = serviceModel.Title.Trim(),
             Author = serviceModel.Author.Trim(),
+            NormalizedTitle = NormalizeIdentityText(serviceModel.Title),
+            NormalizedAuthor = NormalizeIdentityText(serviceModel.Author),
             Genre = serviceModel.Genre.Trim(),
             Description = string.IsNullOrWhiteSpace(serviceModel.Description)
                 ? null
@@ -61,6 +64,7 @@ public static class BookMapping
             Isbn = string.IsNullOrWhiteSpace(serviceModel.Isbn)
                 ? null
                 : serviceModel.Isbn.Trim(),
+            NormalizedIsbn = NormalizeIdentityIsbn(serviceModel.Isbn),
             CreatorId = creatorId,
             IsApproved = false,
             ApprovedOn = null,
@@ -74,6 +78,8 @@ public static class BookMapping
     {
         dbModel.Title = serviceModel.Title.Trim();
         dbModel.Author = serviceModel.Author.Trim();
+        dbModel.NormalizedTitle = NormalizeIdentityText(serviceModel.Title);
+        dbModel.NormalizedAuthor = NormalizeIdentityText(serviceModel.Author);
         dbModel.Genre = serviceModel.Genre.Trim();
         dbModel.Description = string.IsNullOrWhiteSpace(serviceModel.Description)
             ? null
@@ -85,10 +91,55 @@ public static class BookMapping
         dbModel.Isbn = string.IsNullOrWhiteSpace(serviceModel.Isbn)
             ? null
             : serviceModel.Isbn.Trim();
+        dbModel.NormalizedIsbn = NormalizeIdentityIsbn(serviceModel.Isbn);
         dbModel.IsApproved = false;
         dbModel.ApprovedOn = null;
         dbModel.ApprovedBy = null;
         dbModel.RejectionReason = null;
+    }
+
+    public static string NormalizeIdentityText(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalizedValue = new StringBuilder(value.Length);
+
+        foreach (var character in value.Trim())
+        {
+            if (char.IsLetterOrDigit(character))
+            {
+                normalizedValue.Append(char.ToUpperInvariant(character));
+            }
+        }
+
+        return normalizedValue.ToString();
+    }
+
+    public static string? NormalizeIdentityIsbn(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalizedValue = new StringBuilder(value.Length);
+
+        foreach (var character in value.Trim())
+        {
+            if (char.IsWhiteSpace(character) || character == '-')
+            {
+                continue;
+            }
+
+            normalizedValue.Append(char.ToUpperInvariant(character));
+        }
+
+        return normalizedValue.Length == 0
+            ? null
+            : normalizedValue.ToString();
     }
 
     public static CreateBookServiceModel ToCreateServiceModel(
