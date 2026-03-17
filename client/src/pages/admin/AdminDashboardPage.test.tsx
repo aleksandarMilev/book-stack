@@ -19,19 +19,29 @@ describe('AdminDashboardPage', () => {
   it('renders statistics and revenue groups from backend data', async () => {
     vi.mocked(adminStatisticsApi.getStatistics).mockResolvedValue({
       totalUsers: 120,
+      totalSellerProfiles: 45,
+      activeSellerProfiles: 31,
       totalBooks: 340,
       totalListings: 890,
       pendingBooks: 12,
       pendingListings: 17,
       totalOrders: 220,
-      paidOrders: 170,
+      paidOnlineOrders: 170,
+      codOrders: 50,
+      totalPendingSettlementAmount: 120.4,
       revenueByMonth: [
         {
           year: 2026,
           month: 1,
-          currency: 'BGN',
-          revenue: 1540.5,
-          paidOrders: 11,
+          currency: 'EUR',
+          grossOrderVolume: 1540.5,
+          recognizedPlatformFeeRevenue: 154.05,
+          recognizedSellerNetRevenue: 1386.45,
+          pendingSettlementAmount: 33.5,
+          unearnedPlatformFeeAmount: 10,
+          orders: 22,
+          paidOnlineOrders: 11,
+          codOrders: 7,
         },
       ],
     });
@@ -41,7 +51,8 @@ describe('AdminDashboardPage', () => {
     expect(await screen.findByText('Total users')).toBeInTheDocument();
     expect(screen.getByText('120')).toBeInTheDocument();
     expect(screen.getByText('Revenue by month')).toBeInTheDocument();
-    expect(screen.getByText('11 paid orders')).toBeInTheDocument();
+    expect(screen.getByText('11 paid online')).toBeInTheDocument();
+    expect(screen.getByText('7 COD')).toBeInTheDocument();
   });
 
   it('renders error state and retries loading', async () => {
@@ -49,12 +60,16 @@ describe('AdminDashboardPage', () => {
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce({
         totalUsers: 1,
+        totalSellerProfiles: 1,
+        activeSellerProfiles: 1,
         totalBooks: 2,
         totalListings: 3,
         pendingBooks: 0,
         pendingListings: 1,
         totalOrders: 4,
-        paidOrders: 2,
+        paidOnlineOrders: 2,
+        codOrders: 1,
+        totalPendingSettlementAmount: 0,
         revenueByMonth: [],
       });
 

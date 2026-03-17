@@ -1,3 +1,4 @@
+import type { PaymentMethod } from '@/features/orders/types';
 import type { MarketplaceListing } from '@/types/marketplace.types';
 
 export interface CheckoutContactInput {
@@ -17,6 +18,7 @@ export interface CheckoutItemInput {
 }
 
 export interface CheckoutSubmissionInput extends CheckoutContactInput {
+  paymentMethod: PaymentMethod;
   items: CheckoutItemInput[];
 }
 

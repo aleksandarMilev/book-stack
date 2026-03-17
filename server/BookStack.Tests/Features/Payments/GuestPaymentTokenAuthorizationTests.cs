@@ -205,6 +205,93 @@ public class GuestPaymentTokenAuthorizationTests
     }
 
     [Fact]
+    public async Task GuestCheckoutSession_GuessedOrderIdWithoutToken_FailsWithoutExistenceLeak()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService();
+
+        var utc = new DateTime(2026, 02, 04, 12, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderId = Guid.NewGuid();
+
+        var checkoutResult = await paymentService.CreateCheckoutSession(
+            orderId,
+            model: new(),
+            CancellationToken.None);
+
+        Assert.False(checkoutResult.Succeeded);
+        Assert.Contains(
+            "not authorized",
+            checkoutResult.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(
+            "not found",
+            checkoutResult.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GuestToken_ForOneOrder_CannotBeUsedForAnotherOrder()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService();
+
+        var utc = new DateTime(2026, 02, 04, 13, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-1");
+
+        var firstOrder = await orderService.Create(
+            MarketplaceTestData.CreateOrderModel((listing.Id, 1)),
+            CancellationToken.None);
+
+        var secondOrder = await orderService.Create(
+            MarketplaceTestData.CreateOrderModel((listing.Id, 1)),
+            CancellationToken.None);
+
+        var checkoutResult = await paymentService.CreateCheckoutSession(
+            secondOrder.Data!.OrderId,
+            model: new()
+            {
+                PaymentToken = firstOrder.Data!.PaymentToken,
+            },
+            CancellationToken.None);
+
+        Assert.False(checkoutResult.Succeeded);
+        Assert.Contains(
+            "not authorized",
+            checkoutResult.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task AuthenticatedOwner_CanCreateCheckoutSessionWithoutToken()
     {
         await using var database = new TestDatabaseScope();
@@ -296,6 +383,56 @@ public class GuestPaymentTokenAuthorizationTests
         var checkoutResult = await paymentService.CreateCheckoutSession(
             createResult.Data!.OrderId,
             model: new(),
+            CancellationToken.None);
+
+        Assert.False(checkoutResult.Succeeded);
+        Assert.Contains(
+            "not authorized",
+            checkoutResult.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AuthenticatedBuyer_CannotUseGuestTokenPathForGuestOrder()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService();
+
+        var utc = new DateTime(2026, 02, 07, 0, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-1");
+
+        var guestOrder = await orderService.Create(
+            MarketplaceTestData.CreateOrderModel((listing.Id, 1)),
+            CancellationToken.None);
+
+        currentUserService.UserId = "buyer-2";
+        currentUserService.Username = "buyer-2";
+
+        var checkoutResult = await paymentService.CreateCheckoutSession(
+            guestOrder.Data!.OrderId,
+            model: new()
+            {
+                PaymentToken = guestOrder.Data.PaymentToken,
+            },
             CancellationToken.None);
 
         Assert.False(checkoutResult.Succeeded);

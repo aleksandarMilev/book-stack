@@ -29,6 +29,7 @@ export const mapCheckoutSubmissionToCreateOrderRequest = (
     city: payload.city.trim(),
     addressLine: payload.addressLine.trim(),
     ...(normalizedPostalCode ? { postalCode: normalizedPostalCode } : {}),
+    paymentMethod: payload.paymentMethod,
     items: payload.items.map((item) => ({
       listingId: item.listingId,
       quantity: item.quantity,

@@ -9,10 +9,12 @@ export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.listingDetails]: 'public',
   [ROUTES.books]: 'public',
   [ROUTES.checkout]: 'public',
+  [ROUTES.orderConfirmation]: 'public',
   [ROUTES.mockPaymentCheckout]: 'public',
   [ROUTES.login]: 'public',
   [ROUTES.register]: 'public',
   [ROUTES.profile]: 'authenticated',
+  [ROUTES.sellerProfile]: 'authenticated',
   [ROUTES.myOrders]: 'authenticated',
   [ROUTES.myListings]: 'seller',
   [ROUTES.myListingCreate]: 'seller',
@@ -24,7 +26,10 @@ export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.adminListingsModeration]: 'admin',
 } as const satisfies Record<string, RouteAccessLevel>;
 
-export const canAccessLevel = (level: RouteAccessLevel, capabilities: AuthCapabilities): boolean => {
+export const canAccessLevel = (
+  level: RouteAccessLevel,
+  capabilities: AuthCapabilities,
+): boolean => {
   if (level === 'public') {
     return true;
   }
@@ -34,7 +39,7 @@ export const canAccessLevel = (level: RouteAccessLevel, capabilities: AuthCapabi
   }
 
   if (level === 'seller') {
-    return capabilities.canAccessSellerArea;
+    return capabilities.isAuthenticated;
   }
 
   return capabilities.canAccessAdminArea;

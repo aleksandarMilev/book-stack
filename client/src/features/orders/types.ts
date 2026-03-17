@@ -1,8 +1,21 @@
 import type { MarketplaceListingCondition } from '@/types/marketplace.types';
 import type { PriceDisplayValue } from '@/types/pricing.types';
 
-export type OrderStatus = 'pendingPayment' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
-export type PaymentStatus = 'unpaid' | 'paid' | 'failed' | 'refunded';
+export type PaymentMethod = 'online' | 'cashOnDelivery';
+
+export type OrderStatus =
+  | 'pendingPayment'
+  | 'pendingConfirmation'
+  | 'confirmed'
+  | 'shipped'
+  | 'delivered'
+  | 'completed'
+  | 'cancelled'
+  | 'expired';
+
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'notRequired' | 'expired' | 'cancelled';
+
+export type SettlementStatus = 'pending' | 'settled' | 'waived' | 'disputed';
 
 export interface OrderItem {
   id: string;
@@ -35,8 +48,13 @@ export interface UserOrder {
   addressLine: string;
   postalCode?: string | null;
   total: PriceDisplayValue;
+  paymentMethod: PaymentMethod;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  settlementStatus: SettlementStatus;
+  platformFeePercent: number;
+  platformFeeAmount: PriceDisplayValue;
+  sellerNetAmount: PriceDisplayValue;
   createdOn: string;
   items: OrderItem[];
 }
@@ -52,8 +70,13 @@ export interface SellerOrder {
   addressLine: string;
   postalCode?: string | null;
   sellerTotal: PriceDisplayValue;
+  paymentMethod: PaymentMethod;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  settlementStatus: SettlementStatus;
+  platformFeePercent: number;
+  platformFeeAmount: PriceDisplayValue;
+  sellerNetAmount: PriceDisplayValue;
   createdOn: string;
   items: OrderItem[];
 }

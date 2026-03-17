@@ -9,6 +9,7 @@ import { listingsApi } from '@/features/marketplace/api/listings.api';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { useAuthStore } from '@/store/auth.store';
 import type { AuthSession } from '@/types/auth.types';
+import { redirectTo } from '@/utils/navigation';
 
 vi.mock('@/features/marketplace/api/listings.api', () => ({
   listingsApi: {
@@ -24,6 +25,10 @@ vi.mock('@/features/checkout/services/checkout.service', () => ({
     createOrderAndStartCheckout: vi.fn(),
     startCheckoutForOrder: vi.fn(),
   },
+}));
+
+vi.mock('@/utils/navigation', () => ({
+  redirectTo: vi.fn(),
 }));
 
 vi.mock('@/features/auth/api/profile.api', () => ({
@@ -87,6 +92,7 @@ describe('CheckoutPage', () => {
     renderCheckoutRoute('/checkout?listingId=listing-1&quantity=1');
 
     expect(await screen.findByText('Order summary')).toBeInTheDocument();
+    expect(screen.getByText('Payment method')).toBeInTheDocument();
     expect(screen.getByText('Guest checkout is available. Sign in if you want order history in your account.')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create order and continue' }));
@@ -168,5 +174,102 @@ describe('CheckoutPage', () => {
     expect(
       await screen.findByText('Could not create your order. Please review details and try again.'),
     ).toBeInTheDocument();
+  });
+
+  it('submits online checkout and redirects to payment provider', async () => {
+    vi.mocked(listingsApi.getListingById).mockResolvedValue({
+      id: 'listing-4',
+      bookId: 'book-4',
+      title: 'Online Listing',
+      author: 'Author',
+      genre: 'Fiction',
+      creatorId: 'seller-1',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: false,
+      condition: 'good',
+      quantity: 2,
+      description: 'desc',
+      imageUrl: '',
+      isApproved: true,
+      rejectionReason: null,
+      createdOn: '2026-01-01T10:00:00Z',
+      modifiedOn: null,
+      price: { primary: { amount: 10, currency: 'EUR' } },
+    });
+    vi.mocked(checkoutService.createOrderAndStartCheckout).mockResolvedValue({
+      orderId: 'order-4',
+      paymentMethod: 'online',
+      checkoutUrl: '/payments/mock/checkout?sessionId=abc',
+    });
+
+    renderCheckoutRoute('/checkout?listingId=listing-4&quantity=1');
+
+    await screen.findByText('Order summary');
+    expect(screen.getByDisplayValue('online')).toBeChecked();
+    expect(screen.queryByDisplayValue('cashOnDelivery')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('First name'), 'John');
+    await userEvent.type(screen.getByLabelText('Last name'), 'Doe');
+    await userEvent.type(screen.getByLabelText('Email'), 'john@example.com');
+    await userEvent.type(screen.getByLabelText('Country'), 'Bulgaria');
+    await userEvent.type(screen.getByLabelText('City'), 'Sofia');
+    await userEvent.type(screen.getByLabelText('Address line'), '1 Vitosha Blvd');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create order and continue' }));
+
+    expect(checkoutService.createOrderAndStartCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentMethod: 'online',
+      }),
+    );
+    expect(redirectTo).toHaveBeenCalledWith('/payments/mock/checkout?sessionId=abc');
+  });
+
+  it('submits COD checkout and redirects to order confirmation', async () => {
+    vi.mocked(listingsApi.getListingById).mockResolvedValue({
+      id: 'listing-5',
+      bookId: 'book-5',
+      title: 'COD Listing',
+      author: 'Author',
+      genre: 'Fiction',
+      creatorId: 'seller-1',
+      supportsOnlinePayment: false,
+      supportsCashOnDelivery: true,
+      condition: 'good',
+      quantity: 2,
+      description: 'desc',
+      imageUrl: '',
+      isApproved: true,
+      rejectionReason: null,
+      createdOn: '2026-01-01T10:00:00Z',
+      modifiedOn: null,
+      price: { primary: { amount: 10, currency: 'EUR' } },
+    });
+    vi.mocked(checkoutService.createOrderAndStartCheckout).mockResolvedValue({
+      orderId: 'order-cod-5',
+      paymentMethod: 'cashOnDelivery',
+    });
+
+    renderCheckoutRoute('/checkout?listingId=listing-5&quantity=1');
+
+    await screen.findByText('Order summary');
+    expect(screen.getByDisplayValue('cashOnDelivery')).toBeChecked();
+    expect(screen.queryByDisplayValue('online')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('First name'), 'Maria');
+    await userEvent.type(screen.getByLabelText('Last name'), 'Ivanova');
+    await userEvent.type(screen.getByLabelText('Email'), 'maria@example.com');
+    await userEvent.type(screen.getByLabelText('Country'), 'Bulgaria');
+    await userEvent.type(screen.getByLabelText('City'), 'Sofia');
+    await userEvent.type(screen.getByLabelText('Address line'), '2 Vitosha Blvd');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create order and continue' }));
+
+    expect(checkoutService.createOrderAndStartCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentMethod: 'cashOnDelivery',
+      }),
+    );
+    expect(redirectTo).toHaveBeenCalledWith('/order/confirmation?orderId=order-cod-5&paymentMethod=cashOnDelivery');
   });
 });

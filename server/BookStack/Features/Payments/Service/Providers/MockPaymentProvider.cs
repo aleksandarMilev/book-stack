@@ -37,6 +37,11 @@ public class MockPaymentProvider(
     public string Name
         => Constants.Providers.Mock;
 
+    public Result ValidateWebhookSignature(
+        string payload,
+        IHeaderDictionary headers)
+        => true;
+
     public Task<ResultWith<PaymentProviderCheckoutResultServiceModel>> CreateCheckoutSession(
         PaymentProviderCheckoutRequestServiceModel model,
         CancellationToken cancellationToken = default)

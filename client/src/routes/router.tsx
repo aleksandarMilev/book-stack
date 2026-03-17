@@ -17,10 +17,12 @@ import { MyListingEditPage } from '@/pages/MyListingEditPage';
 import { MyListingsPage } from '@/pages/MyListingsPage';
 import { MyOrdersPage } from '@/pages/MyOrdersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { OrderConfirmationPage } from '@/pages/OrderConfirmationPage';
 import { PaymentReturnPage } from '@/pages/PaymentReturnPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { RouterErrorPage } from '@/pages/RouterErrorPage';
+import { SellerProfilePage } from '@/pages/SellerProfilePage';
 import { SellerSoldOrdersPage } from '@/pages/SellerSoldOrdersPage';
 import { GuardedRouteOutlet } from '@/routes/guards/GuardedRouteOutlet';
 import { ROUTES } from '@/routes/paths';
@@ -36,7 +38,10 @@ export const appRouter = createBrowserRouter([
       { path: ROUTES.listingDetails, element: <ListingDetailsPage /> },
       { path: ROUTES.books, element: <BooksPage /> },
       { path: ROUTES.checkout, element: <CheckoutPage /> },
-      ...(isMockPaymentUiEnabled ? [{ path: ROUTES.mockPaymentCheckout, element: <MockPaymentCheckoutPage /> }] : []),
+      { path: ROUTES.orderConfirmation, element: <OrderConfirmationPage /> },
+      ...(isMockPaymentUiEnabled
+        ? [{ path: ROUTES.mockPaymentCheckout, element: <MockPaymentCheckoutPage /> }]
+        : []),
       { path: ROUTES.login, element: <LoginPage /> },
       { path: ROUTES.register, element: <RegisterPage /> },
       { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },
@@ -44,6 +49,7 @@ export const appRouter = createBrowserRouter([
         element: <GuardedRouteOutlet level="authenticated" />,
         children: [
           { path: ROUTES.profile, element: <ProfilePage /> },
+          { path: ROUTES.sellerProfile, element: <SellerProfilePage /> },
           { path: ROUTES.myOrders, element: <MyOrdersPage /> },
         ],
       },

@@ -49,7 +49,9 @@ public class BookListingService(
             ref pageSize,
             Pagination.MaxPageSize);
 
-        var isNotAdmin = !this._userService.IsAdmin();
+        var currentUserId = this._userService.GetId();
+        var isAdmin = this._userService.IsAdmin();
+        var isNotAdmin = !isAdmin;
 
         var query = ApplyFilter(
             this.AllListingsAsNoTracking(),
@@ -59,11 +61,18 @@ public class BookListingService(
         query = ApplySorting(query, filter.Sorting);
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query
+        var rawItems = await query
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
             .ToServiceModels()
             .ToListAsync(cancellationToken);
+
+        var items = rawItems
+            .Select(item => ToViewerSafeListingModel(
+                item,
+                currentUserId,
+                isAdmin))
+            .ToList();
 
         return new PaginatedModel<BookListingServiceModel>(
             items,
@@ -154,9 +163,19 @@ public class BookListingService(
                 : query.Where(l => (l.IsApproved && l.Book.IsApproved) || l.CreatorId == currentUserId);
         }
 
-        return await query
+        var model = await query
             .ToServiceModels()
             .SingleOrDefaultAsync(cancellationToken);
+
+        if (model is null)
+        {
+            return null;
+        }
+
+        return ToViewerSafeListingModel(
+            model,
+            currentUserId,
+            currentUserIsAdmin);
     }
 
     public async Task<ResultWith<Guid>> Create(
@@ -405,6 +424,11 @@ public class BookListingService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        if (!this._userService.IsAdmin())
+        {
+            return "Only administrators can approve listings.";
+        }
+
         var listing = await this._data
             .BookListings
             .SingleOrDefaultAsync(
@@ -447,6 +471,11 @@ public class BookListingService(
         string? rejectionReason,
         CancellationToken cancellationToken = default)
     {
+        if (!this._userService.IsAdmin())
+        {
+            return "Only administrators can reject listings.";
+        }
+
         var listing = await this._data
             .BookListings
             .SingleOrDefaultAsync(
@@ -659,6 +688,49 @@ public class BookListingService(
 
     private static string NormalizeSearchFilter(string filter)
         => filter.Trim();
+
+    private static BookListingServiceModel ToViewerSafeListingModel(
+        BookListingServiceModel model,
+        string? currentUserId,
+        bool isAdmin)
+    {
+        var isOwner =
+            !string.IsNullOrWhiteSpace(currentUserId) &&
+            string.Equals(
+                model.CreatorId,
+                currentUserId,
+                StringComparison.Ordinal);
+
+        if (isAdmin || isOwner)
+        {
+            return model;
+        }
+
+        return new()
+        {
+            Id = model.Id,
+            BookId = model.BookId,
+            BookTitle = model.BookTitle,
+            BookAuthor = model.BookAuthor,
+            BookGenre = model.BookGenre,
+            BookPublisher = model.BookPublisher,
+            BookPublishedOn = model.BookPublishedOn,
+            BookIsbn = model.BookIsbn,
+            CreatorId = string.Empty,
+            Price = model.Price,
+            Currency = model.Currency,
+            Condition = model.Condition,
+            Quantity = model.Quantity,
+            Description = model.Description,
+            ImagePath = model.ImagePath,
+            IsApproved = model.IsApproved,
+            RejectionReason = null,
+            CreatedOn = model.CreatedOn,
+            ModifiedOn = model.ModifiedOn,
+            ApprovedOn = null,
+            ApprovedBy = null,
+        };
+    }
 
     private string LogAndReturnNotFoundMessage(Guid id)
     {

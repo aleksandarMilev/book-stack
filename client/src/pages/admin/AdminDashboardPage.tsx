@@ -19,13 +19,13 @@ const toCurrencyCode = (currency: string): CurrencyCode | undefined => {
   return undefined;
 };
 
-const formatRevenueValue = (revenue: AdminMonthlyRevenue, language: string): string => {
-  const currency = toCurrencyCode(revenue.currency);
+const formatRevenueValue = (amount: number, currencyCode: string, language: string): string => {
+  const currency = toCurrencyCode(currencyCode);
   if (currency) {
-    return formatMoney({ amount: revenue.revenue, currency, language });
+    return formatMoney({ amount, currency, language });
   }
 
-  return `${new Intl.NumberFormat(resolveLocale(language)).format(revenue.revenue)} ${revenue.currency}`;
+  return `${new Intl.NumberFormat(resolveLocale(language)).format(amount)} ${currencyCode}`;
 };
 
 const getMonthLabel = (revenue: AdminMonthlyRevenue, language: string): string => {
@@ -89,12 +89,25 @@ export function AdminDashboardPage() {
         <>
           <section className="admin-stats-grid">
             <AdminMetricCard label={t('pages.adminDashboard.metrics.totalUsers')} value={stats.totalUsers} />
+            <AdminMetricCard
+              label={t('pages.adminDashboard.metrics.totalSellerProfiles')}
+              value={stats.totalSellerProfiles}
+            />
+            <AdminMetricCard
+              label={t('pages.adminDashboard.metrics.activeSellerProfiles')}
+              value={stats.activeSellerProfiles}
+            />
             <AdminMetricCard label={t('pages.adminDashboard.metrics.totalBooks')} value={stats.totalBooks} />
             <AdminMetricCard label={t('pages.adminDashboard.metrics.totalListings')} value={stats.totalListings} />
             <AdminMetricCard label={t('pages.adminDashboard.metrics.pendingBooks')} value={stats.pendingBooks} />
             <AdminMetricCard label={t('pages.adminDashboard.metrics.pendingListings')} value={stats.pendingListings} />
             <AdminMetricCard label={t('pages.adminDashboard.metrics.totalOrders')} value={stats.totalOrders} />
-            <AdminMetricCard label={t('pages.adminDashboard.metrics.paidOrders')} value={stats.paidOrders} />
+            <AdminMetricCard label={t('pages.adminDashboard.metrics.paidOnlineOrders')} value={stats.paidOnlineOrders} />
+            <AdminMetricCard label={t('pages.adminDashboard.metrics.codOrders')} value={stats.codOrders} />
+            <AdminMetricCard
+              label={t('pages.adminDashboard.metrics.totalPendingSettlementAmount')}
+              value={formatRevenueValue(stats.totalPendingSettlementAmount, 'EUR', language)}
+            />
           </section>
 
           <Card className="admin-revenue-card">
@@ -113,10 +126,33 @@ export function AdminDashboardPage() {
                 {stats.revenueByMonth.map((revenue) => (
                   <div className="admin-revenue-item" key={`${revenue.year}-${revenue.month}-${revenue.currency}`}>
                     <p className="admin-revenue-month">{getMonthLabel(revenue, language)}</p>
-                    <p className="admin-revenue-amount">{formatRevenueValue(revenue, language)}</p>
-                    <Badge variant="accent">
-                      {t('pages.adminDashboard.revenuePaidOrders', { count: revenue.paidOrders })}
-                    </Badge>
+                    <div className="admin-revenue-values">
+                      <p className="admin-revenue-amount">
+                        {t('pages.adminDashboard.revenueMetrics.grossOrderVolume')}:{' '}
+                        {formatRevenueValue(revenue.grossOrderVolume, revenue.currency, language)}
+                      </p>
+                      <p className="admin-revenue-amount">
+                        {t('pages.adminDashboard.revenueMetrics.recognizedPlatformFeeRevenue')}:{' '}
+                        {formatRevenueValue(revenue.recognizedPlatformFeeRevenue, revenue.currency, language)}
+                      </p>
+                      <p className="admin-revenue-amount">
+                        {t('pages.adminDashboard.revenueMetrics.recognizedSellerNetRevenue')}:{' '}
+                        {formatRevenueValue(revenue.recognizedSellerNetRevenue, revenue.currency, language)}
+                      </p>
+                      <p className="admin-revenue-amount">
+                        {t('pages.adminDashboard.revenueMetrics.pendingSettlementAmount')}:{' '}
+                        {formatRevenueValue(revenue.pendingSettlementAmount, revenue.currency, language)}
+                      </p>
+                    </div>
+                    <div className="order-card-statuses">
+                      <Badge variant="neutral">
+                        {t('pages.adminDashboard.revenueOrders', { count: revenue.orders })}
+                      </Badge>
+                      <Badge variant="success">
+                        {t('pages.adminDashboard.revenuePaidOnlineOrders', { count: revenue.paidOnlineOrders })}
+                      </Badge>
+                      <Badge variant="accent">{t('pages.adminDashboard.revenueCodOrders', { count: revenue.codOrders })}</Badge>
+                    </div>
                   </div>
                 ))}
               </div>

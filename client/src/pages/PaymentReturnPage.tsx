@@ -41,12 +41,16 @@ const parseOutcome = (value: string | null): PaymentReturnOutcome | null => {
 };
 
 const mapOrderPaymentStatusToOutcome = (order: UserOrder): PaymentReturnOutcome => {
-  if (order.paymentStatus === 'paid' || order.paymentStatus === 'refunded') {
+  if (order.paymentStatus === 'paid' || order.paymentStatus === 'refunded' || order.paymentStatus === 'notRequired') {
     return 'success';
   }
 
   if (order.paymentStatus === 'failed') {
     return 'failed';
+  }
+
+  if (order.paymentStatus === 'cancelled' || order.paymentStatus === 'expired') {
+    return 'canceled';
   }
 
   return 'processing';
@@ -138,7 +142,10 @@ export function PaymentReturnPage() {
     return queryOutcome ?? 'processing';
   }, [order, queryOutcome]);
 
-  const canRetryPayment = Boolean(orderId) && effectiveOutcome !== 'success';
+  const canRetryPayment =
+    Boolean(orderId) &&
+    effectiveOutcome !== 'success' &&
+    (!order || (order.paymentMethod === 'online' && order.paymentStatus !== 'notRequired'));
   const hasOrderReference = Boolean(orderId);
 
   const handleRetryPayment = async (): Promise<void> => {
@@ -178,8 +185,19 @@ export function PaymentReturnPage() {
               {t('pages.paymentReturn.orderIdLabel')}: {order.id}
             </p>
             <div className="payment-return-order-statuses">
+              <Badge variant="neutral">{t(`taxonomy.paymentMethod.${order.paymentMethod}`)}</Badge>
               <Badge variant="accent">{t(`taxonomy.orderStatus.${order.status}`)}</Badge>
-              <Badge variant={order.paymentStatus === 'paid' ? 'success' : 'warning'}>
+              <Badge
+                variant={
+                  order.paymentStatus === 'paid' || order.paymentStatus === 'notRequired'
+                    ? 'success'
+                    : order.paymentStatus === 'failed' ||
+                        order.paymentStatus === 'cancelled' ||
+                        order.paymentStatus === 'expired'
+                      ? 'danger'
+                      : 'warning'
+                }
+              >
                 {t(`taxonomy.paymentStatus.${order.paymentStatus}`)}
               </Badge>
             </div>

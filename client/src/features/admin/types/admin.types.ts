@@ -5,18 +5,28 @@ export interface AdminMonthlyRevenue {
   year: number;
   month: number;
   currency: string;
-  revenue: number;
-  paidOrders: number;
+  grossOrderVolume: number;
+  recognizedPlatformFeeRevenue: number;
+  recognizedSellerNetRevenue: number;
+  pendingSettlementAmount: number;
+  unearnedPlatformFeeAmount: number;
+  orders: number;
+  paidOnlineOrders: number;
+  codOrders: number;
 }
 
 export interface AdminStatistics {
   totalUsers: number;
+  totalSellerProfiles: number;
+  activeSellerProfiles: number;
   totalBooks: number;
   totalListings: number;
   pendingBooks: number;
   pendingListings: number;
   totalOrders: number;
-  paidOrders: number;
+  paidOnlineOrders: number;
+  codOrders: number;
+  totalPendingSettlementAmount: number;
   revenueByMonth: AdminMonthlyRevenue[];
 }
 

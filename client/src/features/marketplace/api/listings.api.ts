@@ -2,7 +2,7 @@ import { httpClient } from '@/api/httpClient';
 import type { PaginatedResponse } from '@/api/types/api.types';
 import { resolveAssetUrl } from '@/api/utils/assetUrl';
 import type { MarketplaceListing, MarketplaceListingCondition } from '@/types/marketplace.types';
-import type { CurrencyCode, PriceDisplayValue } from '@/types/pricing.types';
+import { toPriceDisplayValue } from '@/utils/priceDisplay';
 
 export interface ListingApiModel {
   id: string;
@@ -14,6 +14,8 @@ export interface ListingApiModel {
   bookPublishedOn?: string | null;
   bookIsbn?: string | null;
   creatorId: string;
+  supportsOnlinePayment?: boolean | null;
+  supportsCashOnDelivery?: boolean | null;
   price: number;
   currency: string;
   condition: number | string;
@@ -42,6 +44,17 @@ export interface ListingFilterQuery {
   isApproved?: boolean | undefined;
 }
 
+export interface UpsertListingRequest {
+  bookId: string;
+  price: number;
+  currency: string;
+  condition: MarketplaceListingCondition;
+  quantity: number;
+  description: string;
+  image?: File | null;
+  removeImage?: boolean;
+}
+
 interface ListingBackendFilterQuery {
   SearchTerm?: string | undefined;
   Title?: string | undefined;
@@ -57,15 +70,6 @@ interface ListingBackendFilterQuery {
 }
 
 const LISTINGS_BASE_PATH = '/BookListings';
-
-const toCurrencyCode = (currency: string): CurrencyCode => {
-  const normalizedCurrency = currency.trim().toUpperCase();
-  if (normalizedCurrency === 'EUR') {
-    return 'EUR';
-  }
-
-  return 'BGN';
-};
 
 const toListingCondition = (condition: number | string): MarketplaceListingCondition => {
   if (typeof condition === 'string') {
@@ -109,12 +113,29 @@ const toListingCondition = (condition: number | string): MarketplaceListingCondi
   return 'acceptable';
 };
 
-const toPriceDisplayValue = (price: number, currency: string): PriceDisplayValue => ({
-  primary: {
-    amount: price,
-    currency: toCurrencyCode(currency),
-  },
-});
+const toBackendListingCondition = (condition: MarketplaceListingCondition): number => {
+  if (condition === 'new') {
+    return 0;
+  }
+
+  if (condition === 'likeNew') {
+    return 1;
+  }
+
+  if (condition === 'veryGood') {
+    return 2;
+  }
+
+  if (condition === 'good') {
+    return 3;
+  }
+
+  if (condition === 'poor') {
+    return 5;
+  }
+
+  return 4;
+};
 
 const mapListing = (listing: ListingApiModel): MarketplaceListing => ({
   id: listing.id,
@@ -126,6 +147,12 @@ const mapListing = (listing: ListingApiModel): MarketplaceListing => ({
   publishedOn: listing.bookPublishedOn ?? null,
   isbn: listing.bookIsbn ?? null,
   creatorId: listing.creatorId,
+  ...(typeof listing.supportsOnlinePayment === 'boolean'
+    ? { supportsOnlinePayment: listing.supportsOnlinePayment }
+    : {}),
+  ...(typeof listing.supportsCashOnDelivery === 'boolean'
+    ? { supportsCashOnDelivery: listing.supportsCashOnDelivery }
+    : {}),
   condition: toListingCondition(listing.condition),
   quantity: listing.quantity,
   description: listing.description,
@@ -143,6 +170,23 @@ const removeEmptyQueryValues = <T extends object>(query: T): T => {
   );
 
   return Object.fromEntries(entries) as T;
+};
+
+const createListingFormData = (payload: UpsertListingRequest): FormData => {
+  const formData = new FormData();
+  formData.append('bookId', payload.bookId);
+  formData.append('price', payload.price.toString());
+  formData.append('currency', payload.currency.trim().toUpperCase());
+  formData.append('condition', toBackendListingCondition(payload.condition).toString());
+  formData.append('quantity', payload.quantity.toString());
+  formData.append('description', payload.description.trim());
+  formData.append('removeImage', String(Boolean(payload.removeImage)));
+
+  if (payload.image) {
+    formData.append('image', payload.image);
+  }
+
+  return formData;
 };
 
 export const listingsApi = {
@@ -185,9 +229,12 @@ export const listingsApi = {
       IsApproved: query.isApproved,
     };
 
-    const response = await httpClient.get<PaginatedResponse<ListingApiModel>>(`${LISTINGS_BASE_PATH}/mine/`, {
-      params: removeEmptyQueryValues(backendQuery),
-    });
+    const response = await httpClient.get<PaginatedResponse<ListingApiModel>>(
+      `${LISTINGS_BASE_PATH}/mine/`,
+      {
+        params: removeEmptyQueryValues(backendQuery),
+      },
+    );
 
     return {
       ...response.data,
@@ -203,5 +250,23 @@ export const listingsApi = {
 
   async deleteListing(id: string): Promise<void> {
     await httpClient.delete(`${LISTINGS_BASE_PATH}/${id}/`);
+  },
+
+  async createListing(payload: UpsertListingRequest): Promise<string> {
+    const response = await httpClient.post<string>(
+      LISTINGS_BASE_PATH,
+      createListingFormData(payload),
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      },
+    );
+
+    return response.data;
+  },
+
+  async editListing(id: string, payload: UpsertListingRequest): Promise<void> {
+    await httpClient.put(`${LISTINGS_BASE_PATH}/${id}/`, createListingFormData(payload), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 };

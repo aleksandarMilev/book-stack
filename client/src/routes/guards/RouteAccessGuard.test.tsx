@@ -82,12 +82,20 @@ describe('RouteAccessGuard', () => {
     expect(screen.getByText('from:/protected?tab=recent')).toBeInTheDocument();
   });
 
-  it('blocks buyer users from seller routes', () => {
-    useAuthStore.setState({ session: createSession('buyer') });
+  it('blocks unauthenticated users from seller routes', () => {
+    useAuthStore.setState({ session: null });
 
     renderGuard('seller');
 
     expect(screen.getByText('home-page')).toBeInTheDocument();
+  });
+
+  it('allows authenticated buyer users into seller routes for onboarding flows', () => {
+    useAuthStore.setState({ session: createSession('buyer') });
+
+    renderGuard('seller');
+
+    expect(screen.getByText('protected-page')).toBeInTheDocument();
   });
 
   it('allows seller users into seller routes', () => {

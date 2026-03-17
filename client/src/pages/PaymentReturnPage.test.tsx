@@ -60,6 +60,7 @@ describe('PaymentReturnPage', () => {
   it('renders failed return outcome and allows retry', async () => {
     vi.mocked(checkoutService.startCheckoutForOrder).mockResolvedValue({
       orderId: 'order-101',
+      paymentMethod: 'online',
       checkoutUrl: '/payments/mock/checkout?sessionId=retry-101',
     });
 
@@ -88,8 +89,13 @@ describe('PaymentReturnPage', () => {
       addressLine: '1 Vitosha Blvd',
       postalCode: '1000',
       total: { primary: { amount: 30, currency: 'BGN' } },
+      paymentMethod: 'online',
       status: 'confirmed',
       paymentStatus: 'paid',
+      settlementStatus: 'pending',
+      platformFeePercent: 10,
+      platformFeeAmount: { primary: { amount: 3, currency: 'EUR' } },
+      sellerNetAmount: { primary: { amount: 27, currency: 'EUR' } },
       createdOn: '2026-01-01T10:00:00Z',
       items: [],
     });

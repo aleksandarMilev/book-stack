@@ -21,18 +21,31 @@ public class SellerProfileService(
 
     public async Task<IEnumerable<SellerProfileServiceModel>> All(
         CancellationToken cancellationToken = default)
-        => await this
+    {
+        if (!this._userService.IsAdmin())
+        {
+            return [];
+        }
+
+        return await this
             ._data
             .SellerProfiles
             .AsNoTracking()
             .OrderByDescending(static p => p.CreatedOn)
             .ToServiceModels()
             .ToListAsync(cancellationToken);
+    }
 
     public async Task<SellerProfileServiceModel?> ByUserId(
         string userId,
         CancellationToken cancellationToken = default)
-        => await this
+    {
+        if (!this._userService.IsAdmin())
+        {
+            return null;
+        }
+
+        return await this
             ._data
             .SellerProfiles
             .AsNoTracking()
@@ -40,6 +53,7 @@ public class SellerProfileService(
             .SingleOrDefaultAsync(
                 p => p.UserId == userId,
                 cancellationToken);
+    }
 
     public async Task<SellerProfileServiceModel?> Mine(
         CancellationToken cancellationToken = default)
@@ -50,8 +64,12 @@ public class SellerProfileService(
             return null;
         }
 
-        return await this.ByUserId(
-            currentUserId,
+        return await this._data
+            .SellerProfiles
+            .AsNoTracking()
+            .ToServiceModels()
+            .SingleOrDefaultAsync(
+                p => p.UserId == currentUserId,
             cancellationToken);
     }
 
@@ -104,6 +122,11 @@ public class SellerProfileService(
         bool isActive,
         CancellationToken cancellationToken = default)
     {
+        if (!this._userService.IsAdmin())
+        {
+            return "Only administrators can change seller profile status.";
+        }
+
         var profile = await this._data
             .SellerProfiles
             .SingleOrDefaultAsync(

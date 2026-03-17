@@ -12,6 +12,8 @@ export interface MarketplaceListing {
   publishedOn?: string | null;
   isbn?: string | null;
   creatorId: string;
+  supportsOnlinePayment?: boolean;
+  supportsCashOnDelivery?: boolean;
   condition: MarketplaceListingCondition;
   quantity: number;
   description: string;

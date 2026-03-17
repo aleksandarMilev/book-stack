@@ -1,5 +1,6 @@
 namespace BookStack.Features.Payments.Service;
 
+using System.Text;
 using BookStack.Data;
 using Data.Models;
 using Infrastructure.Services.CurrentUser;
@@ -21,6 +22,9 @@ public class PaymentService(
     IPaymentProviderRegistry paymentProviderRegistry,
     ILogger<PaymentService> logger) : IPaymentService
 {
+    private const string UnauthorizedCheckoutMessage =
+        "You are not authorized to initiate payment for this order.";
+
     private readonly BookStackDbContext _data = data;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUserService _currentUserService = currentUserService;
@@ -32,13 +36,15 @@ public class PaymentService(
         CreatePaymentSessionServiceModel model,
         CancellationToken cancellationToken = default)
     {
-        await this.ReleaseExpiredReservations(cancellationToken);
-
         var providerName = NormalizeProviderName(model.Provider);
         if (!this._paymentProviderRegistry.TryGetProvider(providerName, out var paymentProvider))
         {
             return $"Payment provider '{providerName}' is not supported.";
         }
+
+        var isAdmin = this._currentUserService.IsAdmin();
+        var currentUserId = this._currentUserService.GetId();
+        var isAuthenticated = !string.IsNullOrWhiteSpace(currentUserId);
 
         var order = await this._data
             .Orders
@@ -46,27 +52,50 @@ public class PaymentService(
                 o => o.Id == orderId,
                 cancellationToken);
 
-        var isNullOrDeleted = order is null || order.IsDeleted;
-        if (isNullOrDeleted)
+        if (isAdmin)
         {
-            return string.Format(
-                Common.Constants.ErrorMessages.DbEntityNotFound,
-                nameof(OrderDbModel),
-                orderId);
+            if (order is null || order.IsDeleted)
+            {
+                return string.Format(
+                    Common.Constants.ErrorMessages.DbEntityNotFound,
+                    nameof(OrderDbModel),
+                    orderId);
+            }
+        }
+        else if (isAuthenticated)
+        {
+            var isNotOwnedByCurrentBuyer =
+                order is null ||
+                order.IsDeleted ||
+                string.IsNullOrWhiteSpace(order.BuyerId) ||
+                !string.Equals(
+                    order.BuyerId,
+                    currentUserId,
+                    StringComparison.Ordinal);
+
+            if (isNotOwnedByCurrentBuyer)
+            {
+                return UnauthorizedCheckoutMessage;
+            }
+        }
+        else
+        {
+            var canUseGuestToken =
+                order is not null &&
+                !order.IsDeleted &&
+                CanUseGuestPaymentToken(
+                    order,
+                    model.PaymentToken);
+
+            if (!canUseGuestToken)
+            {
+                return UnauthorizedCheckoutMessage;
+            }
         }
 
         if (order!.PaymentMethod != OrderPaymentMethod.Online)
         {
             return "Checkout session can only be created for online payment orders.";
-        }
-
-        var canInitiateCheckout = !this.CanInitiateCheckout(
-            order!,
-            model.PaymentToken);
-
-        if (canInitiateCheckout)
-        {
-            return "You are not authorized to initiate payment for this order.";
         }
 
         var isAlreadyFinalized = order!.PaymentStatus
@@ -176,6 +205,18 @@ public class PaymentService(
             return $"Payment provider '{providerName}' is not supported.";
         }
 
+        var signatureValidation = paymentProvider
+            .ValidateWebhookSignature(payload, headers);
+
+        if (!signatureValidation.Succeeded)
+        {
+            this._logger.LogWarning(
+                "Webhook signature validation failed. Provider={Provider}",
+                providerName);
+
+            return signatureValidation.ErrorMessage ?? "Invalid webhook signature.";
+        }
+
         var parsedEvent = paymentProvider.ParseWebhook(payload, headers);
         if (!parsedEvent.Succeeded)
         {
@@ -279,6 +320,11 @@ public class PaymentService(
         PaymentStatus paymentStatus,
         CancellationToken cancellationToken = default)
     {
+        if (!this._currentUserService.IsAdmin())
+        {
+            return "Only administrators can change payment status.";
+        }
+
         var order = await this._data
             .Orders
             .SingleOrDefaultAsync(
@@ -645,26 +691,11 @@ public class PaymentService(
         }
     }
 
-    private bool CanInitiateCheckout(
+    private static bool CanUseGuestPaymentToken(
         OrderDbModel order,
         string? paymentToken)
     {
-        if (this._currentUserService.IsAdmin())
-        {
-            return true;
-        }
-
-        var currentUserId = this._currentUserService.GetId();
-        var orderHasBuyer = !string.IsNullOrWhiteSpace(order.BuyerId);
-
-        if (!string.IsNullOrWhiteSpace(currentUserId) &&
-            orderHasBuyer &&
-            order.BuyerId == currentUserId)
-        {
-            return true;
-        }
-
-        if (orderHasBuyer)
+        if (!string.IsNullOrWhiteSpace(order.BuyerId))
         {
             return false;
         }
@@ -826,10 +857,32 @@ public class PaymentService(
         }
 
         var trimmedPayload = payload.Trim();
+        if (trimmedPayload.Length == 0)
+        {
+            return null;
+        }
 
-        return trimmedPayload.Length <= Shared.Constants.Validation.PayloadMaxLength
-            ? trimmedPayload
-            : trimmedPayload[..Shared.Constants.Validation.PayloadMaxLength];
+        var sanitizedPayload = new StringBuilder(trimmedPayload.Length);
+
+        foreach (var character in trimmedPayload)
+        {
+            if (!char.IsControl(character) ||
+                character is '\n' or '\r' or '\t')
+            {
+                sanitizedPayload.Append(character);
+            }
+        }
+
+        if (sanitizedPayload.Length == 0)
+        {
+            return null;
+        }
+
+        var sanitized = sanitizedPayload.ToString();
+
+        return sanitized.Length <= Shared.Constants.Validation.PayloadMaxLength
+            ? sanitized
+            : sanitized[..Shared.Constants.Validation.PayloadMaxLength];
     }
 }
 

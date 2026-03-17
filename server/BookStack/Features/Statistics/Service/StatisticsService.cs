@@ -2,17 +2,31 @@
 
 using Data;
 using Features.Orders.Shared;
+using Infrastructure.Services.CurrentUser;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
 public class StatisticsService(
-    BookStackDbContext data) : IStatisticsService
+    BookStackDbContext data,
+    ICurrentUserService currentUserService,
+    ILogger<StatisticsService> logger) : IStatisticsService
 {
     private readonly BookStackDbContext _data = data;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ILogger<StatisticsService> _logger = logger;
 
     public async Task<AdminStatisticsServiceModel> Get(
         CancellationToken cancellationToken = default)
     {
+        if (!this._currentUserService.IsAdmin())
+        {
+            this._logger.LogWarning(
+                "Unauthorized statistics access attempt. UserId={UserId}",
+                this._currentUserService.GetId());
+
+            return new AdminStatisticsServiceModel();
+        }
+
         var totalUsers = await this._data
             .Users
             .AsNoTracking()

@@ -13,6 +13,7 @@ describe('mapCheckoutSubmissionToCreateOrderRequest', () => {
       city: ' Sofia ',
       addressLine: ' 1 Vitosha Blvd ',
       postalCode: ' 1000 ',
+      paymentMethod: 'online',
       items: [{ listingId: 'listing-1', quantity: 2 }],
     });
 
@@ -25,6 +26,7 @@ describe('mapCheckoutSubmissionToCreateOrderRequest', () => {
       city: 'Sofia',
       addressLine: '1 Vitosha Blvd',
       postalCode: '1000',
+      paymentMethod: 'online',
       items: [{ listingId: 'listing-1', quantity: 2 }],
     });
   });
@@ -39,6 +41,7 @@ describe('mapCheckoutSubmissionToCreateOrderRequest', () => {
       city: 'Sofia',
       addressLine: '1 Vitosha Blvd',
       postalCode: '',
+      paymentMethod: 'cashOnDelivery',
       items: [{ listingId: 'listing-1', quantity: 1 }],
     });
 

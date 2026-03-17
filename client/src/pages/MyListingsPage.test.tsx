@@ -3,7 +3,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { listingsApi } from '@/features/marketplace/api/listings.api';
+import { sellerProfilesApi } from '@/features/sellerProfiles/api/sellerProfiles.api';
+import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
 import { MyListingsPage } from '@/pages/MyListingsPage';
+import { useAuthStore } from '@/store/auth.store';
 
 vi.mock('@/features/marketplace/api/listings.api', () => ({
   listingsApi: {
@@ -14,12 +17,42 @@ vi.mock('@/features/marketplace/api/listings.api', () => ({
   },
 }));
 
+vi.mock('@/features/sellerProfiles/api/sellerProfiles.api', () => ({
+  sellerProfilesApi: {
+    getMine: vi.fn(),
+    upsertMine: vi.fn(),
+  },
+}));
+
 describe('MyListingsPage', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    useAuthStore.setState({ session: null });
+    useSellerProfileStore.setState({
+      profile: null,
+      loadState: 'idle',
+      loadedForUserId: null,
+    });
   });
 
   it('renders approval and rejection states for seller listings', async () => {
+    useAuthStore.setState({
+      session: {
+        accessToken: 'token',
+        expiresAtUtc: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        user: { id: 'seller-1', role: 'buyer' },
+      },
+    });
+    vi.mocked(sellerProfilesApi.getMine).mockResolvedValue({
+      userId: 'seller-1',
+      displayName: 'Seller One',
+      phoneNumber: null,
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
+      isActive: true,
+      createdOn: '2026-01-01T10:00:00Z',
+      modifiedOn: null,
+    });
     vi.mocked(listingsApi.getMineListings).mockResolvedValue({
       items: [
         {

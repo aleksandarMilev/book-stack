@@ -92,38 +92,78 @@ public class ImageWriter(
             return false;
         }
 
-        var relativePath = imagePath.TrimStart('/', '\\');
-        var physicalPath = Path.Combine(
-            env.WebRootPath,
-            relativePath.Replace('/', Path.DirectorySeparatorChar));
-
-        if (!File.Exists(physicalPath))
+        var normalizedRelativePath = NormalizeRelativeImagePath(imagePath);
+        if (string.IsNullOrWhiteSpace(normalizedRelativePath))
         {
-            var fileName = Path.GetFileName(relativePath);
-            var fallback = Path.Combine(
-                env.WebRootPath,
-                ImagesPathPrefix,
-                resourceName,
-                fileName);
-
             logger.LogWarning(
-                "Delete: file not found at primary path. Resource={Resource}, Primary={Primary}, Fallback={Fallback}, ExistsFallback={ExistsFallback}",
+                "Delete skipped for {Resource}: image path could not be normalized safely. Path={Path}",
                 resourceName,
-                physicalPath,
-                fallback,
-                File.Exists(fallback));
+                imagePath);
 
-            physicalPath = fallback;
+            return false;
         }
 
-        var exists = File.Exists(physicalPath);
+        var expectedPrefix = $"{ImagesPathPrefix}/{resourceName}/";
+        if (!normalizedRelativePath.StartsWith(
+                expectedPrefix,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning(
+                "Delete skipped for {Resource}: path is outside allowed resource folder. Path={Path}, ExpectedPrefix={ExpectedPrefix}",
+                resourceName,
+                normalizedRelativePath,
+                expectedPrefix);
+
+            return false;
+        }
+
+        var fileName = Path.GetFileName(normalizedRelativePath);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            logger.LogWarning(
+                "Delete skipped for {Resource}: resolved filename is empty. Path={Path}",
+                resourceName,
+                imagePath);
+
+            return false;
+        }
+
+        var resourceRoot = Path.GetFullPath(
+            Path.Combine(
+                env.WebRootPath,
+                ImagesPathPrefix,
+                resourceName));
+
+        var resolvedPath = Path.GetFullPath(
+            Path.Combine(resourceRoot, fileName));
+
+        var normalizedResourceRoot = resourceRoot
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+            Path.DirectorySeparatorChar;
+
+        var isInsideResourceRoot = resolvedPath.StartsWith(
+            normalizedResourceRoot,
+            StringComparison.OrdinalIgnoreCase);
+
+        if (!isInsideResourceRoot)
+        {
+            logger.LogWarning(
+                "Delete skipped for {Resource}: resolved path escapes resource root. Resolved={Resolved}, ResourceRoot={ResourceRoot}",
+                resourceName,
+                resolvedPath,
+                resourceRoot);
+
+            return false;
+        }
+
+        var exists = File.Exists(resolvedPath);
 
         logger.LogInformation(
             "Delete attempt. Resource={Resource}, ImagePath={ImagePath}, WebRoot={WebRoot}, Resolved={Resolved}, Exists={Exists}",
             resourceName,
             imagePath,
             env.WebRootPath,
-            physicalPath,
+            resolvedPath,
             exists);
 
         if (!exists)
@@ -133,7 +173,7 @@ public class ImageWriter(
 
         try
         {
-            File.Delete(physicalPath);
+            File.Delete(resolvedPath);
         }
         catch (Exception exception)
         {
@@ -141,7 +181,7 @@ public class ImageWriter(
                 exception,
                 "Failed to delete image file. Resource={Resource}, Resolved={Resolved}",
                 resourceName,
-                physicalPath);
+                resolvedPath);
 
             return false;
         }
@@ -149,7 +189,7 @@ public class ImageWriter(
         logger.LogInformation(
             "Deleted image file. Resource={Resource}, Resolved={Resolved}",
             resourceName,
-            physicalPath);
+            resolvedPath);
 
         return true;
     }
@@ -198,5 +238,26 @@ public class ImageWriter(
 
             throw;
         }
+    }
+
+    private static string? NormalizeRelativeImagePath(string imagePath)
+    {
+        var trimmedPath = imagePath.Trim();
+        var withoutLeadingSlashes = trimmedPath.TrimStart('/', '\\');
+        if (withoutLeadingSlashes.Length == 0)
+        {
+            return null;
+        }
+
+        var normalizedPath = withoutLeadingSlashes.Replace('\\', '/');
+
+        // Reject directory traversal segments before path resolution.
+        if (normalizedPath.Contains("../", StringComparison.Ordinal) ||
+            normalizedPath.Contains("..\\", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return normalizedPath;
     }
 }

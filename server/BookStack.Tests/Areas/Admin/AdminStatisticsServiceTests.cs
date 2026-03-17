@@ -4,6 +4,7 @@ using BookStack.Data;
 using BookStack.Features.Orders.Shared;
 using BookStack.Features.Statistics.Service;
 using BookStack.Tests.TestInfrastructure;
+using Microsoft.Extensions.Logging.Abstractions;
 
 public class AdminStatisticsServiceTests
 {
@@ -26,7 +27,10 @@ public class AdminStatisticsServiceTests
             currentUserService,
             dateTimeProvider);
 
-        var service = new StatisticsService(data);
+        var service = new StatisticsService(
+            data,
+            currentUserService,
+            NullLogger<StatisticsService>.Instance);
 
         data.Users.AddRange(
             MarketplaceTestData.CreateUser("seller-1", "seller-1@example.com"),
@@ -210,6 +214,37 @@ public class AdminStatisticsServiceTests
             item.Orders == 3 &&
             item.PaidOnlineOrders == 1 &&
             item.CodOrders == 1);
+    }
+
+    [Fact]
+    public async Task Get_ForNonAdmin_ReturnsEmptyModel()
+    {
+        await using var database = new TestDatabaseScope();
+
+        var currentUserService = new TestCurrentUserService
+        {
+            UserId = "buyer-1",
+            Username = "buyer-1",
+            Admin = false,
+        };
+
+        var dateTimeProvider = new TestDateTimeProvider(
+            new DateTime(2026, 01, 02, 0, 0, 0, DateTimeKind.Utc));
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var service = new StatisticsService(
+            data,
+            currentUserService,
+            NullLogger<StatisticsService>.Instance);
+
+        var result = await service.Get(CancellationToken.None);
+
+        Assert.Equal(0, result.TotalUsers);
+        Assert.Equal(0, result.TotalOrders);
+        Assert.Empty(result.RevenueByMonth);
     }
 
     private static async Task AddOrder(

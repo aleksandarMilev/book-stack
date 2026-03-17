@@ -50,4 +50,47 @@ describe('MyOrdersPage', () => {
       expect(screen.getByText('Could not load your orders')).toBeInTheDocument();
     });
   });
+
+  it('renders richer order, payment, method, and settlement statuses', async () => {
+    vi.mocked(ordersApi.getMyOrders).mockResolvedValue({
+      items: [
+        {
+          id: 'order-1',
+          buyerId: 'buyer-1',
+          customerFirstName: 'Maria',
+          customerLastName: 'Ivanova',
+          email: 'maria@example.com',
+          phoneNumber: null,
+          country: 'Bulgaria',
+          city: 'Sofia',
+          addressLine: '1 Vitosha Blvd',
+          postalCode: null,
+          total: { primary: { amount: 20, currency: 'EUR' } },
+          paymentMethod: 'cashOnDelivery',
+          status: 'pendingConfirmation',
+          paymentStatus: 'notRequired',
+          settlementStatus: 'pending',
+          platformFeePercent: 10,
+          platformFeeAmount: { primary: { amount: 2, currency: 'EUR' } },
+          sellerNetAmount: { primary: { amount: 18, currency: 'EUR' } },
+          createdOn: '2026-01-01T10:00:00Z',
+          items: [],
+        },
+      ],
+      totalItems: 1,
+      pageIndex: 1,
+      pageSize: 10,
+    });
+
+    render(
+      <MemoryRouter>
+        <MyOrdersPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Cash on delivery')).toBeInTheDocument();
+    expect(screen.getAllByText('Pending confirmation').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not required').length).toBeGreaterThan(0);
+    expect(screen.getByText('Pending settlement')).toBeInTheDocument();
+  });
 });

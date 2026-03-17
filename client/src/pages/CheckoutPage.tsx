@@ -11,7 +11,8 @@ import { checkoutService } from '@/features/checkout/services/checkout.service';
 import { mapCheckoutSubmissionToCreateOrderRequest } from '@/features/checkout/utils/checkoutPayload';
 import { multiplyPriceDisplayValue } from '@/features/checkout/utils/priceMath';
 import { listingsApi } from '@/features/marketplace/api/listings.api';
-import { ROUTES } from '@/routes/paths';
+import type { PaymentMethod } from '@/features/orders/types';
+import { getOrderConfirmationRoute, ROUTES } from '@/routes/paths';
 import { useAuthCapabilities, useAuthStore } from '@/store/auth.store';
 import type { MarketplaceListing } from '@/types/marketplace.types';
 import { redirectTo } from '@/utils/navigation';
@@ -25,6 +26,12 @@ interface CheckoutFormState {
   city: string;
   addressLine: string;
   postalCode: string;
+}
+
+interface SupportedPaymentMethods {
+  online: boolean;
+  cashOnDelivery: boolean;
+  source: 'listing' | 'fallback';
 }
 
 const parseQuantity = (value: string | null): number => {
@@ -65,6 +72,33 @@ const parseDisplayName = (displayName: string | undefined): Pick<CheckoutFormSta
   };
 };
 
+const resolveSupportedPaymentMethods = (listing: MarketplaceListing | null): SupportedPaymentMethods => {
+  if (!listing) {
+    return {
+      online: false,
+      cashOnDelivery: false,
+      source: 'fallback',
+    };
+  }
+
+  const hasExplicitSupportData =
+    typeof listing.supportsOnlinePayment === 'boolean' || typeof listing.supportsCashOnDelivery === 'boolean';
+
+  if (!hasExplicitSupportData) {
+    return {
+      online: true,
+      cashOnDelivery: true,
+      source: 'fallback',
+    };
+  }
+
+  return {
+    online: Boolean(listing.supportsOnlinePayment),
+    cashOnDelivery: Boolean(listing.supportsCashOnDelivery),
+    source: 'listing',
+  };
+};
+
 export function CheckoutPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -94,6 +128,22 @@ export function CheckoutPage() {
     postalCode: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CheckoutFormState, string>>>({});
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentMethodError, setPaymentMethodError] = useState<string | null>(null);
+
+  const supportedPaymentMethods = useMemo(() => resolveSupportedPaymentMethods(listing), [listing]);
+  const availablePaymentMethods = useMemo<PaymentMethod[]>(() => {
+    const methods: PaymentMethod[] = [];
+    if (supportedPaymentMethods.online) {
+      methods.push('online');
+    }
+
+    if (supportedPaymentMethods.cashOnDelivery) {
+      methods.push('cashOnDelivery');
+    }
+
+    return methods;
+  }, [supportedPaymentMethods.cashOnDelivery, supportedPaymentMethods.online]);
 
   useEffect(() => {
     if (!listingId) {
@@ -175,6 +225,26 @@ export function CheckoutPage() {
     setQuantity((previousQuantity) => Math.min(Math.max(previousQuantity, 1), Math.max(listing.quantity, 1)));
   }, [listing]);
 
+  useEffect(() => {
+    if (availablePaymentMethods.length === 0) {
+      setSelectedPaymentMethod(null);
+      return;
+    }
+
+    if (availablePaymentMethods.length === 1) {
+      setSelectedPaymentMethod(availablePaymentMethods[0] ?? null);
+      return;
+    }
+
+    setSelectedPaymentMethod((currentValue) => {
+      if (currentValue && availablePaymentMethods.includes(currentValue)) {
+        return currentValue;
+      }
+
+      return availablePaymentMethods[0] ?? null;
+    });
+  }, [availablePaymentMethods]);
+
   const unitPrice = listing?.price;
   const totalPrice = useMemo(() => {
     if (!unitPrice) {
@@ -185,6 +255,7 @@ export function CheckoutPage() {
   }, [quantity, unitPrice]);
 
   const canPurchase = Boolean(listing && listing.isApproved && listing.quantity > 0);
+  const hasSupportedPaymentMethods = availablePaymentMethods.length > 0;
   const isInvalidState = !isLoadingListing && (!listing || !canPurchase);
 
   const validateForm = (): boolean => {
@@ -223,8 +294,19 @@ export function CheckoutPage() {
   const handleCheckoutSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     setSubmitError(null);
+    setPaymentMethodError(null);
 
     if (!listing || !canPurchase || !validateForm()) {
+      return;
+    }
+
+    if (!selectedPaymentMethod) {
+      setPaymentMethodError(t('pages.checkout.validation.paymentMethodRequired'));
+      return;
+    }
+
+    if (!hasSupportedPaymentMethods) {
+      setPaymentMethodError(t('pages.checkout.validation.noSupportedPaymentMethod'));
       return;
     }
 
@@ -233,12 +315,18 @@ export function CheckoutPage() {
     try {
       const orderPayload = mapCheckoutSubmissionToCreateOrderRequest({
         ...formState,
+        paymentMethod: selectedPaymentMethod,
         items: [{ listingId: listing.id, quantity }],
       });
 
       const checkoutResult = await checkoutService.createOrderAndStartCheckout(orderPayload);
 
-      redirectTo(checkoutResult.checkoutUrl);
+      if (checkoutResult.paymentMethod === 'online') {
+        redirectTo(checkoutResult.checkoutUrl);
+        return;
+      }
+
+      redirectTo(getOrderConfirmationRoute(checkoutResult.orderId, 'cashOnDelivery'));
     } catch (error: unknown) {
       setSubmitError(getApiErrorMessage(error, t('pages.checkout.submitError')));
     } finally {
@@ -370,9 +458,44 @@ export function CheckoutPage() {
               />
             </div>
 
-            {submitError ? <p className="auth-error">{submitError}</p> : null}
+            <div className="checkout-payment-methods">
+              <h3>{t('pages.checkout.paymentMethodTitle')}</h3>
+              <p className="checkout-summary-meta">{t('pages.checkout.paymentMethodSubtitle')}</p>
 
-            <Button disabled={isSubmitting} type="submit">
+              {supportedPaymentMethods.source === 'fallback' ? (
+                <p className="checkout-summary-meta">{t('pages.checkout.paymentMethodFallbackNote')}</p>
+              ) : null}
+
+              {!hasSupportedPaymentMethods ? (
+                <p className="auth-error">{t('pages.checkout.noSupportedPaymentMethodsMessage')}</p>
+              ) : (
+                <div className="checkout-payment-options">
+                  {availablePaymentMethods.map((paymentMethod) => (
+                    <label className="checkout-payment-option" key={paymentMethod}>
+                      <input
+                        checked={selectedPaymentMethod === paymentMethod}
+                        name="paymentMethod"
+                        onChange={() => {
+                          setSelectedPaymentMethod(paymentMethod);
+                          setPaymentMethodError(null);
+                        }}
+                        type="radio"
+                        value={paymentMethod}
+                      />
+                      <span>
+                        <strong>{t(`pages.checkout.paymentMethods.${paymentMethod}.title`)}</strong>
+                        <small>{t(`pages.checkout.paymentMethods.${paymentMethod}.description`)}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {submitError ? <p className="auth-error">{submitError}</p> : null}
+            {paymentMethodError ? <p className="auth-error">{paymentMethodError}</p> : null}
+
+            <Button disabled={isSubmitting || !hasSupportedPaymentMethods} type="submit">
               {isSubmitting ? t('pages.checkout.submitting') : t('pages.checkout.submit')}
             </Button>
           </form>
@@ -429,6 +552,18 @@ export function CheckoutPage() {
                   {t('pages.checkout.availableQuantity', { count: listing.quantity })}
                 </p>
               </div>
+
+              {selectedPaymentMethod ? (
+                <div className="checkout-payment-summary">
+                  <p className="checkout-summary-meta">{t('pages.checkout.paymentMethodSummaryLabel')}</p>
+                  <p className="checkout-summary-title">
+                    {t(`pages.checkout.paymentMethods.${selectedPaymentMethod}.title`)}
+                  </p>
+                  <p className="checkout-summary-meta">
+                    {t(`pages.checkout.paymentMethods.${selectedPaymentMethod}.description`)}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="checkout-summary-price-line">
                 <span>{t('pages.checkout.unitPriceLabel')}</span>

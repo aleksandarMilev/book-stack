@@ -6,6 +6,14 @@ import { PriceDisplay } from '@/components/pricing/PriceDisplay';
 import { Badge, Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
 import { ordersApi } from '@/features/orders/api/orders.api';
 import type { OrderStatus, PaymentStatus, SellerOrder } from '@/features/orders/types';
+import {
+  getOrderStatusBadgeVariant,
+  getPaymentMethodBadgeVariant,
+  getPaymentStatusBadgeVariant,
+  getSettlementStatusBadgeVariant,
+  ORDER_STATUS_FILTERS,
+  PAYMENT_STATUS_FILTERS,
+} from '@/features/orders/ui/statusPresentation';
 import { useLanguage } from '@/hooks/useLanguage';
 import { formatDateTime } from '@/utils/formatters';
 
@@ -14,55 +22,30 @@ type PaymentStatusFilter = 'all' | PaymentStatus;
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
 
-const ORDER_STATUS_FILTERS: OrderStatusFilter[] = [
-  'all',
-  'pendingPayment',
-  'confirmed',
-  'cancelled',
-  'completed',
-  'expired',
-];
-
-const PAYMENT_STATUS_FILTERS: PaymentStatusFilter[] = ['all', 'unpaid', 'paid', 'failed', 'refunded'];
-
-const getOrderStatusBadgeVariant = (status: OrderStatus): 'warning' | 'success' | 'danger' | 'accent' => {
-  if (status === 'confirmed') {
-    return 'success';
-  }
-
-  if (status === 'completed') {
-    return 'accent';
-  }
-
-  if (status === 'cancelled' || status === 'expired') {
-    return 'danger';
-  }
-
-  return 'warning';
-};
-
-const getPaymentStatusBadgeVariant = (status: PaymentStatus): 'warning' | 'success' | 'danger' | 'accent' => {
-  if (status === 'paid') {
-    return 'success';
-  }
-
-  if (status === 'refunded') {
-    return 'accent';
-  }
-
-  if (status === 'failed') {
-    return 'danger';
-  }
-
-  return 'warning';
-};
-
 const formatOrderId = (orderId: string): string => {
   if (orderId.length <= 8) {
     return orderId;
   }
 
   return `${orderId.slice(0, 8)}...`;
+};
+
+type SellerOrderAction = 'confirm' | 'ship' | 'deliver';
+
+const getAvailableSellerAction = (status: OrderStatus): SellerOrderAction | null => {
+  if (status === 'pendingConfirmation') {
+    return 'confirm';
+  }
+
+  if (status === 'confirmed') {
+    return 'ship';
+  }
+
+  if (status === 'shipped') {
+    return 'deliver';
+  }
+
+  return null;
 };
 
 export function SellerSoldOrdersPage() {
@@ -81,6 +64,8 @@ export function SellerSoldOrdersPage() {
   const [orderDetails, setOrderDetails] = useState<Record<string, SellerOrder>>({});
   const [detailsError, setDetailsError] = useState<Record<string, string>>({});
   const [detailsLoading, setDetailsLoading] = useState<Record<string, boolean>>({});
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [actionError, setActionError] = useState<Record<string, string>>({});
   const [reloadCounter, setReloadCounter] = useState(0);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))), [pageSize, totalItems]);
@@ -165,6 +150,39 @@ export function SellerSoldOrdersPage() {
       }));
     } finally {
       setDetailsLoading((previousState) => ({ ...previousState, [orderId]: false }));
+    }
+  };
+
+  const handleSellerAction = async (orderId: string, action: SellerOrderAction): Promise<void> => {
+    setActionLoading((previousState) => ({ ...previousState, [orderId]: true }));
+    setActionError((previousState) => {
+      const nextState = { ...previousState };
+      delete nextState[orderId];
+      return nextState;
+    });
+
+    try {
+      if (action === 'confirm') {
+        await ordersApi.confirmSoldOrder(orderId);
+      } else if (action === 'ship') {
+        await ordersApi.shipSoldOrder(orderId);
+      } else {
+        await ordersApi.deliverSoldOrder(orderId);
+      }
+
+      setOrderDetails((previousState) => {
+        const nextState = { ...previousState };
+        delete nextState[orderId];
+        return nextState;
+      });
+      setReloadCounter((previousCounter) => previousCounter + 1);
+    } catch (error: unknown) {
+      setActionError((previousState) => ({
+        ...previousState,
+        [orderId]: getApiErrorMessage(error, t('pages.sellerSoldOrders.actionError')),
+      }));
+    } finally {
+      setActionLoading((previousState) => ({ ...previousState, [orderId]: false }));
     }
   };
 
@@ -281,6 +299,12 @@ export function SellerSoldOrdersPage() {
             {orders.map((order) => {
               const isExpanded = expandedOrderId === order.id;
               const detail = orderDetails[order.id] ?? order;
+              const availableAction = getAvailableSellerAction(order.status);
+              const isActionBlockedByPayment =
+                order.paymentMethod === 'online' &&
+                order.paymentStatus !== 'paid' &&
+                availableAction !== null;
+              const canRunAction = availableAction !== null && !isActionBlockedByPayment;
 
               return (
                 <Card className="order-card" key={order.id}>
@@ -297,13 +321,20 @@ export function SellerSoldOrdersPage() {
                   </div>
 
                   <div className="order-card-statuses">
+                    <Badge variant={getPaymentMethodBadgeVariant(order.paymentMethod)}>
+                      {t(`taxonomy.paymentMethod.${order.paymentMethod}`)}
+                    </Badge>
                     <Badge variant={getOrderStatusBadgeVariant(order.status)}>
                       {t(`taxonomy.orderStatus.${order.status}`)}
                     </Badge>
                     <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
                       {t(`taxonomy.paymentStatus.${order.paymentStatus}`)}
                     </Badge>
+                    <Badge variant={getSettlementStatusBadgeVariant(order.settlementStatus)}>
+                      {t(`taxonomy.settlementStatus.${order.settlementStatus}`)}
+                    </Badge>
                   </div>
+                  <p className="checkout-summary-meta">{t(`pages.sellerSoldOrders.statusDescriptions.${order.status}`)}</p>
 
                   <ul className="order-items-summary">
                     {order.items.slice(0, 2).map((item) => (
@@ -317,6 +348,25 @@ export function SellerSoldOrdersPage() {
                   </ul>
 
                   {detailsError[order.id] ? <p className="auth-error">{detailsError[order.id]}</p> : null}
+                  {actionError[order.id] ? <p className="auth-error">{actionError[order.id]}</p> : null}
+
+                  {availableAction ? (
+                    <Button
+                      disabled={Boolean(actionLoading[order.id]) || !canRunAction}
+                      onClick={() => {
+                        if (canRunAction) {
+                          void handleSellerAction(order.id, availableAction);
+                        }
+                      }}
+                    >
+                      {actionLoading[order.id]
+                        ? t('pages.sellerSoldOrders.actionInProgress')
+                        : t(`pages.sellerSoldOrders.actions.${availableAction}`)}
+                    </Button>
+                  ) : null}
+                  {isActionBlockedByPayment ? (
+                    <p className="checkout-summary-meta">{t('pages.sellerSoldOrders.actionBlockedByPayment')}</p>
+                  ) : null}
 
                   <Button
                     onClick={() => {
@@ -342,6 +392,24 @@ export function SellerSoldOrdersPage() {
                         {detail.addressLine}, {detail.city}, {detail.country}
                         {detail.postalCode ? `, ${detail.postalCode}` : ''}
                       </p>
+                      <div className="order-details-financials">
+                        <div className="checkout-summary-price-line">
+                          <span>{t('pages.sellerSoldOrders.financial.sellerTotalLabel')}</span>
+                          <PriceDisplay value={detail.sellerTotal} />
+                        </div>
+                        <div className="checkout-summary-price-line">
+                          <span>
+                            {t('pages.sellerSoldOrders.financial.platformFeeLabel', {
+                              percent: detail.platformFeePercent.toFixed(2),
+                            })}
+                          </span>
+                          <PriceDisplay value={detail.platformFeeAmount} />
+                        </div>
+                        <div className="checkout-summary-price-line">
+                          <span>{t('pages.sellerSoldOrders.financial.sellerNetLabel')}</span>
+                          <PriceDisplay value={detail.sellerNetAmount} />
+                        </div>
+                      </div>
                       <div className="order-details-items">
                         {detail.items.map((item) => (
                           <div className="order-details-item" key={item.id}>

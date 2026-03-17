@@ -6,6 +6,14 @@ import { PriceDisplay } from '@/components/pricing/PriceDisplay';
 import { Badge, Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
 import { ordersApi } from '@/features/orders/api/orders.api';
 import type { OrderStatus, PaymentStatus, UserOrder } from '@/features/orders/types';
+import {
+  getOrderStatusBadgeVariant,
+  getPaymentMethodBadgeVariant,
+  getPaymentStatusBadgeVariant,
+  getSettlementStatusBadgeVariant,
+  ORDER_STATUS_FILTERS,
+  PAYMENT_STATUS_FILTERS,
+} from '@/features/orders/ui/statusPresentation';
 import { useLanguage } from '@/hooks/useLanguage';
 import { formatDateTime } from '@/utils/formatters';
 
@@ -13,49 +21,6 @@ type OrderStatusFilter = 'all' | OrderStatus;
 type PaymentStatusFilter = 'all' | PaymentStatus;
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
-
-const ORDER_STATUS_FILTERS: OrderStatusFilter[] = [
-  'all',
-  'pendingPayment',
-  'confirmed',
-  'cancelled',
-  'completed',
-  'expired',
-];
-
-const PAYMENT_STATUS_FILTERS: PaymentStatusFilter[] = ['all', 'unpaid', 'paid', 'failed', 'refunded'];
-
-const getOrderStatusBadgeVariant = (status: OrderStatus): 'warning' | 'success' | 'danger' | 'accent' => {
-  if (status === 'confirmed') {
-    return 'success';
-  }
-
-  if (status === 'completed') {
-    return 'accent';
-  }
-
-  if (status === 'cancelled' || status === 'expired') {
-    return 'danger';
-  }
-
-  return 'warning';
-};
-
-const getPaymentStatusBadgeVariant = (status: PaymentStatus): 'warning' | 'success' | 'danger' | 'accent' => {
-  if (status === 'paid') {
-    return 'success';
-  }
-
-  if (status === 'refunded') {
-    return 'accent';
-  }
-
-  if (status === 'failed') {
-    return 'danger';
-  }
-
-  return 'warning';
-};
 
 const formatOrderId = (orderId: string): string => {
   if (orderId.length <= 8) {
@@ -297,13 +262,20 @@ export function MyOrdersPage() {
                   </div>
 
                   <div className="order-card-statuses">
+                    <Badge variant={getPaymentMethodBadgeVariant(order.paymentMethod)}>
+                      {t(`taxonomy.paymentMethod.${order.paymentMethod}`)}
+                    </Badge>
                     <Badge variant={getOrderStatusBadgeVariant(order.status)}>
                       {t(`taxonomy.orderStatus.${order.status}`)}
                     </Badge>
                     <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
                       {t(`taxonomy.paymentStatus.${order.paymentStatus}`)}
                     </Badge>
+                    <Badge variant={getSettlementStatusBadgeVariant(order.settlementStatus)}>
+                      {t(`taxonomy.settlementStatus.${order.settlementStatus}`)}
+                    </Badge>
                   </div>
+                  <p className="checkout-summary-meta">{t(`pages.myOrders.statusDescriptions.${order.status}`)}</p>
 
                   <ul className="order-items-summary">
                     {order.items.slice(0, 2).map((item) => (
@@ -342,6 +314,24 @@ export function MyOrdersPage() {
                         {detail.addressLine}, {detail.city}, {detail.country}
                         {detail.postalCode ? `, ${detail.postalCode}` : ''}
                       </p>
+                      <div className="order-details-financials">
+                        <div className="checkout-summary-price-line">
+                          <span>{t('pages.myOrders.financial.totalLabel')}</span>
+                          <PriceDisplay value={detail.total} />
+                        </div>
+                        <div className="checkout-summary-price-line">
+                          <span>
+                            {t('pages.myOrders.financial.platformFeeLabel', {
+                              percent: detail.platformFeePercent.toFixed(2),
+                            })}
+                          </span>
+                          <PriceDisplay value={detail.platformFeeAmount} />
+                        </div>
+                        <div className="checkout-summary-price-line">
+                          <span>{t('pages.myOrders.financial.sellerNetLabel')}</span>
+                          <PriceDisplay value={detail.sellerNetAmount} />
+                        </div>
+                      </div>
                       <div className="order-details-items">
                         {detail.items.map((item) => (
                           <div className="order-details-item" key={item.id}>

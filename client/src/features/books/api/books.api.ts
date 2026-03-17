@@ -43,6 +43,24 @@ interface BookBackendFilterQuery {
 
 const BOOKS_BASE_PATH = '/Books';
 
+export interface BookLookupItem {
+  id: string;
+  title: string;
+  author: string;
+  genre: string;
+  isbn?: string | null;
+}
+
+export interface CreateBookRequest {
+  title: string;
+  author: string;
+  genre: string;
+  description?: string;
+  publisher?: string;
+  publishedOn?: string;
+  isbn?: string;
+}
+
 const removeEmptyQueryValues = <T extends object>(query: T): T => {
   const entries = Object.entries(query as Record<string, unknown>).filter(
     ([, value]) => value !== undefined && value !== null && value !== '',
@@ -73,6 +91,31 @@ export const booksApi = {
 
   async getBookById(id: string): Promise<BookModel> {
     const response = await httpClient.get<BookModel>(`${BOOKS_BASE_PATH}/${id}/`);
+
+    return response.data;
+  },
+
+  async lookupBooks(query: string, take = 10): Promise<BookLookupItem[]> {
+    const response = await httpClient.get<BookLookupItem[]>(`${BOOKS_BASE_PATH}/lookup/`, {
+      params: {
+        query: query.trim() || undefined,
+        take,
+      },
+    });
+
+    return response.data;
+  },
+
+  async createBook(payload: CreateBookRequest): Promise<string> {
+    const response = await httpClient.post<string>(BOOKS_BASE_PATH, {
+      title: payload.title.trim(),
+      author: payload.author.trim(),
+      genre: payload.genre.trim(),
+      description: payload.description?.trim() || undefined,
+      publisher: payload.publisher?.trim() || undefined,
+      publishedOn: payload.publishedOn || undefined,
+      isbn: payload.isbn?.trim() || undefined,
+    });
 
     return response.data;
   },

@@ -60,6 +60,7 @@ describe('checkoutService', () => {
         country: 'Bulgaria',
         city: 'Sofia',
         addressLine: '1 Vitosha Blvd',
+        paymentMethod: 'online',
         items: [{ listingId: 'listing-1', quantity: 1 }],
       },
       { provider: 'mock' },
@@ -70,7 +71,34 @@ describe('checkoutService', () => {
       provider: 'mock',
       paymentToken: 'guest-token-1',
     });
-    expect(result.checkoutUrl).toContain('session-1');
+    expect(result.paymentMethod).toBe('online');
+    if (result.paymentMethod === 'online') {
+      expect(result.checkoutUrl).toContain('session-1');
+    }
+  });
+
+  it('returns COD flow result without creating payment session', async () => {
+    vi.mocked(ordersApi.createOrder).mockResolvedValue({
+      orderId: 'order-cod-1',
+    });
+
+    const result = await checkoutService.createOrderAndStartCheckout({
+      customerFirstName: 'Maria',
+      customerLastName: 'Ivanova',
+      email: 'maria@example.com',
+      country: 'Bulgaria',
+      city: 'Sofia',
+      addressLine: '1 Vitosha Blvd',
+      paymentMethod: 'cashOnDelivery',
+      items: [{ listingId: 'listing-2', quantity: 1 }],
+    });
+
+    expect(paymentsApi.createCheckoutSession).not.toHaveBeenCalled();
+    expect(paymentSessionStorage.clearPendingOrderId).toHaveBeenCalled();
+    expect(result).toEqual({
+      orderId: 'order-cod-1',
+      paymentMethod: 'cashOnDelivery',
+    });
   });
 
   it('starts payment for authenticated users without guest token', async () => {

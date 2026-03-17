@@ -144,6 +144,53 @@ public class OrderLifecycleStateMachineTests
     }
 
     [Fact]
+    public async Task RepeatedSellerConfirm_IsSafeNoOp()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService
+        {
+            UserId = "buyer-1",
+            Username = "buyer-1",
+        };
+
+        var dateTimeProvider = new TestDateTimeProvider(
+            new DateTime(2026, 03, 16, 2, 30, 0, DateTimeKind.Utc));
+
+        await using var data = database.CreateDbContext(currentUserService, dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(data, dateTimeProvider, currentUserService);
+        var orderService = TestServiceFactory.CreateOrderService(data, currentUserService, paymentService, dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-1",
+            supportsCashOnDelivery: true);
+
+        var createResult = await orderService.Create(
+            MarketplaceTestData.CreateOrderModelWithPaymentMethod(
+                OrderPaymentMethod.CashOnDelivery,
+                (listing.Id, 1)),
+            CancellationToken.None);
+
+        currentUserService.UserId = "seller-1";
+        currentUserService.Username = "seller-1";
+
+        var firstConfirm = await orderService.ConfirmSoldOrder(
+            createResult.Data!.OrderId,
+            CancellationToken.None);
+
+        var secondConfirm = await orderService.ConfirmSoldOrder(
+            createResult.Data.OrderId,
+            CancellationToken.None);
+
+        var order = await data.Orders.AsNoTracking().SingleAsync(o => o.Id == createResult.Data.OrderId);
+
+        Assert.True(firstConfirm.Succeeded);
+        Assert.True(secondConfirm.Succeeded);
+        Assert.Equal(OrderStatus.Confirmed, order.Status);
+    }
+
+    [Fact]
     public async Task SellerFulfillment_CannotChangeUnrelatedOrder()
     {
         await using var database = new TestDatabaseScope();
@@ -225,6 +272,57 @@ public class OrderLifecycleStateMachineTests
 
         Assert.False(shipResult.Succeeded);
         Assert.Contains("not allowed", shipResult.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task InactiveSeller_CannotUseSellerFulfillmentActions()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService
+        {
+            UserId = "buyer-1",
+            Username = "buyer-1",
+        };
+
+        var dateTimeProvider = new TestDateTimeProvider(
+            new DateTime(2026, 03, 16, 4, 30, 0, DateTimeKind.Utc));
+
+        await using var data = database.CreateDbContext(currentUserService, dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(data, dateTimeProvider, currentUserService);
+        var orderService = TestServiceFactory.CreateOrderService(data, currentUserService, paymentService, dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-1",
+            supportsCashOnDelivery: true);
+
+        var createResult = await orderService.Create(
+            MarketplaceTestData.CreateOrderModelWithPaymentMethod(
+                OrderPaymentMethod.CashOnDelivery,
+                (listing.Id, 1)),
+            CancellationToken.None);
+
+        var profile = await data
+            .SellerProfiles
+            .SingleAsync(p => p.UserId == "seller-1");
+
+        profile.IsActive = false;
+        await data.SaveChangesAsync(CancellationToken.None);
+
+        currentUserService.UserId = "seller-1";
+        currentUserService.Username = "seller-1";
+        currentUserService.Admin = false;
+
+        var result = await orderService.ConfirmSoldOrder(
+            createResult.Data!.OrderId,
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(
+            "active seller profile",
+            result.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

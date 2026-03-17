@@ -5,6 +5,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { Button, Container } from '@/components/ui';
 import { authService } from '@/features/auth/services/auth.service';
+import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
 import { useDisclosure } from '@/hooks/useDisclosure';
 import { ROUTES } from '@/routes/paths';
 import { useAuthCapabilities, useAuthStore } from '@/store/auth.store';
@@ -28,6 +29,7 @@ const guestItems: HeaderNavItem[] = [
 
 const userItems: HeaderNavItem[] = [
   { labelKey: 'nav.account.profile', to: ROUTES.profile },
+  { labelKey: 'nav.account.sellerProfile', to: ROUTES.sellerProfile },
   { labelKey: 'nav.account.myOrders', to: ROUTES.myOrders },
 ];
 
@@ -87,8 +89,10 @@ export function AppHeader() {
   const capabilities = useAuthCapabilities();
   const { close, isOpen, toggle } = useDisclosure();
   const location = useLocation();
+  const sellerProfile = useSellerProfileStore((state) => state.profile);
   const isAuthenticated = capabilities.isAuthenticated && Boolean(session);
   const mobileDrawerId = 'app-mobile-navigation';
+  const hasActiveSellerProfile = Boolean(sellerProfile?.isActive);
 
   useEffect(() => {
     close();
@@ -166,15 +170,20 @@ export function AppHeader() {
         <Container className="site-header-meta">
           <div className="desktop-group-row">
             <HeaderGroup items={userItems} title={t('shell.accountArea')} />
-            {capabilities.canAccessSellerArea ? (
+            {hasActiveSellerProfile ? (
               <HeaderGroup items={sellerItems} title={t('shell.sellerArea')} />
             ) : null}
-            {capabilities.canAccessAdminArea ? <HeaderGroup items={adminItems} title={t('shell.adminArea')} /> : null}
+            {capabilities.canAccessAdminArea ? (
+              <HeaderGroup items={adminItems} title={t('shell.adminArea')} />
+            ) : null}
           </div>
         </Container>
       ) : null}
 
-      <div className={classNames('mobile-nav-overlay', isOpen && 'mobile-nav-overlay--open')} onClick={close} />
+      <div
+        className={classNames('mobile-nav-overlay', isOpen && 'mobile-nav-overlay--open')}
+        onClick={close}
+      />
       <aside
         aria-label={t('nav.mobile.navigationLabel')}
         aria-modal="true"
@@ -191,9 +200,17 @@ export function AppHeader() {
         </div>
 
         <div className="mobile-nav-sections">
-          <HeaderGroup items={primaryNavItems} onItemClick={close} title={t('common.labels.premiumSelection')} />
-          <HeaderGroup items={mobileAccountItems} onItemClick={close} title={t('shell.accountArea')} />
-          {capabilities.canAccessSellerArea ? (
+          <HeaderGroup
+            items={primaryNavItems}
+            onItemClick={close}
+            title={t('common.labels.premiumSelection')}
+          />
+          <HeaderGroup
+            items={mobileAccountItems}
+            onItemClick={close}
+            title={t('shell.accountArea')}
+          />
+          {hasActiveSellerProfile ? (
             <HeaderGroup items={sellerItems} onItemClick={close} title={t('shell.sellerArea')} />
           ) : null}
           {capabilities.canAccessAdminArea ? (

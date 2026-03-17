@@ -6,7 +6,12 @@ import { getApiErrorMessage } from '@/api/utils/apiError';
 import { PriceDisplay } from '@/components/pricing/PriceDisplay';
 import { Badge, Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
 import { listingsApi } from '@/features/marketplace/api/listings.api';
-import { MARKETPLACE_SORT_TO_BACKEND, type MarketplaceSortOption } from '@/features/marketplace/types';
+import {
+  MARKETPLACE_SORT_TO_BACKEND,
+  type MarketplaceSortOption,
+} from '@/features/marketplace/types';
+import { SellerProfileRequiredState } from '@/features/sellerProfiles/components/SellerProfileRequiredState';
+import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
 import { getListingDetailsRoute, getMyListingEditRoute, ROUTES } from '@/routes/paths';
 import type { MarketplaceListing } from '@/types/marketplace.types';
 
@@ -45,6 +50,9 @@ const getStatusBadgeVariant = (status: ListingApprovalStatus): 'success' | 'warn
 
 export function MyListingsPage() {
   const { t } = useTranslation();
+  const sellerProfile = useSellerProfileStore((state) => state.profile);
+  const sellerProfileLoadState = useSellerProfileStore((state) => state.loadState);
+  const loadSellerProfile = useSellerProfileStore((state) => state.loadMine);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<MarketplaceSortOption>('newest');
   const [pageIndex, setPageIndex] = useState(1);
@@ -56,13 +64,33 @@ export function MyListingsPage() {
   const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))), [pageSize, totalItems]);
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))),
+    [pageSize, totalItems],
+  );
+  const hasActiveSellerProfile = Boolean(sellerProfile?.isActive);
+  const isCheckingSellerProfile =
+    (sellerProfileLoadState === 'loading' || sellerProfileLoadState === 'idle') && !sellerProfile;
+  const hasOnlyPendingListings =
+    listings.length > 0 && listings.every((listing) => getApprovalStatus(listing) === 'pending');
 
   const handleReload = useCallback(() => {
     setReloadCounter((previousCounter) => previousCounter + 1);
   }, []);
 
   useEffect(() => {
+    void loadSellerProfile();
+  }, [loadSellerProfile]);
+
+  useEffect(() => {
+    if (!hasActiveSellerProfile) {
+      setIsLoading(false);
+      setListings([]);
+      setTotalItems(0);
+      setErrorMessage(null);
+      return;
+    }
+
     let isActive = true;
 
     const loadMineListings = async (): Promise<void> => {
@@ -103,7 +131,7 @@ export function MyListingsPage() {
     return () => {
       isActive = false;
     };
-  }, [pageIndex, pageSize, reloadCounter, searchTerm, sortOption, t]);
+  }, [hasActiveSellerProfile, pageIndex, pageSize, reloadCounter, searchTerm, sortOption, t]);
 
   useEffect(() => {
     if (pageIndex <= totalPages) {
@@ -136,6 +164,31 @@ export function MyListingsPage() {
   };
 
   const hasListings = !isLoading && !errorMessage && listings.length > 0;
+
+  if (isCheckingSellerProfile) {
+    return (
+      <Container className="account-page">
+        <LoadingState
+          description={t('pages.myListings.loadingSellerDescription')}
+          title={t('pages.myListings.loadingSellerTitle')}
+        />
+      </Container>
+    );
+  }
+
+  if (!hasActiveSellerProfile) {
+    return (
+      <Container className="account-page">
+        <header className="account-page-header">
+          <div className="marketplace-header">
+            <h1>{t('pages.myListings.title')}</h1>
+            <p>{t('pages.myListings.subtitle')}</p>
+          </div>
+        </header>
+        <SellerProfileRequiredState isInactive={Boolean(sellerProfile)} />
+      </Container>
+    );
+  }
 
   return (
     <Container className="account-page">
@@ -201,7 +254,15 @@ export function MyListingsPage() {
       </section>
 
       <div className="marketplace-results">
-        <p className="marketplace-results-count">{t('pages.myListings.resultsCount', { count: totalItems })}</p>
+        <p className="marketplace-results-count">
+          {t('pages.myListings.resultsCount', { count: totalItems })}
+        </p>
+
+        {hasOnlyPendingListings ? (
+          <Card className="seller-listings-info-card">
+            <p>{t('pages.myListings.pendingModerationHint')}</p>
+          </Card>
+        ) : null}
 
         {isLoading ? (
           <LoadingState

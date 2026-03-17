@@ -8,10 +8,19 @@ interface StartCheckoutOptions {
   provider?: string;
 }
 
-interface StartCheckoutResult {
+interface OnlineCheckoutResult {
   orderId: string;
+  paymentMethod: 'online';
   checkoutUrl: string;
 }
+
+interface CodCheckoutResult {
+  orderId: string;
+  paymentMethod: 'cashOnDelivery';
+}
+
+export type CreateOrderCheckoutResult = OnlineCheckoutResult | CodCheckoutResult;
+export type StartCheckoutResult = OnlineCheckoutResult;
 
 const normalizeProvider = (provider: string | undefined): string | undefined => {
   if (!provider) {
@@ -26,9 +35,18 @@ export const checkoutService = {
   async createOrderAndStartCheckout(
     payload: CreateOrderRequest,
     options?: StartCheckoutOptions,
-  ): Promise<StartCheckoutResult> {
+  ): Promise<CreateOrderCheckoutResult> {
     const provider = normalizeProvider(options?.provider) ?? appPaymentProvider;
     const createdOrder = await ordersApi.createOrder(payload);
+
+    if (payload.paymentMethod === 'cashOnDelivery') {
+      paymentSessionStorage.clearPendingOrderId();
+
+      return {
+        orderId: createdOrder.orderId,
+        paymentMethod: 'cashOnDelivery',
+      };
+    }
 
     if (createdOrder.paymentToken) {
       paymentSessionStorage.setGuestPaymentToken(createdOrder.orderId, createdOrder.paymentToken);
@@ -43,6 +61,7 @@ export const checkoutService = {
 
     return {
       orderId: createdOrder.orderId,
+      paymentMethod: 'online',
       checkoutUrl: paymentSession.checkoutUrl,
     };
   },
@@ -64,6 +83,7 @@ export const checkoutService = {
 
     return {
       orderId,
+      paymentMethod: 'online',
       checkoutUrl: paymentSession.checkoutUrl,
     };
   },

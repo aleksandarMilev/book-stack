@@ -178,6 +178,53 @@ public class SellerOrderVisibilityTests
         Assert.Single(adminOrderDetails!.Items);
     }
 
+    [Fact]
+    public async Task Buyer_CannotAccessAnotherBuyersOrderDetails()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService
+        {
+            UserId = "buyer-1",
+            Username = "buyer-1",
+        };
+
+        var utc = new DateTime(2026, 03, 12, 0, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-a",
+            title: "Protected Buyer Order");
+
+        var orderResult = await orderService.Create(
+            MarketplaceTestData.CreateOrderModel((listing.Id, 1)),
+            CancellationToken.None);
+
+        currentUserService.UserId = "buyer-2";
+        currentUserService.Username = "buyer-2";
+
+        var details = await orderService.Details(
+            orderResult.Data!.OrderId,
+            CancellationToken.None);
+
+        Assert.Null(details);
+    }
+
     private static async Task<BookListingDbModel> SeedApprovedListing(
         BookStackDbContext data,
         string sellerId,
