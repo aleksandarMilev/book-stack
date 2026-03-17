@@ -80,7 +80,9 @@ public class AdminStatisticsServiceTests
             totalAmount: 100m,
             currency: "USD",
             paymentMethod: OrderPaymentMethod.Online,
-            paymentStatus: PaymentStatus.Paid);
+            orderStatus: OrderStatus.PendingConfirmation,
+            paymentStatus: PaymentStatus.Paid,
+            settlementStatus: SettlementStatus.Pending);
 
         await AddOrder(
             data,
@@ -89,25 +91,53 @@ public class AdminStatisticsServiceTests
             totalAmount: 50m,
             currency: "EUR",
             paymentMethod: OrderPaymentMethod.CashOnDelivery,
-            paymentStatus: PaymentStatus.NotRequired);
+            orderStatus: OrderStatus.PendingConfirmation,
+            paymentStatus: PaymentStatus.NotRequired,
+            settlementStatus: SettlementStatus.Pending);
 
         await AddOrder(
             data,
             dateTimeProvider,
             createdOnUtc: new DateTime(2026, 02, 05, 0, 0, 0, DateTimeKind.Utc),
-            totalAmount: 25m,
+            totalAmount: 40m,
             currency: "USD",
-            paymentMethod: OrderPaymentMethod.Online,
-            paymentStatus: PaymentStatus.Paid);
+            paymentMethod: OrderPaymentMethod.CashOnDelivery,
+            orderStatus: OrderStatus.Delivered,
+            paymentStatus: PaymentStatus.NotRequired,
+            settlementStatus: SettlementStatus.Pending);
 
         await AddOrder(
             data,
             dateTimeProvider,
             createdOnUtc: new DateTime(2026, 02, 10, 0, 0, 0, DateTimeKind.Utc),
+            totalAmount: 25m,
+            currency: "USD",
+            paymentMethod: OrderPaymentMethod.Online,
+            orderStatus: OrderStatus.Cancelled,
+            paymentStatus: PaymentStatus.Paid,
+            settlementStatus: SettlementStatus.Pending);
+
+        await AddOrder(
+            data,
+            dateTimeProvider,
+            createdOnUtc: new DateTime(2026, 02, 12, 0, 0, 0, DateTimeKind.Utc),
             totalAmount: 75m,
             currency: "USD",
             paymentMethod: OrderPaymentMethod.Online,
-            paymentStatus: PaymentStatus.Pending);
+            orderStatus: OrderStatus.PendingPayment,
+            paymentStatus: PaymentStatus.Pending,
+            settlementStatus: SettlementStatus.Pending);
+
+        await AddOrder(
+            data,
+            dateTimeProvider,
+            createdOnUtc: new DateTime(2026, 01, 25, 0, 0, 0, DateTimeKind.Utc),
+            totalAmount: 30m,
+            currency: "USD",
+            paymentMethod: OrderPaymentMethod.Online,
+            orderStatus: OrderStatus.Completed,
+            paymentStatus: PaymentStatus.Paid,
+            settlementStatus: SettlementStatus.Settled);
 
 
         var deletedPaidOrder = MarketplaceTestData.CreateOrderDbModel(
@@ -136,29 +166,34 @@ public class AdminStatisticsServiceTests
         Assert.Equal(2, result.TotalListings);
         Assert.Equal(1, result.PendingBooks);
         Assert.Equal(1, result.PendingListings);
-        Assert.Equal(4, result.TotalOrders);
-        Assert.Equal(2, result.PaidOnlineOrders);
-        Assert.Equal(1, result.CodOrders);
+        Assert.Equal(6, result.TotalOrders);
+        Assert.Equal(3, result.PaidOnlineOrders);
+        Assert.Equal(2, result.CodOrders);
+        Assert.Equal(14m, result.TotalPendingSettlementAmount);
         Assert.Equal(3, revenue.Count);
 
         Assert.Contains(revenue, static item =>
             item.Year == 2026 &&
             item.Month == 1 &&
             item.Currency == "USD" &&
-            item.GrossRevenue == 100m &&
-            item.PlatformFeeRevenue == 10m &&
-            item.SellerNetRevenue == 90m &&
-            item.Orders == 1 &&
-            item.PaidOnlineOrders == 1 &&
+            item.GrossOrderVolume == 130m &&
+            item.RecognizedPlatformFeeRevenue == 13m &&
+            item.RecognizedSellerNetRevenue == 117m &&
+            item.PendingSettlementAmount == 10m &&
+            item.UnearnedPlatformFeeAmount == 0m &&
+            item.Orders == 2 &&
+            item.PaidOnlineOrders == 2 &&
             item.CodOrders == 0);
 
         Assert.Contains(revenue, static item =>
             item.Year == 2026 &&
             item.Month == 1 &&
             item.Currency == "EUR" &&
-            item.GrossRevenue == 50m &&
-            item.PlatformFeeRevenue == 5m &&
-            item.SellerNetRevenue == 45m &&
+            item.GrossOrderVolume == 50m &&
+            item.RecognizedPlatformFeeRevenue == 0m &&
+            item.RecognizedSellerNetRevenue == 0m &&
+            item.PendingSettlementAmount == 0m &&
+            item.UnearnedPlatformFeeAmount == 5m &&
             item.Orders == 1 &&
             item.PaidOnlineOrders == 0 &&
             item.CodOrders == 1);
@@ -167,12 +202,14 @@ public class AdminStatisticsServiceTests
             item.Year == 2026 &&
             item.Month == 2 &&
             item.Currency == "USD" &&
-            item.GrossRevenue == 100m &&
-            item.PlatformFeeRevenue == 10m &&
-            item.SellerNetRevenue == 90m &&
-            item.Orders == 2 &&
+            item.GrossOrderVolume == 140m &&
+            item.RecognizedPlatformFeeRevenue == 4m &&
+            item.RecognizedSellerNetRevenue == 36m &&
+            item.PendingSettlementAmount == 4m &&
+            item.UnearnedPlatformFeeAmount == 7.5m &&
+            item.Orders == 3 &&
             item.PaidOnlineOrders == 1 &&
-            item.CodOrders == 0);
+            item.CodOrders == 1);
     }
 
     private static async Task AddOrder(
@@ -182,7 +219,9 @@ public class AdminStatisticsServiceTests
         decimal totalAmount,
         string currency,
         OrderPaymentMethod paymentMethod,
-        PaymentStatus paymentStatus)
+        OrderStatus orderStatus,
+        PaymentStatus paymentStatus,
+        SettlementStatus settlementStatus)
     {
         dateTimeProvider.UtcNow = createdOnUtc;
 
@@ -191,13 +230,11 @@ public class AdminStatisticsServiceTests
             totalAmount: totalAmount,
             currency: currency,
             paymentMethod: paymentMethod,
-            status: paymentMethod == OrderPaymentMethod.Online
-                ? (paymentStatus == PaymentStatus.Paid
-                    ? OrderStatus.PendingConfirmation
-                    : OrderStatus.PendingPayment)
-                : OrderStatus.PendingConfirmation,
+            status: orderStatus,
             paymentStatus: paymentStatus,
             reservationExpiresOnUtc: createdOnUtc.AddMinutes(30));
+
+        order.SettlementStatus = settlementStatus;
 
         data.Add(order);
         await data.SaveChangesAsync(CancellationToken.None);

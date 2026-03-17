@@ -30,4 +30,8 @@ public interface IPaymentService : IScopedService
     Task<Result> ReleaseOrderReservation(
         Guid orderId,
         CancellationToken cancellationToken = default);
+
+    Task<Result> ExpireOrderReservation(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
 }

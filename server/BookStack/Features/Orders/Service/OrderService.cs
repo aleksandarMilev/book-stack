@@ -461,6 +461,11 @@ public class OrderService(
         OrderStatus orderStatus,
         CancellationToken cancellationToken = default)
     {
+        if (!this._userService.IsAdmin())
+        {
+            return "Only administrators can change order status through this operation.";
+        }
+
         var order = await this._data
             .Orders
             .SingleOrDefaultAsync(
@@ -475,34 +480,11 @@ public class OrderService(
                 orderId);
         }
 
-        order.Status = orderStatus;
-
-        await using var transaction = await this._data
-            .Database
-            .BeginTransactionAsync(cancellationToken);
-
-        await this._data.SaveChangesAsync(cancellationToken);
-
-        if (orderStatus == OrderStatus.Cancelled && !order.IsDeleted)
-        {
-            var releaseResult = await this._paymentService
-                .ReleaseOrderReservation(orderId, cancellationToken);
-
-            if (!releaseResult.Succeeded)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return releaseResult.ErrorMessage!;
-            }
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        this._logger.LogInformation(
-            "Order status changed. OrderId={OrderId}, Status={Status}",
-            orderId,
-            orderStatus);
-
-        return true;
+        return await this.ChangeOrderStatusInternal(
+            order,
+            orderStatus,
+            OrderStatusTransitionActor.Admin,
+            cancellationToken);
     }
 
     public async Task<Result> ChangePaymentStatus(
@@ -519,6 +501,11 @@ public class OrderService(
         SettlementStatus settlementStatus,
         CancellationToken cancellationToken = default)
     {
+        if (!this._userService.IsAdmin())
+        {
+            return "Only administrators can change settlement status.";
+        }
+
         var order = await this._data
             .Orders
             .SingleOrDefaultAsync(
@@ -533,10 +520,18 @@ public class OrderService(
                 orderId);
         }
 
-        if (!CanTransitionSettlementStatus(
-                order.SettlementStatus,
-                settlementStatus))
+        var canTransitionSettlementStatus = CanTransitionSettlementStatus(
+            order,
+            settlementStatus);
+
+        if (!canTransitionSettlementStatus)
         {
+            if (settlementStatus == SettlementStatus.Settled &&
+                !IsSettlementEligible(order))
+            {
+                return "Order is not eligible for settlement yet.";
+            }
+
             return $"Settlement transition from '{order.SettlementStatus}' to '{settlementStatus}' is not allowed.";
         }
 
@@ -547,6 +542,205 @@ public class OrderService(
             "Order settlement status changed. OrderId={OrderId}, SettlementStatus={SettlementStatus}",
             orderId,
             settlementStatus);
+
+        return true;
+    }
+
+    public async Task<Result> ConfirmSoldOrder(
+        Guid orderId,
+        CancellationToken cancellationToken = default)
+        => await this.ChangeSoldOrderStatus(
+            orderId,
+            OrderStatus.Confirmed,
+            cancellationToken);
+
+    public async Task<Result> ShipSoldOrder(
+        Guid orderId,
+        CancellationToken cancellationToken = default)
+        => await this.ChangeSoldOrderStatus(
+            orderId,
+            OrderStatus.Shipped,
+            cancellationToken);
+
+    public async Task<Result> DeliverSoldOrder(
+        Guid orderId,
+        CancellationToken cancellationToken = default)
+        => await this.ChangeSoldOrderStatus(
+            orderId,
+            OrderStatus.Delivered,
+            cancellationToken);
+
+    private async Task<Result> ChangeSoldOrderStatus(
+        Guid orderId,
+        OrderStatus targetStatus,
+        CancellationToken cancellationToken)
+    {
+        var sellerId = this._userService.GetId();
+        if (string.IsNullOrWhiteSpace(sellerId))
+        {
+            return Common.Constants.ErrorMessages.CurrentUserNotAuthenticated;
+        }
+
+        var hasActiveSellerProfile = await this._sellerProfileService.HasActiveProfile(
+            sellerId,
+            cancellationToken);
+
+        if (!hasActiveSellerProfile)
+        {
+            return "An active seller profile is required to fulfill sold orders.";
+        }
+
+        var order = await this._data
+            .Orders
+            .Include(static o => o.Items)
+            .SingleOrDefaultAsync(
+                o => o.Id == orderId,
+                cancellationToken);
+
+        if (order is null || order.IsDeleted)
+        {
+            return string.Format(
+                Common.Constants.ErrorMessages.DbEntityNotFound,
+                nameof(OrderDbModel),
+                orderId);
+        }
+
+        var sellerOwnsOrder = order
+            .Items
+            .Any(i => !i.IsDeleted && i.SellerId == sellerId);
+
+        if (!sellerOwnsOrder)
+        {
+            return string.Format(
+                Common.Constants.ErrorMessages.UnauthorizedMessage,
+                sellerId,
+                nameof(OrderDbModel),
+                orderId);
+        }
+
+        return await this.ChangeOrderStatusInternal(
+            order,
+            targetStatus,
+            OrderStatusTransitionActor.Seller,
+            cancellationToken);
+    }
+
+    private async Task<Result> ChangeOrderStatusInternal(
+        OrderDbModel order,
+        OrderStatus targetStatus,
+        OrderStatusTransitionActor actor,
+        CancellationToken cancellationToken)
+    {
+        var currentStatus = order.Status;
+
+        var canTransition = CanTransitionOrderStatus(
+            currentStatus,
+            targetStatus,
+            order.PaymentMethod,
+            order.PaymentStatus,
+            actor);
+
+        if (!canTransition)
+        {
+            return $"Order transition from '{order.Status}' to '{targetStatus}' is not allowed.";
+        }
+
+        if (targetStatus is OrderStatus.Cancelled or OrderStatus.Expired)
+        {
+            var releaseResult = targetStatus == OrderStatus.Cancelled
+                ? await this._paymentService.ReleaseOrderReservation(
+                    order.Id,
+                    cancellationToken)
+                : await this._paymentService.ExpireOrderReservation(
+                    order.Id,
+                    cancellationToken);
+
+            if (!releaseResult.Succeeded)
+            {
+                return releaseResult.ErrorMessage!;
+            }
+        }
+        else if (order.Status != targetStatus)
+        {
+            order.Status = targetStatus;
+            await this._data.SaveChangesAsync(cancellationToken);
+        }
+
+        this._logger.LogInformation(
+            "Order status changed. OrderId={OrderId}, From={CurrentStatus}, To={TargetStatus}, Actor={Actor}",
+            order.Id,
+            currentStatus,
+            targetStatus,
+            actor);
+
+        return true;
+    }
+
+    private static bool CanTransitionOrderStatus(
+        OrderStatus current,
+        OrderStatus next,
+        OrderPaymentMethod paymentMethod,
+        PaymentStatus paymentStatus,
+        OrderStatusTransitionActor actor)
+    {
+        if (current == next)
+        {
+            return true;
+        }
+
+        var transitionAllowedByActor = actor switch
+        {
+            OrderStatusTransitionActor.Admin => current switch
+            {
+                OrderStatus.PendingPayment => next is OrderStatus.PendingConfirmation or OrderStatus.Cancelled or OrderStatus.Expired,
+                OrderStatus.PendingConfirmation => next is OrderStatus.Confirmed or OrderStatus.Cancelled,
+                OrderStatus.Confirmed => next is OrderStatus.Shipped or OrderStatus.Cancelled,
+                OrderStatus.Shipped => next == OrderStatus.Delivered,
+                OrderStatus.Delivered => next == OrderStatus.Completed,
+                _ => false,
+            },
+            OrderStatusTransitionActor.Seller => current switch
+            {
+                OrderStatus.PendingConfirmation => next == OrderStatus.Confirmed,
+                OrderStatus.Confirmed => next == OrderStatus.Shipped,
+                OrderStatus.Shipped => next == OrderStatus.Delivered,
+                _ => false,
+            },
+            _ => false,
+        };
+
+        if (!transitionAllowedByActor)
+        {
+            return false;
+        }
+
+        if (paymentMethod == OrderPaymentMethod.CashOnDelivery &&
+            current == OrderStatus.PendingPayment)
+        {
+            return false;
+        }
+
+        if (next == OrderStatus.Expired &&
+            paymentMethod != OrderPaymentMethod.Online)
+        {
+            return false;
+        }
+
+        if (paymentMethod == OrderPaymentMethod.Online &&
+            next == OrderStatus.PendingConfirmation &&
+            paymentStatus != PaymentStatus.Paid)
+        {
+            return false;
+        }
+
+        var movingIntoFulfillment = next is OrderStatus.Confirmed or OrderStatus.Shipped or OrderStatus.Delivered or OrderStatus.Completed;
+
+        if (paymentMethod == OrderPaymentMethod.Online &&
+            movingIntoFulfillment &&
+            paymentStatus != PaymentStatus.Paid)
+        {
+            return false;
+        }
 
         return true;
     }
@@ -625,6 +819,26 @@ public class OrderService(
         => Math.Round(value, 2, MidpointRounding.AwayFromZero);
 
     private static bool CanTransitionSettlementStatus(
+        OrderDbModel order,
+        SettlementStatus next)
+    {
+        if (!CanTransitionSettlementStatus(
+                order.SettlementStatus,
+                next))
+        {
+            return false;
+        }
+
+        if (next == SettlementStatus.Settled &&
+            !IsSettlementEligible(order))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool CanTransitionSettlementStatus(
         SettlementStatus current,
         SettlementStatus next)
     {
@@ -641,5 +855,26 @@ public class OrderService(
             SettlementStatus.Waived => next == SettlementStatus.Disputed,
             _ => false,
         };
+    }
+
+    private static bool IsSettlementEligible(OrderDbModel order)
+    {
+        if (order.Status is OrderStatus.Cancelled or OrderStatus.Expired)
+        {
+            return false;
+        }
+
+        if (order.PaymentMethod == OrderPaymentMethod.Online)
+        {
+            return order.PaymentStatus == PaymentStatus.Paid;
+        }
+
+        return order.Status is OrderStatus.Delivered or OrderStatus.Completed;
+    }
+
+    private enum OrderStatusTransitionActor
+    {
+        Admin = 0,
+        Seller = 1,
     }
 }

@@ -46,4 +46,16 @@ public interface IOrderService : IScopedService
         Guid orderId,
         SettlementStatus settlementStatus,
         CancellationToken cancellationToken = default);
+
+    Task<Result> ConfirmSoldOrder(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
+
+    Task<Result> ShipSoldOrder(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
+
+    Task<Result> DeliverSoldOrder(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
 }

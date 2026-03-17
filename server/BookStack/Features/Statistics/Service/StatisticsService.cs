@@ -73,6 +73,22 @@ public class StatisticsService(
                 static o => o.PaymentMethod == OrderPaymentMethod.CashOnDelivery,
                 cancellationToken);
 
+        var totalPendingSettlementAmount = await ordersQuery
+            .SumAsync(
+                static o => (
+                    (
+                        o.PaymentMethod == OrderPaymentMethod.Online &&
+                        o.PaymentStatus == PaymentStatus.Paid &&
+                        o.Status != OrderStatus.Cancelled &&
+                        o.Status != OrderStatus.Expired) ||
+                    (
+                        o.PaymentMethod == OrderPaymentMethod.CashOnDelivery &&
+                        (o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Completed)))
+                    && o.SettlementStatus == SettlementStatus.Pending
+                        ? o.PlatformFeeAmount
+                        : 0m,
+                cancellationToken);
+
         var revenueByMonth = await ordersQuery
             .GroupBy(static o => new
             {
@@ -85,9 +101,62 @@ public class StatisticsService(
                 Year = group.Key.Year,
                 Month = group.Key.Month,
                 Currency = group.Key.Currency,
-                GrossRevenue = group.Sum(static o => o.TotalAmount),
-                PlatformFeeRevenue = group.Sum(static o => o.PlatformFeeAmount),
-                SellerNetRevenue = group.Sum(static o => o.SellerNetAmount),
+                GrossOrderVolume = group.Sum(static o => o.TotalAmount),
+                RecognizedPlatformFeeRevenue = group.Sum(o =>
+                    (
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.Online &&
+                            o.PaymentStatus == PaymentStatus.Paid &&
+                            o.Status != OrderStatus.Cancelled &&
+                            o.Status != OrderStatus.Expired) ||
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.CashOnDelivery &&
+                            (o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Completed))
+                    )
+                        ? o.PlatformFeeAmount
+                        : 0m),
+                RecognizedSellerNetRevenue = group.Sum(o =>
+                    (
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.Online &&
+                            o.PaymentStatus == PaymentStatus.Paid &&
+                            o.Status != OrderStatus.Cancelled &&
+                            o.Status != OrderStatus.Expired) ||
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.CashOnDelivery &&
+                            (o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Completed))
+                    )
+                        ? o.SellerNetAmount
+                        : 0m),
+                PendingSettlementAmount = group.Sum(o =>
+                    (
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.Online &&
+                            o.PaymentStatus == PaymentStatus.Paid &&
+                            o.Status != OrderStatus.Cancelled &&
+                            o.Status != OrderStatus.Expired) ||
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.CashOnDelivery &&
+                            (o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Completed))
+                    ) &&
+                    o.SettlementStatus == SettlementStatus.Pending
+                        ? o.PlatformFeeAmount
+                        : 0m),
+                UnearnedPlatformFeeAmount = group.Sum(o =>
+                    !(
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.Online &&
+                            o.PaymentStatus == PaymentStatus.Paid &&
+                            o.Status != OrderStatus.Cancelled &&
+                            o.Status != OrderStatus.Expired) ||
+                        (
+                            o.PaymentMethod == OrderPaymentMethod.CashOnDelivery &&
+                            (o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Completed))
+                    ) &&
+                    o.Status != OrderStatus.Cancelled &&
+                    o.Status != OrderStatus.Expired
+                        ? o.PlatformFeeAmount
+                        : 0m),
                 Orders = group.Count(),
                 PaidOnlineOrders = group.Count(o =>
                     o.PaymentMethod == OrderPaymentMethod.Online &&
@@ -112,6 +181,7 @@ public class StatisticsService(
             TotalOrders = totalOrders,
             PaidOnlineOrders = paidOnlineOrders,
             CodOrders = codOrders,
+            TotalPendingSettlementAmount = totalPendingSettlementAmount,
             RevenueByMonth = revenueByMonth,
         };
     }

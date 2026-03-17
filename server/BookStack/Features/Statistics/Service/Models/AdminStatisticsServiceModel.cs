@@ -22,5 +22,7 @@ public class AdminStatisticsServiceModel
 
     public int CodOrders { get; init; }
 
+    public decimal TotalPendingSettlementAmount { get; init; }
+
     public IEnumerable<AdminMonthlyRevenueServiceModel> RevenueByMonth { get; init; } = [];
 }

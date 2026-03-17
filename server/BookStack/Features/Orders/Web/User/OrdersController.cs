@@ -72,4 +72,43 @@ public class OrdersController(IOrderService service) : ControllerBase
         Guid id,
         CancellationToken cancellationToken = default)
         => this.Ok(await this._service.SoldDetails(id, cancellationToken));
+
+    [Authorize]
+    [HttpPut(ApiRoutes.SoldConfirm)]
+    public async Task<ActionResult> ConfirmSoldOrder(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await this._service.ConfirmSoldOrder(
+            id,
+            cancellationToken);
+
+        return this.NoContentOrBadRequest(result);
+    }
+
+    [Authorize]
+    [HttpPut(ApiRoutes.SoldShip)]
+    public async Task<ActionResult> ShipSoldOrder(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await this._service.ShipSoldOrder(
+            id,
+            cancellationToken);
+
+        return this.NoContentOrBadRequest(result);
+    }
+
+    [Authorize]
+    [HttpPut(ApiRoutes.SoldDeliver)]
+    public async Task<ActionResult> DeliverSoldOrder(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await this._service.DeliverSoldOrder(
+            id,
+            cancellationToken);
+
+        return this.NoContentOrBadRequest(result);
+    }
 }

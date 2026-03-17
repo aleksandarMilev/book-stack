@@ -416,6 +416,38 @@ public class PaymentService(
         return true;
     }
 
+    public async Task<Result> ExpireOrderReservation(
+        Guid orderId,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await this._data
+            .Orders
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                o => o.Id == orderId && !o.IsDeleted,
+                cancellationToken);
+
+        if (order is null)
+        {
+            return string.Format(
+                Common.Constants.ErrorMessages.DbEntityNotFound,
+                nameof(OrderDbModel),
+                orderId);
+        }
+
+        if (order.PaymentMethod != OrderPaymentMethod.Online)
+        {
+            return "Only online payment orders can expire.";
+        }
+
+        await this.ReleaseOrderReservationInternal(
+            orderId,
+            ReservationReleaseReason.Expired,
+            cancellationToken);
+
+        return true;
+    }
+
     private async Task<PaymentStatus?> ReconcileOrderPaymentStatus(
         Guid orderId,
         CancellationToken cancellationToken = default)
