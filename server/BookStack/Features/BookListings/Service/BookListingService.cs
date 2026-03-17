@@ -12,6 +12,7 @@ using Infrastructure.Services.Result;
 using Infrastructure.Services.StringSanitizer;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using SellerProfiles.Service;
 using Shared;
 
 using static BookStack.Common.Constants;
@@ -23,6 +24,7 @@ public class BookListingService(
     IDateTimeProvider dateTimeProvider,
     IPageClamper pageClamper,
     IImageWriter imageWriter,
+    ISellerProfileService sellerProfileService,
     IStringSanitizerService stringSanitizer,
     ILogger<BookListingService> logger) : IBookListingService
 {
@@ -31,6 +33,7 @@ public class BookListingService(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IPageClamper _pageClamper = pageClamper;
     private readonly IImageWriter _imageWriter = imageWriter;
+    private readonly ISellerProfileService _sellerProfileService = sellerProfileService;
     private readonly IStringSanitizerService _stringSanitizer = stringSanitizer;
     private readonly ILogger<BookListingService> _logger = logger;
 
@@ -166,6 +169,18 @@ public class BookListingService(
             return ErrorMessages.CurrentUserNotAuthenticated;
         }
 
+        if (!this._userService.IsAdmin())
+        {
+            var hasActiveSellerProfile = await this._sellerProfileService.HasActiveProfile(
+                creatorId,
+                cancellationToken);
+
+            if (!hasActiveSellerProfile)
+            {
+                return "An active seller profile is required to create a listing.";
+            }
+        }
+
         var book = await this._data
             .Books
             .SingleOrDefaultAsync(
@@ -237,6 +252,18 @@ public class BookListingService(
         if (!currentUserIsAdmin && !currentUserIsListingCreator)
         {
             return this.LogAndReturnUnauthorizedMessage(currentUserId, id);
+        }
+
+        if (!currentUserIsAdmin)
+        {
+            var hasActiveSellerProfile = await this._sellerProfileService.HasActiveProfile(
+                currentUserId,
+                cancellationToken);
+
+            if (!hasActiveSellerProfile)
+            {
+                return "An active seller profile is required to edit a listing.";
+            }
         }
 
         var book = await this._data

@@ -470,7 +470,7 @@ select {
 
 .mobile-nav-overlay {
   background: rgba(19, 23, 21, 0.3);
-  inset: 0;
+  inset: 0 min(86vw, 22rem) 0 0;
   opacity: 0;
   pointer-events: none;
   position: fixed;
@@ -609,6 +609,15 @@ select {
 .auth-error {
   color: var(--color-danger);
   font-weight: 600;
+}
+
+.auth-info {
+  background: color-mix(in srgb, var(--color-primary) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, white);
+  border-radius: var(--radius-md);
+  color: var(--color-primary-strong);
+  font-size: 0.92rem;
+  padding: var(--space-2) var(--space-3);
 }
 
 .auth-switch-text {
@@ -1041,6 +1050,12 @@ select {
 .listing-details-actions {
   display: flex;
   justify-content: start;
+}
+
+.listing-details-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .books-page {
@@ -1627,6 +1642,11 @@ select {
   gap: var(--space-2);
 }
 
+.payment-return-note {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
 .mock-payment-metadata {
   display: grid;
   gap: var(--space-2);
@@ -1660,7 +1680,7 @@ select {
 
 .marketplace-mobile-overlay {
   background: rgba(17, 22, 19, 0.35);
-  inset: 0;
+  inset: 0 min(90vw, 23rem) 0 0;
   opacity: 0;
   pointer-events: none;
   position: fixed;

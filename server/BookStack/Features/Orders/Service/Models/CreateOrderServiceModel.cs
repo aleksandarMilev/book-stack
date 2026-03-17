@@ -1,5 +1,7 @@
 namespace BookStack.Features.Orders.Service.Models;
 
+using Shared;
+
 public class CreateOrderServiceModel
 {
     public string CustomerFirstName { get; init; } = default!;
@@ -17,6 +19,8 @@ public class CreateOrderServiceModel
     public string AddressLine { get; init; } = default!;
 
     public string? PostalCode { get; init; }
+
+    public OrderPaymentMethod PaymentMethod { get; init; }
 
     public IEnumerable<CreateOrderItemServiceModel> Items { get; init; } = [];
 }

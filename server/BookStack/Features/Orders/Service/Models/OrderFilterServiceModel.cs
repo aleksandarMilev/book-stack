@@ -14,7 +14,11 @@ public class OrderFilterServiceModel
 
     public OrderStatus? Status { get; init; }
 
+    public OrderPaymentMethod? PaymentMethod { get; init; }
+
     public PaymentStatus? PaymentStatus { get; init; }
+
+    public SettlementStatus? SettlementStatus { get; init; }
 
     public int PageIndex { get; init; } = DefaultValues.DefaultPageIndex;
 

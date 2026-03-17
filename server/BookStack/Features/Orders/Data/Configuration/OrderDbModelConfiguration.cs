@@ -67,7 +67,30 @@ public sealed class OrderDbModelConfiguration : IEntityTypeConfiguration<OrderDb
             .IsRequired();
 
         builder
+            .Property(static o => o.PaymentMethod)
+            .IsRequired();
+
+        builder
             .Property(static o => o.PaymentStatus)
+            .IsRequired();
+
+        builder
+            .Property(static o => o.SettlementStatus)
+            .IsRequired();
+
+        builder
+            .Property(static o => o.PlatformFeePercent)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
+        builder
+            .Property(static o => o.PlatformFeeAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder
+            .Property(static o => o.SellerNetAmount)
+            .HasPrecision(18, 2)
             .IsRequired();
 
         builder
@@ -103,6 +126,12 @@ public sealed class OrderDbModelConfiguration : IEntityTypeConfiguration<OrderDb
 
         builder
             .HasIndex(static o => o.PaymentStatus);
+
+        builder
+            .HasIndex(static o => o.PaymentMethod);
+
+        builder
+            .HasIndex(static o => o.SettlementStatus);
 
         builder
             .HasIndex(static o => o.ReservationExpiresOnUtc);

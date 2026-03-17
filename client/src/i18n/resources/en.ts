@@ -52,6 +52,7 @@ const en = {
     mobile: {
       openMenu: 'Open menu',
       closeMenu: 'Close menu',
+      navigationLabel: 'Mobile navigation',
     },
   },
   taxonomy: {
@@ -176,8 +177,10 @@ const en = {
     listingDetails: {
       title: 'Listing details',
       listingId: 'Listing ID: {{id}}',
-      loading: 'Loading listing details...',
+      loadingTitle: 'Loading listing details',
+      loadingDescription: 'Preparing listing details and availability.',
       error: 'Could not load listing details.',
+      errorTitle: 'Listing could not be loaded',
       notFound: 'Listing details were not found.',
       imageAlt: '{{title}} listing image',
       publisherLabel: 'Publisher',
@@ -272,6 +275,10 @@ const en = {
       validation: {
         credentialsRequired: 'Username or email is required.',
         passwordRequired: 'Password is required.',
+      },
+      info: {
+        authRequired: 'Please sign in to continue.',
+        sessionExpired: 'Your session has expired. Please sign in again.',
       },
     },
     register: {
@@ -432,6 +439,8 @@ const en = {
       retryAction: 'Retry payment',
       retrying: 'Starting payment...',
       retryError: 'Could not start a new payment session.',
+      noOrderHint: 'No specific order reference was provided. You can return to the marketplace and continue browsing.',
+      guestOrderHint: 'If you checked out as guest, keep your confirmation details and return to this page from payment.',
       myOrdersAction: 'View my orders',
       marketplaceAction: 'Back to marketplace',
       orderIdLabel: 'Order ID',

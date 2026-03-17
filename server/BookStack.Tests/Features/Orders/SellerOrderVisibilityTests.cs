@@ -4,6 +4,7 @@ using BookStack.Features.Orders.Service.Models;
 using BookStack.Tests.TestInfrastructure;
 using BookStack.Features.BookListings.Data.Models;
 using BookStack.Data;
+using Microsoft.EntityFrameworkCore;
 
 public class SellerOrderVisibilityTests
 {
@@ -45,12 +46,11 @@ public class SellerOrderVisibilityTests
             sellerId: "seller-b",
             title: "Seller B Book");
 
-        var createMixedOrderServiceModel = MarketplaceTestData.CreateOrderModel(
-            (sellerAListing.Id, 1),
-            (sellerBListing.Id, 1));
+        var sellerAOrderCreateServiceModel = MarketplaceTestData.CreateOrderModel(
+            (sellerAListing.Id, 1));
 
-        var mixedOrderResult = await orderService.Create(
-           createMixedOrderServiceModel,
+        var sellerAOrderResult = await orderService.Create(
+           sellerAOrderCreateServiceModel,
            CancellationToken.None);
 
         var sellerBOnlyCreateServiceModel = MarketplaceTestData
@@ -70,7 +70,7 @@ public class SellerOrderVisibilityTests
             CancellationToken.None);
 
         var soldOrderDetails = await orderService.SoldDetails(
-            mixedOrderResult.Data!.OrderId,
+            sellerAOrderResult.Data!.OrderId,
             CancellationToken.None);
 
         var forbiddenOrderDetails = await orderService.SoldDetails(
@@ -80,7 +80,7 @@ public class SellerOrderVisibilityTests
         Assert.Equal(1, soldOrders.TotalItems);
         Assert.Single(soldOrders.Items);
         Assert.Equal(
-            mixedOrderResult.Data.OrderId,
+            sellerAOrderResult.Data.OrderId,
             soldOrders.Items.Single().Id);
 
         Assert.NotNull(soldOrderDetails);
@@ -130,12 +130,11 @@ public class SellerOrderVisibilityTests
             sellerId: "seller-b",
             title: "Seller B Book");
 
-        var mixedOrderCreateServiceModel = MarketplaceTestData.CreateOrderModel(
-            (sellerAListing.Id, 1),
-            (sellerBListing.Id, 1));
+        var sellerAOrderCreateServiceModel = MarketplaceTestData.CreateOrderModel(
+            (sellerAListing.Id, 1));
 
-        var mixedOrderResult = await orderService.Create(
-            mixedOrderCreateServiceModel,
+        var sellerAOrderResult = await orderService.Create(
+            sellerAOrderCreateServiceModel,
             CancellationToken.None);
 
         var sellerBOnlyCreateServiceModel = MarketplaceTestData
@@ -151,7 +150,7 @@ public class SellerOrderVisibilityTests
             CancellationToken.None);
 
         var buyerOrderDetails = await orderService.Details(
-            mixedOrderResult.Data!.OrderId,
+            sellerAOrderResult.Data!.OrderId,
             CancellationToken.None);
 
         currentUserService.UserId = "admin-1";
@@ -164,19 +163,19 @@ public class SellerOrderVisibilityTests
             CancellationToken.None);
 
         var adminOrderDetails = await orderService.Details(
-            mixedOrderResult.Data.OrderId,
+            sellerAOrderResult.Data.OrderId,
             CancellationToken.None);
 
         Assert.Equal(2, buyerOrders.TotalItems);
         Assert.NotNull(buyerOrderDetails);
-        Assert.Equal(2, buyerOrderDetails!.Items.Count());
+        Assert.Single(buyerOrderDetails!.Items);
         Assert.Contains(
             buyerOrders.Items,
             o => o.Id == sellerBOnlyOrderResult.Data!.OrderId);
 
         Assert.Equal(2, adminOrders.TotalItems);
         Assert.NotNull(adminOrderDetails);
-        Assert.Equal(2, adminOrderDetails!.Items.Count());
+        Assert.Single(adminOrderDetails!.Items);
     }
 
     private static async Task<BookListingDbModel> SeedApprovedListing(
@@ -184,6 +183,10 @@ public class SellerOrderVisibilityTests
         string sellerId,
         string title)
     {
+        await EnsureActiveSellerProfile(
+            data,
+            sellerId);
+
         var book = MarketplaceTestData.CreateApprovedBook(
             creatorId: sellerId,
             title,
@@ -201,5 +204,33 @@ public class SellerOrderVisibilityTests
         await data.SaveChangesAsync(CancellationToken.None);
 
         return listing;
+    }
+
+    private static async Task EnsureActiveSellerProfile(
+        BookStackDbContext data,
+        string sellerId)
+    {
+        var userExists = await data
+            .Users
+            .AnyAsync(u => u.Id == sellerId);
+
+        if (!userExists)
+        {
+            data.Users.Add(MarketplaceTestData.CreateUser(
+                sellerId,
+                $"{sellerId}@example.com"));
+        }
+
+        var profileExists = await data
+            .SellerProfiles
+            .IgnoreQueryFilters()
+            .AnyAsync(p => p.UserId == sellerId);
+
+        if (!profileExists)
+        {
+            data.SellerProfiles.Add(MarketplaceTestData.CreateSellerProfile(sellerId));
+        }
+
+        await data.SaveChangesAsync(CancellationToken.None);
     }
 }

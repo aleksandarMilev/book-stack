@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes } from 'react';
+import { useId } from 'react';
 
 import { classNames } from '@/utils/classNames';
 
@@ -9,7 +10,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ className, label, hint, error, id, ...props }: InputProps) {
-  const fieldId = id ?? props.name;
+  const generatedId = useId();
+  const fieldId = id ?? props.name ?? generatedId;
   const hintId = hint && fieldId ? `${fieldId}-hint` : undefined;
   const errorId = error && fieldId ? `${fieldId}-error` : undefined;
 

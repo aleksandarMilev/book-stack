@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { RouteAccessGuard } from '@/routes/guards/RouteAccessGuard';
@@ -33,6 +33,19 @@ const renderGuard = (level: 'authenticated' | 'seller' | 'admin') =>
     </MemoryRouter>,
   );
 
+function LoginStateProbe() {
+  const location = useLocation();
+  const state = location.state as { reason?: string; from?: string } | null;
+
+  return (
+    <>
+      <p>login-page</p>
+      <p>reason:{state?.reason ?? '-'}</p>
+      <p>from:{state?.from ?? '-'}</p>
+    </>
+  );
+}
+
 describe('RouteAccessGuard', () => {
   afterEach(() => {
     useAuthStore.setState({ session: null });
@@ -44,6 +57,29 @@ describe('RouteAccessGuard', () => {
     renderGuard('authenticated');
 
     expect(screen.getByText('login-page')).toBeInTheDocument();
+  });
+
+  it('includes auth reason in login redirect state', () => {
+    useAuthStore.setState({ session: null });
+
+    render(
+      <MemoryRouter initialEntries={['/protected?tab=recent']}>
+        <Routes>
+          <Route path="/login" element={<LoginStateProbe />} />
+          <Route
+            path="/protected"
+            element={
+              <RouteAccessGuard level="authenticated">
+                <p>protected-page</p>
+              </RouteAccessGuard>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('reason:authRequired')).toBeInTheDocument();
+    expect(screen.getByText('from:/protected?tab=recent')).toBeInTheDocument();
   });
 
   it('blocks buyer users from seller routes', () => {

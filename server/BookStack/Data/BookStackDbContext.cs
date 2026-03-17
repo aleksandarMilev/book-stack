@@ -7,6 +7,7 @@ using Features.Books.Data.Models;
 using Features.Identity.Data.Models;
 using Features.Orders.Data.Models;
 using Features.Payments.Data.Models;
+using Features.SellerProfiles.Data.Models;
 using Features.UserProfile.Data.Models;
 using Infrastructure.Services.CurrentUser;
 using Infrastructure.Services.DateTimeProvider;
@@ -27,6 +28,8 @@ public class BookStackDbContext(
     public DbSet<BookListingDbModel> BookListings { get; init; }
 
     public DbSet<UserProfileDbModel> Profiles { get; init; }
+
+    public DbSet<SellerProfileDbModel> SellerProfiles { get; init; }
 
     public DbSet<OrderDbModel> Orders { get; init; }
 

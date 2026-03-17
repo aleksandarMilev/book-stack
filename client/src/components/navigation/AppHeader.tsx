@@ -88,10 +88,28 @@ export function AppHeader() {
   const { close, isOpen, toggle } = useDisclosure();
   const location = useLocation();
   const isAuthenticated = capabilities.isAuthenticated && Boolean(session);
+  const mobileDrawerId = 'app-mobile-navigation';
 
   useEffect(() => {
     close();
   }, [close, location.pathname]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        close();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [close, isOpen]);
 
   const desktopQuickItems = isAuthenticated ? userItems : guestItems;
   const mobileAccountItems = isAuthenticated ? userItems : guestItems;
@@ -131,7 +149,14 @@ export function AppHeader() {
             ) : null}
           </nav>
           <LanguageSwitcher compact />
-          <Button aria-expanded={isOpen} className="mobile-menu-button" onClick={toggle} variant="ghost">
+          <Button
+            aria-controls={mobileDrawerId}
+            aria-expanded={isOpen}
+            aria-label={isOpen ? t('nav.mobile.closeMenu') : t('nav.mobile.openMenu')}
+            className="mobile-menu-button"
+            onClick={toggle}
+            variant="ghost"
+          >
             {isOpen ? t('nav.mobile.closeMenu') : t('nav.mobile.openMenu')}
           </Button>
         </div>
@@ -151,8 +176,12 @@ export function AppHeader() {
 
       <div className={classNames('mobile-nav-overlay', isOpen && 'mobile-nav-overlay--open')} onClick={close} />
       <aside
+        aria-label={t('nav.mobile.navigationLabel')}
+        aria-modal="true"
         aria-hidden={!isOpen}
         className={classNames('mobile-nav-drawer', isOpen && 'mobile-nav-drawer--open')}
+        id={mobileDrawerId}
+        role="dialog"
       >
         <div className="mobile-nav-head">
           <p className="mobile-nav-title">{t('common.appName')}</p>

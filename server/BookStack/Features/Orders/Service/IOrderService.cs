@@ -41,4 +41,9 @@ public interface IOrderService : IScopedService
         Guid orderId,
         PaymentStatus paymentStatus,
         CancellationToken cancellationToken = default);
+
+    Task<Result> ChangeSettlementStatus(
+        Guid orderId,
+        SettlementStatus settlementStatus,
+        CancellationToken cancellationToken = default);
 }

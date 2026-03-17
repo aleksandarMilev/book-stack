@@ -99,7 +99,7 @@ public class PaymentWebhookIdempotencyTests
         Assert.Equal(1, webhookEventsWithSameId);
         Assert.Equal(3, updatedListing.Quantity);
         Assert.Equal(PaymentStatus.Paid, order.PaymentStatus);
-        Assert.Equal(OrderStatus.Confirmed, order.Status);
+        Assert.Equal(OrderStatus.PendingConfirmation, order.Status);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class PaymentWebhookIdempotencyTests
         Assert.True(processResult.Succeeded);
         Assert.Equal(3, updatedListing.Quantity);
         Assert.Equal(PaymentStatus.Paid, order.PaymentStatus);
-        Assert.Equal(OrderStatus.Confirmed, order.Status);
+        Assert.Equal(OrderStatus.PendingConfirmation, order.Status);
         Assert.Null(order.ReservationReleasedOnUtc);
     }
 
@@ -341,7 +341,7 @@ public class PaymentWebhookIdempotencyTests
                 CancellationToken.None);
 
         Assert.Equal(PaymentStatus.Paid, order.PaymentStatus);
-        Assert.Equal(OrderStatus.Confirmed, order.Status);
+        Assert.Equal(OrderStatus.PendingConfirmation, order.Status);
     }
 
     private static async Task<BookListingDbModel> SeedApprovedListing(
@@ -349,6 +349,10 @@ public class PaymentWebhookIdempotencyTests
         string sellerId,
         int quantity)
     {
+        await EnsureActiveSellerProfile(
+            data,
+            sellerId);
+
         var book = MarketplaceTestData.CreateApprovedBook(
             creatorId: sellerId,
             title: "Webhook Test Book",
@@ -366,5 +370,33 @@ public class PaymentWebhookIdempotencyTests
         await data.SaveChangesAsync(CancellationToken.None);
 
         return listing;
+    }
+
+    private static async Task EnsureActiveSellerProfile(
+        BookStackDbContext data,
+        string sellerId)
+    {
+        var userExists = await data
+            .Users
+            .AnyAsync(u => u.Id == sellerId);
+
+        if (!userExists)
+        {
+            data.Users.Add(MarketplaceTestData.CreateUser(
+                sellerId,
+                $"{sellerId}@example.com"));
+        }
+
+        var profileExists = await data
+            .SellerProfiles
+            .IgnoreQueryFilters()
+            .AnyAsync(p => p.UserId == sellerId);
+
+        if (!profileExists)
+        {
+            data.SellerProfiles.Add(MarketplaceTestData.CreateSellerProfile(sellerId));
+        }
+
+        await data.SaveChangesAsync(CancellationToken.None);
     }
 }

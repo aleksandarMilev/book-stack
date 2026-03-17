@@ -1,6 +1,7 @@
 namespace BookStack.Features.Orders.Web.Models;
 
 using System.ComponentModel.DataAnnotations;
+using Shared;
 
 using static Shared.Constants.Validation;
 
@@ -36,6 +37,10 @@ public class CreateOrderWebModel
 
     [StringLength(PostalCodeMaxLength, MinimumLength = PostalCodeMinLength)]
     public string? PostalCode { get; init; }
+
+    [Required]
+    [EnumDataType(typeof(OrderPaymentMethod))]
+    public OrderPaymentMethod PaymentMethod { get; init; }
 
     [Required]
     [MinLength(MinItemsCount)]

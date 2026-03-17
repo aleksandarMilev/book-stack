@@ -400,12 +400,23 @@ namespace BookStack.Data.Migrations
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
                     b.Property<int>("PaymentStatus")
                         .HasColumnType("int");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PlatformFeePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
@@ -416,6 +427,13 @@ namespace BookStack.Data.Migrations
 
                     b.Property<DateTime?>("ReservationReleasedOnUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("SellerNetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SettlementStatus")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -432,9 +450,13 @@ namespace BookStack.Data.Migrations
 
                     b.HasIndex("Email");
 
+                    b.HasIndex("PaymentMethod");
+
                     b.HasIndex("PaymentStatus");
 
                     b.HasIndex("ReservationExpiresOnUtc");
+
+                    b.HasIndex("SettlementStatus");
 
                     b.HasIndex("Status");
 
@@ -728,6 +750,67 @@ namespace BookStack.Data.Migrations
                     b.ToTable("PaymentWebhookEvents");
                 });
 
+            modelBuilder.Entity("BookStack.Features.SellerProfiles.Data.Models.SellerProfileDbModel", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("SupportsCashOnDelivery")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("SupportsOnlinePayment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("CreatedOn");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("SellerProfiles");
+                });
+
             modelBuilder.Entity("BookStack.Features.UserProfile.Data.Models.UserProfileDbModel", b =>
                 {
                     b.Property<string>("UserId")
@@ -974,6 +1057,17 @@ namespace BookStack.Data.Migrations
                     b.Navigation("Payment");
                 });
 
+            modelBuilder.Entity("BookStack.Features.SellerProfiles.Data.Models.SellerProfileDbModel", b =>
+                {
+                    b.HasOne("BookStack.Features.Identity.Data.Models.UserDbModel", "User")
+                        .WithOne("SellerProfile")
+                        .HasForeignKey("BookStack.Features.SellerProfiles.Data.Models.SellerProfileDbModel", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("BookStack.Features.UserProfile.Data.Models.UserProfileDbModel", b =>
                 {
                     b.HasOne("BookStack.Features.Identity.Data.Models.UserDbModel", "User")
@@ -1039,6 +1133,8 @@ namespace BookStack.Data.Migrations
             modelBuilder.Entity("BookStack.Features.Identity.Data.Models.UserDbModel", b =>
                 {
                     b.Navigation("Profile");
+
+                    b.Navigation("SellerProfile");
                 });
 
             modelBuilder.Entity("BookStack.Features.Orders.Data.Models.OrderDbModel", b =>

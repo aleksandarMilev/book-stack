@@ -28,9 +28,19 @@ public class OrderServiceModel
 
     public string Currency { get; init; } = default!;
 
+    public OrderPaymentMethod PaymentMethod { get; init; }
+
     public OrderStatus Status { get; init; }
 
     public PaymentStatus PaymentStatus { get; init; }
+
+    public SettlementStatus SettlementStatus { get; init; }
+
+    public decimal PlatformFeePercent { get; init; }
+
+    public decimal PlatformFeeAmount { get; init; }
+
+    public decimal SellerNetAmount { get; init; }
 
     public string CreatedOn { get; init; } = default!;
 

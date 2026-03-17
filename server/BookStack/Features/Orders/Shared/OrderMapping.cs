@@ -22,8 +22,13 @@ public static class OrderMapping
             PostalCode = o.PostalCode,
             TotalAmount = o.TotalAmount,
             Currency = o.Currency,
+            PaymentMethod = o.PaymentMethod,
             Status = o.Status,
             PaymentStatus = o.PaymentStatus,
+            SettlementStatus = o.SettlementStatus,
+            PlatformFeePercent = o.PlatformFeePercent,
+            PlatformFeeAmount = o.PlatformFeeAmount,
+            SellerNetAmount = o.SellerNetAmount,
             CreatedOn = o.CreatedOn.ToString("O"),
             Items = o.Items
                 .Where(static i => !i.IsDeleted)
@@ -68,8 +73,13 @@ public static class OrderMapping
                 .Where(i => !i.IsDeleted && i.SellerId == sellerId)
                 .Sum(i => i.TotalPrice),
             Currency = o.Currency,
+            PaymentMethod = o.PaymentMethod,
             Status = o.Status,
             PaymentStatus = o.PaymentStatus,
+            SettlementStatus = o.SettlementStatus,
+            PlatformFeePercent = o.PlatformFeePercent,
+            PlatformFeeAmount = o.PlatformFeeAmount,
+            SellerNetAmount = o.SellerNetAmount,
             CreatedOn = o.CreatedOn.ToString("O"),
             Items = o.Items
                 .Where(i => !i.IsDeleted && i.SellerId == sellerId)
@@ -107,6 +117,7 @@ public static class OrderMapping
             City = webModel.City,
             AddressLine = webModel.AddressLine,
             PostalCode = webModel.PostalCode,
+            PaymentMethod = webModel.PaymentMethod,
             Items = webModel.Items.Select(static i => new CreateOrderItemServiceModel
             {
                 ListingId = i.ListingId,
@@ -131,7 +142,9 @@ public static class OrderMapping
             BuyerId = buyerId,
             Email = webModel.Email,
             Status = webModel.Status,
+            PaymentMethod = webModel.PaymentMethod,
             PaymentStatus = webModel.PaymentStatus,
+            SettlementStatus = webModel.SettlementStatus,
             PageIndex = webModel.PageIndex,
             PageSize = webModel.PageSize,
         };

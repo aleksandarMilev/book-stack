@@ -9,4 +9,6 @@ public static class ApiRoutes
     public const string Status = "{id}/status/";
 
     public const string PaymentStatus = "{id}/payment-status/";
+
+    public const string SettlementStatus = "{id}/settlement-status/";
 }

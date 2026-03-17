@@ -2,6 +2,7 @@
 
 using BookStack.Data.Models.Base;
 using Microsoft.AspNetCore.Identity;
+using SellerProfiles.Data.Models;
 using UserProfile.Data.Models;
 
 public class UserDbModel :
@@ -23,4 +24,6 @@ public class UserDbModel :
     public string? DeletedBy { get; set; }
 
     public UserProfileDbModel? Profile { get; init; }
+
+    public SellerProfileDbModel? SellerProfile { get; init; }
 }

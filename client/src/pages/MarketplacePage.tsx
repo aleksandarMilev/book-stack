@@ -124,6 +124,8 @@ export function MarketplacePage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const mobileFilters = useDisclosure();
+  const isMobileFiltersOpen = mobileFilters.isOpen;
+  const closeMobileFilters = mobileFilters.close;
 
   const queryState = useMemo(() => parseQueryState(searchParams), [searchParams]);
 
@@ -214,6 +216,23 @@ export function MarketplacePage() {
     updateQueryState({ pageIndex: totalPages }, false);
   }, [queryState.pageIndex, totalPages, updateQueryState]);
 
+  useEffect(() => {
+    if (!isMobileFiltersOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        closeMobileFilters();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [closeMobileFilters, isMobileFiltersOpen]);
+
   const clearFilters = (): void => {
     setSearchParams(buildQueryParams(DEFAULT_QUERY_STATE), { replace: true });
   };
@@ -292,7 +311,14 @@ export function MarketplacePage() {
           </select>
         </label>
 
-        <Button className="marketplace-mobile-filters-trigger" onClick={mobileFilters.open} variant="secondary">
+        <Button
+          aria-controls="marketplace-mobile-filters"
+          aria-expanded={mobileFilters.isOpen}
+          aria-label={t('common.actions.openFilters')}
+          className="marketplace-mobile-filters-trigger"
+          onClick={mobileFilters.open}
+          variant="secondary"
+        >
           {t('common.actions.openFilters')}
         </Button>
       </section>
@@ -384,7 +410,12 @@ export function MarketplacePage() {
         onClick={mobileFilters.close}
       />
       <aside
+        aria-label={t('marketplace.mobileFiltersTitle')}
+        aria-modal="true"
+        aria-hidden={!mobileFilters.isOpen}
         className={classNames('marketplace-mobile-drawer', mobileFilters.isOpen && 'marketplace-mobile-drawer--open')}
+        id="marketplace-mobile-filters"
+        role="dialog"
       >
         <div className="marketplace-mobile-drawer-head">
           <p>{t('marketplace.mobileFiltersTitle')}</p>

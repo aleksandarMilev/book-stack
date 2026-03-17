@@ -30,10 +30,14 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const routeState = useMemo(() => location.state as { from?: string; reason?: string } | null, [location.state]);
+
   const redirectTo = useMemo(() => {
-    const state = location.state as { from?: string } | null;
+    const state = routeState;
     return state?.from ?? ROUTES.home;
-  }, [location.state]);
+  }, [routeState]);
+
+  const redirectReason = routeState?.reason;
 
   if (capabilities.isAuthenticated) {
     return <Navigate replace to={redirectTo} />;
@@ -81,6 +85,8 @@ export function LoginPage() {
         <p>{t('pages.login.subtitle')}</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
+          {redirectReason === 'authRequired' ? <p className="auth-info">{t('pages.login.info.authRequired')}</p> : null}
+          {redirectReason === 'sessionExpired' ? <p className="auth-info">{t('pages.login.info.sessionExpired')}</p> : null}
           <Input
             autoComplete="username"
             error={fieldErrors.credentials}

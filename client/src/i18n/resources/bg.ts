@@ -52,6 +52,7 @@ const bg = {
     mobile: {
       openMenu: 'Отвори меню',
       closeMenu: 'Затвори меню',
+      navigationLabel: 'Мобилна навигация',
     },
   },
   taxonomy: {
@@ -178,8 +179,10 @@ const bg = {
     listingDetails: {
       title: 'Детайли на обява',
       listingId: 'ID на обява: {{id}}',
-      loading: 'Зареждане на детайли...',
+      loadingTitle: 'Зареждане на детайли за обявата',
+      loadingDescription: 'Подготвяме информацията и наличността.',
       error: 'Неуспешно зареждане на детайлите.',
+      errorTitle: 'Обявата не може да бъде заредена',
       notFound: 'Обявата не е намерена.',
       imageAlt: 'Изображение на {{title}}',
       publisherLabel: 'Издател',
@@ -274,6 +277,10 @@ const bg = {
       validation: {
         credentialsRequired: 'Потребителското име или имейлът е задължителен.',
         passwordRequired: 'Паролата е задължителна.',
+      },
+      info: {
+        authRequired: 'Моля, влез в профила си, за да продължиш.',
+        sessionExpired: 'Сесията ти е изтекла. Моля, влез отново.',
       },
     },
     register: {
@@ -434,6 +441,8 @@ const bg = {
       retryAction: 'Опитай плащането отново',
       retrying: 'Стартиране на плащане...',
       retryError: 'Неуспешно стартиране на нова платежна сесия.',
+      noOrderHint: 'Липсва конкретна референция за поръчка. Можеш да се върнеш към пазара и да продължиш.',
+      guestOrderHint: 'Ако поръча като гост, запази потвърждението си и отвори тази страница от връзката за плащане.',
       myOrdersAction: 'Виж моите поръчки',
       marketplaceAction: 'Към пазара',
       orderIdLabel: 'ID на поръчка',

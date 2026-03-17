@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 
+import { isMockPaymentUiEnabled } from '@/features/payments/config/paymentProvider';
 import { AppShell } from '@/layouts/AppShell';
 import { AdminBooksModerationPage } from '@/pages/admin/AdminBooksModerationPage';
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
@@ -35,7 +36,7 @@ export const appRouter = createBrowserRouter([
       { path: ROUTES.listingDetails, element: <ListingDetailsPage /> },
       { path: ROUTES.books, element: <BooksPage /> },
       { path: ROUTES.checkout, element: <CheckoutPage /> },
-      { path: ROUTES.mockPaymentCheckout, element: <MockPaymentCheckoutPage /> },
+      ...(isMockPaymentUiEnabled ? [{ path: ROUTES.mockPaymentCheckout, element: <MockPaymentCheckoutPage /> }] : []),
       { path: ROUTES.login, element: <LoginPage /> },
       { path: ROUTES.register, element: <RegisterPage /> },
       { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },

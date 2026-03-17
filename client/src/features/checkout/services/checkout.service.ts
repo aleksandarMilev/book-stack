@@ -1,5 +1,7 @@
-import { type CreateOrderRequest,ordersApi } from '@/features/orders/api/orders.api';
+import type { CreateOrderRequest } from '@/features/orders/api/orders.api';
+import { ordersApi } from '@/features/orders/api/orders.api';
 import { paymentsApi } from '@/features/payments/api/payments.api';
+import { appPaymentProvider } from '@/features/payments/config/paymentProvider';
 import { paymentSessionStorage } from '@/features/payments/storage/paymentSession.storage';
 
 interface StartCheckoutOptions {
@@ -25,7 +27,7 @@ export const checkoutService = {
     payload: CreateOrderRequest,
     options?: StartCheckoutOptions,
   ): Promise<StartCheckoutResult> {
-    const provider = normalizeProvider(options?.provider);
+    const provider = normalizeProvider(options?.provider) ?? appPaymentProvider;
     const createdOrder = await ordersApi.createOrder(payload);
 
     if (createdOrder.paymentToken) {
@@ -50,7 +52,7 @@ export const checkoutService = {
     isAuthenticated: boolean,
     options?: StartCheckoutOptions,
   ): Promise<StartCheckoutResult> {
-    const provider = normalizeProvider(options?.provider);
+    const provider = normalizeProvider(options?.provider) ?? appPaymentProvider;
     const guestPaymentToken = !isAuthenticated ? paymentSessionStorage.getGuestPaymentToken(orderId) : null;
 
     const paymentSession = await paymentsApi.createCheckoutSession(orderId, {

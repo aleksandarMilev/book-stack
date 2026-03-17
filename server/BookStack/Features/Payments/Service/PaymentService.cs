@@ -55,6 +55,11 @@ public class PaymentService(
                 orderId);
         }
 
+        if (order!.PaymentMethod != OrderPaymentMethod.Online)
+        {
+            return "Checkout session can only be created for online payment orders.";
+        }
+
         var canInitiateCheckout = !this.CanInitiateCheckout(
             order!,
             model.PaymentToken);
@@ -288,11 +293,22 @@ public class PaymentService(
                 orderId);
         }
 
+        if (order.PaymentMethod == OrderPaymentMethod.CashOnDelivery)
+        {
+            return "Cash-on-delivery orders do not support online payment status updates.";
+        }
+
+        if (paymentStatus is PaymentStatus.NotRequired or PaymentStatus.Expired)
+        {
+            return $"Payment status '{paymentStatus}' cannot be set manually.";
+        }
+
         var manualPaymentStatus = paymentStatus switch
         {
             PaymentStatus.Paid => PaymentRecordStatus.Succeeded,
             PaymentStatus.Failed => PaymentRecordStatus.Failed,
             PaymentStatus.Refunded => PaymentRecordStatus.Refunded,
+            PaymentStatus.Cancelled => PaymentRecordStatus.Canceled,
             _ => PaymentRecordStatus.Pending,
         };
 
@@ -300,6 +316,7 @@ public class PaymentService(
         {
             PaymentStatus.Failed => "Manual payment override by administrator.",
             PaymentStatus.Refunded => "Manual refund override by administrator.",
+            PaymentStatus.Cancelled => "Manual payment cancellation override by administrator.",
             _ => null,
         };
 
@@ -357,7 +374,7 @@ public class PaymentService(
             .Where(o =>
                 !o.IsDeleted &&
                 o.Status == OrderStatus.PendingPayment &&
-                o.PaymentStatus == PaymentStatus.Unpaid &&
+                o.PaymentStatus == PaymentStatus.Pending &&
                 o.ReservationReleasedOnUtc == null &&
                 o.ReservationExpiresOnUtc <= utcNow)
             .Select(static o => o.Id)
@@ -415,6 +432,16 @@ public class PaymentService(
             return null;
         }
 
+        if (order!.PaymentMethod == OrderPaymentMethod.CashOnDelivery)
+        {
+            if (order.PaymentStatus != PaymentStatus.NotRequired)
+            {
+                order.PaymentStatus = PaymentStatus.NotRequired;
+            }
+
+            return PaymentStatus.NotRequired;
+        }
+
         var paymentStatuses = await this._data
             .Payments
             .AsNoTracking()
@@ -440,10 +467,10 @@ public class PaymentService(
 
         if (isSuccessfullyPaid)
         {
-            order.Status = OrderStatus.Confirmed;
+            order.Status = OrderStatus.PendingConfirmation;
 
             this._logger.LogInformation(
-                "Order confirmed after successful payment. OrderId={OrderId}",
+                "Order moved to pending confirmation after successful payment. OrderId={OrderId}",
                 orderId);
         }
 
@@ -455,7 +482,7 @@ public class PaymentService(
         PaymentStatus? paymentStatus,
         CancellationToken cancellationToken = default)
     {
-        if (paymentStatus != PaymentStatus.Failed)
+        if (paymentStatus is not PaymentStatus.Failed and not PaymentStatus.Cancelled)
         {
             return;
         }
@@ -475,6 +502,13 @@ public class PaymentService(
         var targetStatus = reason == ReservationReleaseReason.Expired
             ? OrderStatus.Expired
             : OrderStatus.Cancelled;
+
+        var paymentStatusOverride = reason switch
+        {
+            ReservationReleaseReason.Expired => PaymentStatus.Expired,
+            ReservationReleaseReason.OrderCanceled => PaymentStatus.Cancelled,
+            _ => (PaymentStatus?)null,
+        };
 
         var startedLocalTransaction = this._data.Database.CurrentTransaction is null;
         IDbContextTransaction? transaction = this._data.Database.CurrentTransaction;
@@ -501,7 +535,14 @@ public class PaymentService(
                             o => o.Status,
                             o => o.Status == OrderStatus.Completed
                                 ? OrderStatus.Completed
-                                : targetStatus),
+                                : targetStatus)
+                        .SetProperty(
+                            o => o.PaymentStatus,
+                            o => paymentStatusOverride.HasValue &&
+                                 o.PaymentMethod == OrderPaymentMethod.Online &&
+                                 o.PaymentStatus == PaymentStatus.Pending
+                                ? paymentStatusOverride.Value
+                                : o.PaymentStatus),
                     cancellationToken);
 
             if (claimedRows == 0)
@@ -614,7 +655,7 @@ public class PaymentService(
 
         if (statusList.Count == 0)
         {
-            return PaymentStatus.Unpaid;
+            return PaymentStatus.Pending;
         }
 
         if (statusList.Any(static s => s == PaymentRecordStatus.Succeeded))
@@ -624,7 +665,7 @@ public class PaymentService(
 
         if (statusList.Any(static s => s is PaymentRecordStatus.Pending or PaymentRecordStatus.Processing))
         {
-            return PaymentStatus.Unpaid;
+            return PaymentStatus.Pending;
         }
 
         if (statusList.Any(static s => s == PaymentRecordStatus.Refunded))
@@ -632,12 +673,17 @@ public class PaymentService(
             return PaymentStatus.Refunded;
         }
 
-        if (statusList.Any(static s => s is PaymentRecordStatus.Failed or PaymentRecordStatus.Canceled))
+        if (statusList.Any(static s => s == PaymentRecordStatus.Canceled))
+        {
+            return PaymentStatus.Cancelled;
+        }
+
+        if (statusList.Any(static s => s == PaymentRecordStatus.Failed))
         {
             return PaymentStatus.Failed;
         }
 
-        return PaymentStatus.Unpaid;
+        return PaymentStatus.Pending;
     }
 
     private static void ApplyWebhookStatus(

@@ -27,9 +27,19 @@ public class OrderDbModel : DeletableEntity<Guid>
 
     public string Currency { get; set; } = default!;
 
+    public OrderPaymentMethod PaymentMethod { get; set; }
+
     public OrderStatus Status { get; set; }
 
     public PaymentStatus PaymentStatus { get; set; }
+
+    public SettlementStatus SettlementStatus { get; set; }
+
+    public decimal PlatformFeePercent { get; set; }
+
+    public decimal PlatformFeeAmount { get; set; }
+
+    public decimal SellerNetAmount { get; set; }
 
     public string? GuestPaymentTokenHash { get; set; }
 

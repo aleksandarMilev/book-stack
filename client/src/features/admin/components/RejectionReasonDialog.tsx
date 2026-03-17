@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button, Card } from '@/components/ui';
@@ -16,6 +16,7 @@ export function RejectionReasonDialog({ isOpen, isSubmitting, onClose, onSubmit 
   const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const reasonInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -23,6 +24,25 @@ export function RejectionReasonDialog({ isOpen, isSubmitting, onClose, onSubmit 
       setErrorMessage(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    reasonInputRef.current?.focus();
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape' && !isSubmitting) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, isSubmitting, onClose]);
 
   if (!isOpen) {
     return null;
@@ -40,7 +60,15 @@ export function RejectionReasonDialog({ isOpen, isSubmitting, onClose, onSubmit 
   };
 
   return (
-    <div className="admin-dialog-overlay" role="presentation">
+    <div
+      className="admin-dialog-overlay"
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !isSubmitting) {
+          onClose();
+        }
+      }}
+      role="presentation"
+    >
       <Card aria-modal className="admin-dialog-card" role="dialog">
         <h2>{t('pages.adminModeration.rejectDialog.title')}</h2>
         <p className="admin-dialog-description">{t('pages.adminModeration.rejectDialog.description')}</p>
@@ -55,6 +83,7 @@ export function RejectionReasonDialog({ isOpen, isSubmitting, onClose, onSubmit 
               setReason(event.target.value);
             }}
             placeholder={t('pages.adminModeration.rejectDialog.reasonPlaceholder')}
+            ref={reasonInputRef}
             rows={4}
             value={reason}
           />

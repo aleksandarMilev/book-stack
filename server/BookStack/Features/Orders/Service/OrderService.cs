@@ -7,15 +7,20 @@ using Infrastructure.Services.CurrentUser;
 using Infrastructure.Services.DateTimeProvider;
 using Infrastructure.Services.PageClamper;
 using Infrastructure.Services.Result;
+using Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Models;
 using Payments.Service;
+using SellerProfiles.Service;
 using Shared;
 
 public class OrderService(
     BookStackDbContext data,
     ICurrentUserService userService,
     IPaymentService paymentService,
+    ISellerProfileService sellerProfileService,
+    IOptions<PlatformFeeSettings> platformFeeSettings,
     IDateTimeProvider dateTimeProvider,
     IPageClamper pageClamper,
     ILogger<OrderService> logger) : IOrderService
@@ -23,6 +28,8 @@ public class OrderService(
     private readonly BookStackDbContext _data = data;
     private readonly ICurrentUserService _userService = userService;
     private readonly IPaymentService _paymentService = paymentService;
+    private readonly ISellerProfileService _sellerProfileService = sellerProfileService;
+    private readonly PlatformFeeSettings _platformFeeSettings = platformFeeSettings.Value;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IPageClamper _pageClamper = pageClamper;
     private readonly ILogger<OrderService> _logger = logger;
@@ -97,6 +104,38 @@ public class OrderService(
             return "All ordered listings must have the same currency.";
         }
 
+        var sellerIds = listings
+            .Select(static l => l.CreatorId)
+            .Distinct()
+            .ToList();
+
+        if (sellerIds.Count != 1)
+        {
+            return "All ordered items must belong to the same seller.";
+        }
+
+        var sellerId = sellerIds[0];
+        var sellerProfile = await this._sellerProfileService.ActiveByUserId(
+            sellerId,
+            cancellationToken);
+
+        if (sellerProfile is null)
+        {
+            return "The seller is not currently active.";
+        }
+
+        var sellerSupportsPaymentMethod = model.PaymentMethod switch
+        {
+            OrderPaymentMethod.Online => sellerProfile.SupportsOnlinePayment,
+            OrderPaymentMethod.CashOnDelivery => sellerProfile.SupportsCashOnDelivery,
+            _ => false,
+        };
+
+        if (!sellerSupportsPaymentMethod)
+        {
+            return "The selected payment method is not supported by this seller.";
+        }
+
         foreach (var item in items)
         {
             var listing = listings
@@ -116,7 +155,8 @@ public class OrderService(
         string? paymentToken = null;
         string? guestPaymentTokenHash = null;
 
-        if (string.IsNullOrWhiteSpace(buyerId))
+        if (string.IsNullOrWhiteSpace(buyerId) &&
+            model.PaymentMethod == OrderPaymentMethod.Online)
         {
             paymentToken = OrderPaymentToken.Generate();
             guestPaymentTokenHash = OrderPaymentToken.Hash(paymentToken);
@@ -138,8 +178,14 @@ public class OrderService(
                 ? null
                 : model.PostalCode.Trim(),
             Currency = firstCurrency,
-            Status = OrderStatus.PendingPayment,
-            PaymentStatus = PaymentStatus.Unpaid,
+            PaymentMethod = model.PaymentMethod,
+            Status = model.PaymentMethod == OrderPaymentMethod.Online
+                ? OrderStatus.PendingPayment
+                : OrderStatus.PendingConfirmation,
+            PaymentStatus = model.PaymentMethod == OrderPaymentMethod.Online
+                ? PaymentStatus.Pending
+                : PaymentStatus.NotRequired,
+            SettlementStatus = SettlementStatus.Pending,
             GuestPaymentTokenHash = guestPaymentTokenHash,
             ReservationExpiresOnUtc = reservationExpiresOnUtc,
             ReservationReleasedOnUtc = null,
@@ -183,6 +229,11 @@ public class OrderService(
         }
 
         order.TotalAmount = totalAmount;
+        order.PlatformFeePercent = GetValidPlatformFeePercent(this._platformFeeSettings);
+        order.PlatformFeeAmount = CalculatePlatformFeeAmount(
+            order.TotalAmount,
+            order.PlatformFeePercent);
+        order.SellerNetAmount = RoundMoney(order.TotalAmount - order.PlatformFeeAmount);
 
         this._data.Add(order);
         this._data.AddRange(orderItems);
@@ -237,7 +288,9 @@ public class OrderService(
             BuyerId = currentUserId,
             Email = filter.Email,
             Status = filter.Status,
+            PaymentMethod = filter.PaymentMethod,
             PaymentStatus = filter.PaymentStatus,
+            SettlementStatus = filter.SettlementStatus,
             PageIndex = pageIndex,
             PageSize = pageSize,
         };
@@ -290,7 +343,9 @@ public class OrderService(
             BuyerId = null,
             Email = filter.Email,
             Status = filter.Status,
+            PaymentMethod = filter.PaymentMethod,
             PaymentStatus = filter.PaymentStatus,
+            SettlementStatus = filter.SettlementStatus,
             PageIndex = pageIndex,
             PageSize = pageSize,
         };
@@ -459,6 +514,43 @@ public class OrderService(
             paymentStatus,
             cancellationToken);
 
+    public async Task<Result> ChangeSettlementStatus(
+        Guid orderId,
+        SettlementStatus settlementStatus,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await this._data
+            .Orders
+            .SingleOrDefaultAsync(
+                o => o.Id == orderId,
+                cancellationToken);
+
+        if (order is null || order.IsDeleted)
+        {
+            return string.Format(
+                Common.Constants.ErrorMessages.DbEntityNotFound,
+                nameof(OrderDbModel),
+                orderId);
+        }
+
+        if (!CanTransitionSettlementStatus(
+                order.SettlementStatus,
+                settlementStatus))
+        {
+            return $"Settlement transition from '{order.SettlementStatus}' to '{settlementStatus}' is not allowed.";
+        }
+
+        order.SettlementStatus = settlementStatus;
+        await this._data.SaveChangesAsync(cancellationToken);
+
+        this._logger.LogInformation(
+            "Order settlement status changed. OrderId={OrderId}, SettlementStatus={SettlementStatus}",
+            orderId,
+            settlementStatus);
+
+        return true;
+    }
+
     private static IQueryable<OrderDbModel> ApplyFilter(
         IQueryable<OrderDbModel> query,
         OrderFilterServiceModel filter)
@@ -481,10 +573,22 @@ public class OrderService(
                 .Where(o => o.Status == filter.Status.Value);
         }
 
+        if (filter.PaymentMethod.HasValue)
+        {
+            query = query
+                .Where(o => o.PaymentMethod == filter.PaymentMethod.Value);
+        }
+
         if (filter.PaymentStatus.HasValue)
         {
             query = query
                 .Where(o => o.PaymentStatus == filter.PaymentStatus.Value);
+        }
+
+        if (filter.SettlementStatus.HasValue)
+        {
+            query = query
+                .Where(o => o.SettlementStatus == filter.SettlementStatus.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
@@ -498,5 +602,44 @@ public class OrderService(
         }
 
         return query;
+    }
+
+    private static decimal GetValidPlatformFeePercent(
+        PlatformFeeSettings settings)
+    {
+        if (settings.Percent < 0m || settings.Percent > 100m)
+        {
+            throw new InvalidOperationException(
+                "Platform fee percent must be between 0 and 100.");
+        }
+
+        return settings.Percent;
+    }
+
+    private static decimal CalculatePlatformFeeAmount(
+        decimal grossAmount,
+        decimal platformFeePercent)
+        => RoundMoney(grossAmount * platformFeePercent / 100m);
+
+    private static decimal RoundMoney(decimal value)
+        => Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    private static bool CanTransitionSettlementStatus(
+        SettlementStatus current,
+        SettlementStatus next)
+    {
+        if (current == next)
+        {
+            return true;
+        }
+
+        return current switch
+        {
+            SettlementStatus.Pending => next is SettlementStatus.Settled or SettlementStatus.Waived or SettlementStatus.Disputed,
+            SettlementStatus.Disputed => next is SettlementStatus.Settled or SettlementStatus.Waived,
+            SettlementStatus.Settled => next == SettlementStatus.Disputed,
+            SettlementStatus.Waived => next == SettlementStatus.Disputed,
+            _ => false,
+        };
     }
 }

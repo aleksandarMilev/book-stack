@@ -13,7 +13,11 @@ public class OrderFilterWebModel
 
     public OrderStatus? Status { get; init; }
 
+    public OrderPaymentMethod? PaymentMethod { get; init; }
+
     public PaymentStatus? PaymentStatus { get; init; }
+
+    public SettlementStatus? SettlementStatus { get; init; }
 
     [Range(1, int.MaxValue)]
     public int PageIndex { get; init; } = DefaultPageIndex;

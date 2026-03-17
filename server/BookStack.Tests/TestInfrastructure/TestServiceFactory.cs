@@ -1,9 +1,12 @@
 namespace BookStack.Tests.TestInfrastructure;
 
 using BookStack.Features.Books.Service;
+using BookStack.Features.BookListings.Service;
 using BookStack.Features.Orders.Service;
 using BookStack.Features.Payments.Service;
 using BookStack.Features.Payments.Service.Providers;
+using BookStack.Features.SellerProfiles.Service;
+using BookStack.Infrastructure.Services.ImageWriter;
 using BookStack.Infrastructure.Services.PageClamper;
 using BookStack.Infrastructure.Services.StringSanitizer;
 using BookStack.Infrastructure.Settings;
@@ -60,7 +63,33 @@ internal static class TestServiceFactory
             data,
             currentUserService,
             paymentService,
+            new SellerProfileService(
+                data,
+                currentUserService,
+                NullLogger<SellerProfileService>.Instance),
+            Options.Create(new PlatformFeeSettings
+            {
+                Percent = 10m,
+            }),
             dateTimeProvider,
             new PageClamper(),
             NullLogger<OrderService>.Instance);
+
+    public static BookListingService CreateBookListingService(
+        BookStackDbContext data,
+        TestCurrentUserService currentUserService,
+        TestDateTimeProvider dateTimeProvider,
+        IImageWriter imageWriter)
+        => new(
+            data,
+            currentUserService,
+            dateTimeProvider,
+            new PageClamper(),
+            imageWriter,
+            new SellerProfileService(
+                data,
+                currentUserService,
+                NullLogger<SellerProfileService>.Instance),
+            new StringSanitizerService(),
+            NullLogger<BookListingService>.Instance);
 }

@@ -236,9 +236,7 @@ export function CheckoutPage() {
         items: [{ listingId: listing.id, quantity }],
       });
 
-      const checkoutResult = await checkoutService.createOrderAndStartCheckout(orderPayload, {
-        provider: 'mock',
-      });
+      const checkoutResult = await checkoutService.createOrderAndStartCheckout(orderPayload);
 
       redirectTo(checkoutResult.checkoutUrl);
     } catch (error: unknown) {

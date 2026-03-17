@@ -8,7 +8,7 @@ using BookStack.Tests.TestInfrastructure;
 public class AdminStatisticsServiceTests
 {
     [Fact]
-    public async Task Get_ComputesCountsAndRevenueGroupedByMonthAndCurrency()
+    public async Task Get_ComputesBusinessCountsAndFeeBasedMonthlyMetrics()
     {
         await using var database = new TestDatabaseScope();
 
@@ -29,20 +29,16 @@ public class AdminStatisticsServiceTests
         var service = new StatisticsService(data);
 
         data.Users.AddRange(
-            new()
-            {
-                UserName = "user1",
-                NormalizedUserName = "USER1",
-                Email = "user1@example.com",
-                NormalizedEmail = "USER1@EXAMPLE.COM",
-            },
-            new()
-            {
-                UserName = "user2",
-                NormalizedUserName = "USER2",
-                Email = "user2@example.com",
-                NormalizedEmail = "USER2@EXAMPLE.COM",
-            });
+            MarketplaceTestData.CreateUser("seller-1", "seller-1@example.com"),
+            MarketplaceTestData.CreateUser("seller-2", "seller-2@example.com"));
+
+        data.SellerProfiles.AddRange(
+            MarketplaceTestData.CreateSellerProfile(
+                userId: "seller-1",
+                isActive: true),
+            MarketplaceTestData.CreateSellerProfile(
+                userId: "seller-2",
+                isActive: false));
 
         await data.SaveChangesAsync(CancellationToken.None);
 
@@ -83,7 +79,8 @@ public class AdminStatisticsServiceTests
             createdOnUtc: new DateTime(2026, 01, 15, 0, 0, 0, DateTimeKind.Utc),
             totalAmount: 100m,
             currency: "USD",
-            PaymentStatus.Paid);
+            paymentMethod: OrderPaymentMethod.Online,
+            paymentStatus: PaymentStatus.Paid);
 
         await AddOrder(
             data,
@@ -91,7 +88,8 @@ public class AdminStatisticsServiceTests
             createdOnUtc: new DateTime(2026, 01, 20, 0, 0, 0, DateTimeKind.Utc),
             totalAmount: 50m,
             currency: "EUR",
-            PaymentStatus.Paid);
+            paymentMethod: OrderPaymentMethod.CashOnDelivery,
+            paymentStatus: PaymentStatus.NotRequired);
 
         await AddOrder(
             data,
@@ -99,7 +97,8 @@ public class AdminStatisticsServiceTests
             createdOnUtc: new DateTime(2026, 02, 05, 0, 0, 0, DateTimeKind.Utc),
             totalAmount: 25m,
             currency: "USD",
-            PaymentStatus.Paid);
+            paymentMethod: OrderPaymentMethod.Online,
+            paymentStatus: PaymentStatus.Paid);
 
         await AddOrder(
             data,
@@ -107,14 +106,16 @@ public class AdminStatisticsServiceTests
             createdOnUtc: new DateTime(2026, 02, 10, 0, 0, 0, DateTimeKind.Utc),
             totalAmount: 75m,
             currency: "USD",
-            PaymentStatus.Unpaid);
+            paymentMethod: OrderPaymentMethod.Online,
+            paymentStatus: PaymentStatus.Pending);
 
 
         var deletedPaidOrder = MarketplaceTestData.CreateOrderDbModel(
             buyerId: "buyer-1",
             totalAmount: 999m,
             currency: "USD",
-            status: OrderStatus.Confirmed,
+            paymentMethod: OrderPaymentMethod.Online,
+            status: OrderStatus.PendingConfirmation,
             paymentStatus: PaymentStatus.Paid,
             reservationExpiresOnUtc: new DateTime(2026, 02, 11, 0, 30, 0, DateTimeKind.Utc));
 
@@ -129,34 +130,49 @@ public class AdminStatisticsServiceTests
         var revenue = result.RevenueByMonth.ToList();
 
         Assert.Equal(2, result.TotalUsers);
+        Assert.Equal(2, result.TotalSellerProfiles);
+        Assert.Equal(1, result.ActiveSellerProfiles);
         Assert.Equal(2, result.TotalBooks);
         Assert.Equal(2, result.TotalListings);
         Assert.Equal(1, result.PendingBooks);
         Assert.Equal(1, result.PendingListings);
         Assert.Equal(4, result.TotalOrders);
-        Assert.Equal(3, result.PaidOrders);
+        Assert.Equal(2, result.PaidOnlineOrders);
+        Assert.Equal(1, result.CodOrders);
         Assert.Equal(3, revenue.Count);
 
         Assert.Contains(revenue, static item =>
             item.Year == 2026 &&
             item.Month == 1 &&
             item.Currency == "USD" &&
-            item.Revenue == 100m &&
-            item.PaidOrders == 1);
+            item.GrossRevenue == 100m &&
+            item.PlatformFeeRevenue == 10m &&
+            item.SellerNetRevenue == 90m &&
+            item.Orders == 1 &&
+            item.PaidOnlineOrders == 1 &&
+            item.CodOrders == 0);
 
         Assert.Contains(revenue, static item =>
             item.Year == 2026 &&
             item.Month == 1 &&
             item.Currency == "EUR" &&
-            item.Revenue == 50m &&
-            item.PaidOrders == 1);
+            item.GrossRevenue == 50m &&
+            item.PlatformFeeRevenue == 5m &&
+            item.SellerNetRevenue == 45m &&
+            item.Orders == 1 &&
+            item.PaidOnlineOrders == 0 &&
+            item.CodOrders == 1);
 
         Assert.Contains(revenue, static item =>
             item.Year == 2026 &&
             item.Month == 2 &&
             item.Currency == "USD" &&
-            item.Revenue == 25m &&
-            item.PaidOrders == 1);
+            item.GrossRevenue == 100m &&
+            item.PlatformFeeRevenue == 10m &&
+            item.SellerNetRevenue == 90m &&
+            item.Orders == 2 &&
+            item.PaidOnlineOrders == 1 &&
+            item.CodOrders == 0);
     }
 
     private static async Task AddOrder(
@@ -165,6 +181,7 @@ public class AdminStatisticsServiceTests
         DateTime createdOnUtc,
         decimal totalAmount,
         string currency,
+        OrderPaymentMethod paymentMethod,
         PaymentStatus paymentStatus)
     {
         dateTimeProvider.UtcNow = createdOnUtc;
@@ -173,9 +190,12 @@ public class AdminStatisticsServiceTests
             buyerId: "buyer-1",
             totalAmount: totalAmount,
             currency: currency,
-            status: paymentStatus == PaymentStatus.Paid
-                ? OrderStatus.Confirmed
-                : OrderStatus.PendingPayment,
+            paymentMethod: paymentMethod,
+            status: paymentMethod == OrderPaymentMethod.Online
+                ? (paymentStatus == PaymentStatus.Paid
+                    ? OrderStatus.PendingConfirmation
+                    : OrderStatus.PendingPayment)
+                : OrderStatus.PendingConfirmation,
             paymentStatus: paymentStatus,
             reservationExpiresOnUtc: createdOnUtc.AddMinutes(30));
 

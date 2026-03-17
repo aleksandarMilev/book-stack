@@ -59,4 +59,18 @@ public class OrdersController(IOrderService service) : AdminApiController
 
         return this.NoContentOrBadRequest(result);
     }
+
+    [HttpPut(ApiRoutes.SettlementStatus)]
+    public async Task<ActionResult> ChangeSettlementStatus(
+        Guid id,
+        ChangeSettlementStatusWebModel webModel,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await this._service.ChangeSettlementStatus(
+            id,
+            webModel.SettlementStatus,
+            cancellationToken);
+
+        return this.NoContentOrBadRequest(result);
+    }
 }

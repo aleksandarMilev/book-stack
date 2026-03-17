@@ -18,6 +18,18 @@ public class StatisticsService(
             .AsNoTracking()
             .CountAsync(cancellationToken);
 
+        var totalSellerProfiles = await this._data
+            .SellerProfiles
+            .AsNoTracking()
+            .CountAsync(cancellationToken);
+
+        var activeSellerProfiles = await this._data
+            .SellerProfiles
+            .AsNoTracking()
+            .CountAsync(
+                static p => p.IsActive,
+                cancellationToken);
+
         var totalBooks = await this._data
             .Books
             .AsNoTracking()
@@ -49,13 +61,19 @@ public class StatisticsService(
         var totalOrders = await ordersQuery
             .CountAsync(cancellationToken);
 
-        var paidOrders = await ordersQuery
+        var paidOnlineOrders = await ordersQuery
             .CountAsync(
-                static o => o.PaymentStatus == PaymentStatus.Paid,
+                static o =>
+                    o.PaymentMethod == OrderPaymentMethod.Online &&
+                    o.PaymentStatus == PaymentStatus.Paid,
+                cancellationToken);
+
+        var codOrders = await ordersQuery
+            .CountAsync(
+                static o => o.PaymentMethod == OrderPaymentMethod.CashOnDelivery,
                 cancellationToken);
 
         var revenueByMonth = await ordersQuery
-            .Where(static o => o.PaymentStatus == PaymentStatus.Paid)
             .GroupBy(static o => new
             {
                 o.CreatedOn.Year,
@@ -67,8 +85,15 @@ public class StatisticsService(
                 Year = group.Key.Year,
                 Month = group.Key.Month,
                 Currency = group.Key.Currency,
-                Revenue = group.Sum(static o => o.TotalAmount),
-                PaidOrders = group.Count(),
+                GrossRevenue = group.Sum(static o => o.TotalAmount),
+                PlatformFeeRevenue = group.Sum(static o => o.PlatformFeeAmount),
+                SellerNetRevenue = group.Sum(static o => o.SellerNetAmount),
+                Orders = group.Count(),
+                PaidOnlineOrders = group.Count(o =>
+                    o.PaymentMethod == OrderPaymentMethod.Online &&
+                    o.PaymentStatus == PaymentStatus.Paid),
+                CodOrders = group.Count(o =>
+                    o.PaymentMethod == OrderPaymentMethod.CashOnDelivery),
             })
             .OrderBy(static item => item.Year)
             .ThenBy(static item => item.Month)
@@ -78,12 +103,15 @@ public class StatisticsService(
         return new()
         {
             TotalUsers = totalUsers,
+            TotalSellerProfiles = totalSellerProfiles,
+            ActiveSellerProfiles = activeSellerProfiles,
             TotalBooks = totalBooks,
             TotalListings = totalListings,
             PendingBooks = pendingBooks,
             PendingListings = pendingListings,
             TotalOrders = totalOrders,
-            PaidOrders = paidOrders,
+            PaidOnlineOrders = paidOnlineOrders,
+            CodOrders = codOrders,
             RevenueByMonth = revenueByMonth,
         };
     }

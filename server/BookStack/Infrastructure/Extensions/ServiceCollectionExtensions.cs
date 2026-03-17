@@ -181,6 +181,9 @@ public static class ServiceCollectionExtensions
             services.Configure<AppUrlsSettings>(
                 configuration.GetSection(nameof(AppUrlsSettings)));
 
+            services.Configure<PlatformFeeSettings>(
+                configuration.GetSection(nameof(PlatformFeeSettings)));
+
             return services;
         }
 

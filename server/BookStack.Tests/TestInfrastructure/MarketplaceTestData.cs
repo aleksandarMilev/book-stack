@@ -9,6 +9,8 @@ using BookStack.Features.Books.Shared;
 using BookStack.Features.Orders.Data.Models;
 using BookStack.Features.Orders.Service.Models;
 using BookStack.Features.Orders.Shared;
+using BookStack.Features.SellerProfiles.Data.Models;
+using BookStack.Features.Identity.Data.Models;
 
 internal static class MarketplaceTestData
 {
@@ -72,6 +74,13 @@ internal static class MarketplaceTestData
 
     public static CreateOrderServiceModel CreateOrderModel(
         params (Guid ListingId, int Quantity)[] items)
+        => CreateOrderModelWithPaymentMethod(
+            OrderPaymentMethod.Online,
+            items);
+
+    public static CreateOrderServiceModel CreateOrderModelWithPaymentMethod(
+        OrderPaymentMethod paymentMethod,
+        params (Guid ListingId, int Quantity)[] items)
         => new()
         {
             CustomerFirstName = "John",
@@ -82,6 +91,7 @@ internal static class MarketplaceTestData
             City = "New York",
             AddressLine = "5th Avenue 1",
             PostalCode = "10001",
+            PaymentMethod = paymentMethod,
             Items = items.Select(static item => new CreateOrderItemServiceModel
             {
                 ListingId = item.ListingId,
@@ -93,10 +103,18 @@ internal static class MarketplaceTestData
         string? buyerId,
         decimal totalAmount,
         string currency,
+        OrderPaymentMethod paymentMethod,
         OrderStatus status,
         PaymentStatus paymentStatus,
         DateTime reservationExpiresOnUtc)
-        => new()
+    {
+        var platformFeePercent = 10m;
+        var platformFeeAmount = Math.Round(
+            totalAmount * platformFeePercent / 100m,
+            2,
+            MidpointRounding.AwayFromZero);
+
+        return new()
         {
             BuyerId = buyerId,
             CustomerFirstName = "Jane",
@@ -109,9 +127,42 @@ internal static class MarketplaceTestData
             PostalCode = "02110",
             TotalAmount = totalAmount,
             Currency = currency,
+            PaymentMethod = paymentMethod,
             Status = status,
             PaymentStatus = paymentStatus,
+            SettlementStatus = SettlementStatus.Pending,
+            PlatformFeePercent = platformFeePercent,
+            PlatformFeeAmount = platformFeeAmount,
+            SellerNetAmount = totalAmount - platformFeeAmount,
             ReservationExpiresOnUtc = reservationExpiresOnUtc,
+        };
+    }
+
+    public static SellerProfileDbModel CreateSellerProfile(
+        string userId,
+        bool isActive = true,
+        bool supportsOnlinePayment = true,
+        bool supportsCashOnDelivery = true)
+        => new()
+        {
+            UserId = userId,
+            DisplayName = $"Seller {userId}",
+            PhoneNumber = "+12025550100",
+            IsActive = isActive,
+            SupportsOnlinePayment = supportsOnlinePayment,
+            SupportsCashOnDelivery = supportsCashOnDelivery,
+        };
+
+    public static UserDbModel CreateUser(
+        string userId,
+        string email)
+        => new()
+        {
+            Id = userId,
+            UserName = userId,
+            NormalizedUserName = userId.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
         };
 
     public static string CreateMockWebhookPayload(

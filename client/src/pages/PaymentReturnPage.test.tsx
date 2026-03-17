@@ -70,9 +70,7 @@ describe('PaymentReturnPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Retry payment' }));
 
-    expect(checkoutService.startCheckoutForOrder).toHaveBeenCalledWith('order-101', false, {
-      provider: 'mock',
-    });
+    expect(checkoutService.startCheckoutForOrder).toHaveBeenCalledWith('order-101', false);
     expect(redirectTo).toHaveBeenCalledWith('/payments/mock/checkout?sessionId=retry-101');
   });
 

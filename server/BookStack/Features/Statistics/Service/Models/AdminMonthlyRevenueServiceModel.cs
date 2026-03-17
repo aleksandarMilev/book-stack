@@ -8,7 +8,15 @@ public class AdminMonthlyRevenueServiceModel
 
     public string Currency { get; init; } = default!;
 
-    public decimal Revenue { get; init; }
+    public decimal GrossRevenue { get; init; }
 
-    public int PaidOrders { get; init; }
+    public decimal PlatformFeeRevenue { get; init; }
+
+    public decimal SellerNetRevenue { get; init; }
+
+    public int Orders { get; init; }
+
+    public int PaidOnlineOrders { get; init; }
+
+    public int CodOrders { get; init; }
 }

@@ -82,6 +82,7 @@ export function PaymentReturnPage() {
   const [orderLoadError, setOrderLoadError] = useState<string | null>(null);
   const [retryError, setRetryError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [reloadCounter, setReloadCounter] = useState(0);
 
   useEffect(() => {
     if (queryOutcome === 'success' && orderId) {
@@ -127,7 +128,7 @@ export function PaymentReturnPage() {
     return () => {
       isActive = false;
     };
-  }, [capabilities.isAuthenticated, orderId, t]);
+  }, [capabilities.isAuthenticated, orderId, reloadCounter, t]);
 
   const effectiveOutcome = useMemo<PaymentReturnOutcome>(() => {
     if (order) {
@@ -138,6 +139,7 @@ export function PaymentReturnPage() {
   }, [order, queryOutcome]);
 
   const canRetryPayment = Boolean(orderId) && effectiveOutcome !== 'success';
+  const hasOrderReference = Boolean(orderId);
 
   const handleRetryPayment = async (): Promise<void> => {
     if (!orderId) {
@@ -148,9 +150,7 @@ export function PaymentReturnPage() {
     setIsRetrying(true);
 
     try {
-      const checkoutResult = await checkoutService.startCheckoutForOrder(orderId, capabilities.isAuthenticated, {
-        provider: 'mock',
-      });
+      const checkoutResult = await checkoutService.startCheckoutForOrder(orderId, capabilities.isAuthenticated);
       redirectTo(checkoutResult.checkoutUrl);
     } catch (error: unknown) {
       setRetryError(getApiErrorMessage(error, t('pages.paymentReturn.retryError')));
@@ -170,9 +170,7 @@ export function PaymentReturnPage() {
         <h1>{t(statusTitleKey)}</h1>
         <p>{t(statusDescriptionKey)}</p>
 
-        {isLoadingOrder ? (
-          <LoadingState title={t('pages.paymentReturn.loadingOrderTitle')} />
-        ) : null}
+        {isLoadingOrder ? <LoadingState title={t('pages.paymentReturn.loadingOrderTitle')} /> : null}
 
         {!isLoadingOrder && order ? (
           <div className="payment-return-order-summary">
@@ -192,8 +190,25 @@ export function PaymentReturnPage() {
           </div>
         ) : null}
 
-        {orderLoadError ? <p className="auth-error">{orderLoadError}</p> : null}
+        {orderLoadError ? (
+          <>
+            <p className="auth-error">{orderLoadError}</p>
+            <Button
+              onClick={() => {
+                setReloadCounter((previousCounter) => previousCounter + 1);
+              }}
+              variant="secondary"
+            >
+              {t('common.actions.retry')}
+            </Button>
+          </>
+        ) : null}
+
         {retryError ? <p className="auth-error">{retryError}</p> : null}
+        {!hasOrderReference ? <p className="payment-return-note">{t('pages.paymentReturn.noOrderHint')}</p> : null}
+        {!capabilities.isAuthenticated && hasOrderReference ? (
+          <p className="payment-return-note">{t('pages.paymentReturn.guestOrderHint')}</p>
+        ) : null}
 
         <div className="payment-return-actions">
           {canRetryPayment ? (

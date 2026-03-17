@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
 import { PriceDisplay } from '@/components/pricing/PriceDisplay';
-import { Button, Card, Container, Input } from '@/components/ui';
+import { Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
 import { listingsApi } from '@/features/marketplace/api/listings.api';
 import { getCheckoutRoute, ROUTES } from '@/routes/paths';
 import type { MarketplaceListing } from '@/types/marketplace.types';
@@ -17,6 +17,7 @@ export function ListingDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [reloadCounter, setReloadCounter] = useState(0);
 
   useEffect(() => {
     if (!listingId) {
@@ -45,6 +46,7 @@ export function ListingDetailsPage() {
           return;
         }
 
+        setListing(null);
         setErrorMessage(getApiErrorMessage(error, t('pages.listingDetails.error')));
       } finally {
         if (isActive) {
@@ -58,28 +60,38 @@ export function ListingDetailsPage() {
     return () => {
       isActive = false;
     };
-  }, [listingId, t]);
+  }, [listingId, reloadCounter, t]);
 
   if (isLoading) {
     return (
-      <Container className="placeholder-page">
-        <Card className="placeholder-page-card" elevated>
-          <p>{t('pages.listingDetails.loading')}</p>
-        </Card>
+      <Container className="listing-details-page">
+        <LoadingState description={t('pages.listingDetails.loadingDescription')} title={t('pages.listingDetails.loadingTitle')} />
       </Container>
     );
   }
 
   if (errorMessage || !listing) {
     return (
-      <Container className="placeholder-page">
-        <Card className="placeholder-page-card" elevated>
-          <h1>{t('pages.listingDetails.title')}</h1>
-          <p>{errorMessage ?? t('pages.listingDetails.notFound')}</p>
-          <Link to={ROUTES.marketplace}>
-            <Button>{t('common.actions.browseMarketplace')}</Button>
-          </Link>
-        </Card>
+      <Container className="listing-details-page">
+        <EmptyState
+          action={
+            <div className="listing-details-error-actions">
+              <Button
+                onClick={() => {
+                  setReloadCounter((previousCounter) => previousCounter + 1);
+                }}
+                variant="secondary"
+              >
+                {t('common.actions.retry')}
+              </Button>
+              <Link to={ROUTES.marketplace}>
+                <Button>{t('common.actions.browseMarketplace')}</Button>
+              </Link>
+            </div>
+          }
+          description={errorMessage ?? t('pages.listingDetails.notFound')}
+          title={t('pages.listingDetails.errorTitle')}
+        />
       </Container>
     );
   }
