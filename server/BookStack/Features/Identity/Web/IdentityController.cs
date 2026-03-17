@@ -14,6 +14,7 @@ public class IdentityController(IIdentityService service) : ApiController
 {
     [HttpPost(RegisterRoute)]
     public async Task<ActionResult<JwtTokenServiceModel>> Register(
+        [FromForm]
         RegisterWebModel webModel,
         CancellationToken cancellationToken = default)
     {

@@ -7,6 +7,7 @@ import { Button, Container } from '@/components/ui';
 import { authService } from '@/features/auth/services/auth.service';
 import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
 import { useDisclosure } from '@/hooks/useDisclosure';
+import { hasActiveSellerCapability } from '@/routes/access';
 import { ROUTES } from '@/routes/paths';
 import { useAuthCapabilities, useAuthStore } from '@/store/auth.store';
 import { classNames } from '@/utils/classNames';
@@ -90,9 +91,17 @@ export function AppHeader() {
   const { close, isOpen, toggle } = useDisclosure();
   const location = useLocation();
   const sellerProfile = useSellerProfileStore((state) => state.profile);
+  const sellerProfileLoadState = useSellerProfileStore((state) => state.loadState);
+  const sellerProfileLoadedForUserId = useSellerProfileStore((state) => state.loadedForUserId);
   const isAuthenticated = capabilities.isAuthenticated && Boolean(session);
   const mobileDrawerId = 'app-mobile-navigation';
-  const hasActiveSellerProfile = Boolean(sellerProfile?.isActive);
+  const hasActiveSellerProfile = hasActiveSellerCapability({
+    isAuthenticated,
+    currentUserId: session?.user.id ?? null,
+    sellerProfileIsActive: Boolean(sellerProfile?.isActive),
+    sellerProfileLoadState,
+    sellerProfileLoadedForUserId,
+  });
 
   useEffect(() => {
     close();

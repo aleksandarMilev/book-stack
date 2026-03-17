@@ -2,6 +2,8 @@
 
 using Common;
 using Data.Models;
+using Features.Books.Service.Models;
+using Features.SellerProfiles.Data.Models;
 using Service.Models;
 using Web.Models;
 
@@ -10,8 +12,9 @@ using static Common.Constants;
 public static class BookListingMapping
 {
     public static IQueryable<BookListingServiceModel> ToServiceModels(
-        this IQueryable<BookListingDbModel> dbModels)
-        => dbModels.Select(static l => new BookListingServiceModel
+        this IQueryable<BookListingDbModel> dbModels,
+        IQueryable<SellerProfileDbModel> sellerProfiles)
+        => dbModels.Select(l => new BookListingServiceModel
         {
             Id = l.Id,
             BookId = l.BookId,
@@ -24,6 +27,14 @@ public static class BookListingMapping
                 : null,
             BookIsbn = l.Book.Isbn,
             CreatorId = l.CreatorId,
+            SupportsOnlinePayment = sellerProfiles
+                .Where(p => p.UserId == l.CreatorId && p.IsActive)
+                .Select(static p => p.SupportsOnlinePayment)
+                .FirstOrDefault(),
+            SupportsCashOnDelivery = sellerProfiles
+                .Where(p => p.UserId == l.CreatorId && p.IsActive)
+                .Select(static p => p.SupportsCashOnDelivery)
+                .FirstOrDefault(),
             Price = l.Price,
             Currency = l.Currency,
             Condition = l.Condition,
@@ -97,6 +108,44 @@ public static class BookListingMapping
             Description = webModel.Description,
             Image = webModel.Image,
             RemoveImage = webModel.RemoveImage,
+        };
+
+    public static CreateBookListingWithBookServiceModel ToCreateServiceModel(
+        this CreateBookListingWithBookWebModel webModel)
+        => new()
+        {
+            Book = new CreateBookServiceModel
+            {
+                Title = webModel.Title,
+                Author = webModel.Author,
+                Genre = webModel.Genre,
+                Description = webModel.BookDescription,
+                Publisher = webModel.Publisher,
+                PublishedOn = webModel.PublishedOn,
+                Isbn = webModel.Isbn,
+            },
+            Price = webModel.Price,
+            Currency = webModel.Currency,
+            Condition = webModel.Condition,
+            Quantity = webModel.Quantity,
+            Description = webModel.Description,
+            Image = webModel.Image,
+            RemoveImage = false,
+        };
+
+    public static CreateBookListingServiceModel ToListingCreateServiceModel(
+        this CreateBookListingWithBookServiceModel model,
+        Guid bookId)
+        => new()
+        {
+            BookId = bookId,
+            Price = model.Price,
+            Currency = model.Currency,
+            Condition = model.Condition,
+            Quantity = model.Quantity,
+            Description = model.Description,
+            Image = model.Image,
+            RemoveImage = model.RemoveImage,
         };
 
     public static BookListingFilterServiceModel ToFilterServiceModel(

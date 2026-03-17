@@ -50,8 +50,7 @@ public static class AppBuilderExtensions
             app.UseEndpoints(static endpoints =>
             {
                 endpoints
-                    .MapControllers()
-                    .RequireRateLimiting("api");
+                    .MapControllers();
 
                 endpoints.MapHealthChecks("/health");
             });

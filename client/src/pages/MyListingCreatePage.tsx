@@ -182,36 +182,34 @@ export function MyListingCreatePage() {
     setIsSubmitting(true);
 
     try {
-      let canonicalBookId = selectedBookId;
-
-      if (createMode === 'missingBook') {
-        const createBookPayload = {
-          title: bookFormState.title,
-          author: bookFormState.author,
-          genre: bookFormState.genre,
-          ...(bookFormState.description.trim() ? { description: bookFormState.description } : {}),
-          ...(bookFormState.publisher.trim() ? { publisher: bookFormState.publisher } : {}),
-          ...(bookFormState.publishedOn ? { publishedOn: bookFormState.publishedOn } : {}),
-          ...(bookFormState.isbn.trim() ? { isbn: bookFormState.isbn } : {}),
-        };
-
-        canonicalBookId = await booksApi.createBook(createBookPayload);
-      }
-
-      if (!canonicalBookId) {
-        setFormError(t('pages.myListingCreate.validation.bookRequired'));
-        return;
-      }
-
-      const listingId = await listingsApi.createListing({
-        bookId: canonicalBookId,
-        price: parsePositiveNumber(listingFormState.price),
-        currency: DEFAULT_CURRENCY,
-        condition: listingFormState.condition,
-        quantity: parsePositiveInteger(listingFormState.quantity),
-        description: listingFormState.description,
-        image: listingFormState.image,
-      });
+      const listingId =
+        createMode === 'missingBook'
+          ? await listingsApi.createListingWithBook({
+              title: bookFormState.title,
+              author: bookFormState.author,
+              genre: bookFormState.genre,
+              ...(bookFormState.description.trim()
+                ? { bookDescription: bookFormState.description }
+                : {}),
+              ...(bookFormState.publisher.trim() ? { publisher: bookFormState.publisher } : {}),
+              ...(bookFormState.publishedOn ? { publishedOn: bookFormState.publishedOn } : {}),
+              ...(bookFormState.isbn.trim() ? { isbn: bookFormState.isbn } : {}),
+              price: parsePositiveNumber(listingFormState.price),
+              currency: DEFAULT_CURRENCY,
+              condition: listingFormState.condition,
+              quantity: parsePositiveInteger(listingFormState.quantity),
+              description: listingFormState.description,
+              image: listingFormState.image,
+            })
+          : await listingsApi.createListing({
+              bookId: selectedBookId!,
+              price: parsePositiveNumber(listingFormState.price),
+              currency: DEFAULT_CURRENCY,
+              condition: listingFormState.condition,
+              quantity: parsePositiveInteger(listingFormState.quantity),
+              description: listingFormState.description,
+              image: listingFormState.image,
+            });
 
       setCreatedListingId(listingId);
       setFormSuccess(t('pages.myListingCreate.submitSuccess'));

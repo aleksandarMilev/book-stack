@@ -306,6 +306,17 @@ public class PaymentWebhookIdempotencyTests
             },
             CancellationToken.None);
 
+        var firstPayment = await data
+            .Payments
+            .SingleAsync(
+                p => p.Id == firstCheckout.Data!.PaymentId,
+                CancellationToken.None);
+
+        firstPayment.Status = PaymentRecordStatus.Failed;
+        firstPayment.LastEventOnUtc = dateTimeProvider.UtcNow;
+
+        await data.SaveChangesAsync(CancellationToken.None);
+
         var secondCheckout = await paymentService.CreateCheckoutSession(
             orderCreateResult.Data.OrderId,
             model: new()
@@ -314,23 +325,11 @@ public class PaymentWebhookIdempotencyTests
             },
             CancellationToken.None);
 
-        var firstPayload = MarketplaceTestData.CreateMockWebhookPayload(
-            eventId: "evt-succeeded-1",
-            paymentSessionId: firstCheckout.Data!.ProviderPaymentId,
-            status: "succeeded",
-            occurredOnUtc: dateTimeProvider.UtcNow.AddMinutes(1));
-
         var secondPayload = MarketplaceTestData.CreateMockWebhookPayload(
             eventId: "evt-refunded-1",
             paymentSessionId: secondCheckout.Data!.ProviderPaymentId,
-            status: "refunded",
+            status: "succeeded",
             occurredOnUtc: dateTimeProvider.UtcNow.AddMinutes(2));
-
-        await paymentService.ProcessWebhook(
-            provider: "mock",
-            firstPayload,
-            headers: new HeaderDictionary(),
-            CancellationToken.None);
 
         await paymentService.ProcessWebhook(
             provider: "mock",

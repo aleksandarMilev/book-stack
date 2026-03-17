@@ -33,6 +33,7 @@ public class OrderService(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IPageClamper _pageClamper = pageClamper;
     private readonly ILogger<OrderService> _logger = logger;
+    private const string OfficialCurrency = "EUR";
 
     public async Task<ResultWith<CreateOrderResultServiceModel>> Create(
         CreateOrderServiceModel model,
@@ -96,12 +97,18 @@ public class OrderService(
             return "One or more selected listings are out of stock.";
         }
 
-        var firstCurrency = listings[0].Currency;
-        var differentCurrencyExists = listings.Any(l => l.Currency != firstCurrency);
+        var firstCurrency = NormalizeCurrency(listings[0].Currency);
+        var differentCurrencyExists = listings.Any(
+            l => NormalizeCurrency(l.Currency) != firstCurrency);
 
         if (differentCurrencyExists)
         {
             return "All ordered listings must have the same currency.";
+        }
+
+        if (!IsOfficialCurrency(firstCurrency))
+        {
+            return $"Only {OfficialCurrency} is supported as official order currency.";
         }
 
         var sellerIds = listings
@@ -218,7 +225,7 @@ public class OrderService(
                 UnitPrice = listing.Price,
                 Quantity = item.Quantity,
                 TotalPrice = lineTotal,
-                Currency = listing.Currency,
+                Currency = firstCurrency,
                 Condition = listing.Condition,
                 ListingDescription = listing.Description,
                 ListingImagePath = listing.ImagePath,
@@ -817,6 +824,15 @@ public class OrderService(
 
     private static decimal RoundMoney(decimal value)
         => Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    private static string NormalizeCurrency(string? currency)
+        => currency?.Trim().ToUpperInvariant() ?? string.Empty;
+
+    private static bool IsOfficialCurrency(string? currency)
+        => string.Equals(
+            NormalizeCurrency(currency),
+            OfficialCurrency,
+            StringComparison.Ordinal);
 
     private static bool CanTransitionSettlementStatus(
         OrderDbModel order,

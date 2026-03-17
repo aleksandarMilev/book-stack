@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
 import { RouteAccessGuard } from '@/routes/guards/RouteAccessGuard';
 import { useAuthStore } from '@/store/auth.store';
 import type { AuthSession, UserRole } from '@/types/auth.types';
@@ -22,10 +23,35 @@ const renderGuard = (level: 'authenticated' | 'seller' | 'admin') =>
         <Route path="/" element={<p>home-page</p>} />
         <Route path="/login" element={<p>login-page</p>} />
         <Route
+          path="/seller/profile"
+          element={
+            <RouteAccessGuard level="authenticated">
+              <p>seller-profile-page</p>
+            </RouteAccessGuard>
+          }
+        />
+        <Route
           path="/protected"
           element={
             <RouteAccessGuard level={level}>
               <p>protected-page</p>
+            </RouteAccessGuard>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderAuthenticatedSellerProfileRoute = () =>
+  render(
+    <MemoryRouter initialEntries={['/seller/profile']}>
+      <Routes>
+        <Route path="/login" element={<p>login-page</p>} />
+        <Route
+          path="/seller/profile"
+          element={
+            <RouteAccessGuard level="authenticated">
+              <p>seller-profile-page</p>
             </RouteAccessGuard>
           }
         />
@@ -49,6 +75,11 @@ function LoginStateProbe() {
 describe('RouteAccessGuard', () => {
   afterEach(() => {
     useAuthStore.setState({ session: null });
+    useSellerProfileStore.setState({
+      profile: null,
+      loadState: 'idle',
+      loadedForUserId: null,
+    });
   });
 
   it('redirects unauthenticated users to login for authenticated routes', () => {
@@ -87,23 +118,92 @@ describe('RouteAccessGuard', () => {
 
     renderGuard('seller');
 
-    expect(screen.getByText('home-page')).toBeInTheDocument();
+    expect(screen.getByText('login-page')).toBeInTheDocument();
   });
 
-  it('allows authenticated buyer users into seller routes for onboarding flows', () => {
+  it('redirects authenticated non-seller users to seller profile onboarding route', () => {
     useAuthStore.setState({ session: createSession('buyer') });
+    useSellerProfileStore.setState({
+      profile: null,
+      loadState: 'ready',
+      loadedForUserId: 'user-1',
+    });
+
+    renderGuard('seller');
+
+    expect(screen.getByText('seller-profile-page')).toBeInTheDocument();
+  });
+
+  it('allows authenticated non-seller users to access seller profile route without loop', () => {
+    useAuthStore.setState({ session: createSession('buyer') });
+    useSellerProfileStore.setState({
+      profile: null,
+      loadState: 'ready',
+      loadedForUserId: 'user-1',
+    });
+
+    renderAuthenticatedSellerProfileRoute();
+
+    expect(screen.getByText('seller-profile-page')).toBeInTheDocument();
+  });
+
+  it('allows active seller users into seller routes', () => {
+    useAuthStore.setState({ session: createSession('seller') });
+    useSellerProfileStore.setState({
+      profile: {
+        userId: 'user-1',
+        displayName: 'Seller User',
+        phoneNumber: '+359111111111',
+        supportsOnlinePayment: true,
+        supportsCashOnDelivery: true,
+        isActive: true,
+        createdOn: '2026-01-01T10:00:00Z',
+        modifiedOn: null,
+      },
+      loadState: 'ready',
+      loadedForUserId: 'user-1',
+    });
 
     renderGuard('seller');
 
     expect(screen.getByText('protected-page')).toBeInTheDocument();
   });
 
-  it('allows seller users into seller routes', () => {
+  it('blocks inactive sellers from seller routes', () => {
     useAuthStore.setState({ session: createSession('seller') });
+    useSellerProfileStore.setState({
+      profile: {
+        userId: 'user-1',
+        displayName: 'Inactive Seller',
+        phoneNumber: '+359111111111',
+        supportsOnlinePayment: true,
+        supportsCashOnDelivery: true,
+        isActive: false,
+        createdOn: '2026-01-01T10:00:00Z',
+        modifiedOn: null,
+      },
+      loadState: 'ready',
+      loadedForUserId: 'user-1',
+    });
 
     renderGuard('seller');
 
-    expect(screen.getByText('protected-page')).toBeInTheDocument();
+    expect(screen.getByText('seller-profile-page')).toBeInTheDocument();
+  });
+
+  it('shows safe loading state while seller capability is resolving', () => {
+    useAuthStore.setState({ session: createSession('seller') });
+    useSellerProfileStore.setState({
+      profile: null,
+      loadState: 'loading',
+      loadedForUserId: 'user-1',
+    });
+
+    renderGuard('seller');
+
+    expect(screen.getByText('Checking seller access')).toBeInTheDocument();
+    expect(screen.queryByText('seller-profile-page')).not.toBeInTheDocument();
+    expect(screen.queryByText('protected-page')).not.toBeInTheDocument();
   });
 
   it('allows admin users into admin routes', () => {

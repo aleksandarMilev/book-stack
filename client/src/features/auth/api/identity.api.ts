@@ -35,24 +35,17 @@ interface MessageResponse {
 
 const IDENTITY_BASE_PATH = '/Identity';
 
-const createRegisterPayload = (payload: RegisterRequest): FormData | Omit<RegisterRequest, 'image'> => {
-  if (!payload.image) {
-    return {
-      username: payload.username,
-      email: payload.email,
-      password: payload.password,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-    };
-  }
-
+const createRegisterPayload = (payload: RegisterRequest): FormData => {
   const formData = new FormData();
   formData.append('username', payload.username);
   formData.append('email', payload.email);
   formData.append('password', payload.password);
   formData.append('firstName', payload.firstName);
   formData.append('lastName', payload.lastName);
-  formData.append('image', payload.image);
+
+  if (payload.image) {
+    formData.append('image', payload.image);
+  }
 
   return formData;
 };
@@ -67,7 +60,7 @@ export const identityApi = {
   async register(payload: RegisterRequest): Promise<JwtTokenResponse> {
     const requestPayload = createRegisterPayload(payload);
     const response = await httpClient.post<JwtTokenResponse>(`${IDENTITY_BASE_PATH}/register/`, requestPayload, {
-      ...(requestPayload instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}),
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
 
     return response.data;

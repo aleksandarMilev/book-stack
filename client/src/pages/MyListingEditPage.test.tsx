@@ -55,6 +55,8 @@ const listingResponse = {
   author: 'Author One',
   genre: 'History',
   creatorId: 'seller-1',
+  supportsOnlinePayment: true,
+  supportsCashOnDelivery: true,
   condition: 'good' as const,
   quantity: 2,
   description: 'A ready listing description.',

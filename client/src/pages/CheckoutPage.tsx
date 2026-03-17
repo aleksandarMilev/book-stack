@@ -31,7 +31,7 @@ interface CheckoutFormState {
 interface SupportedPaymentMethods {
   online: boolean;
   cashOnDelivery: boolean;
-  source: 'listing' | 'fallback';
+  hasValidData: boolean;
 }
 
 const parseQuantity = (value: string | null): number => {
@@ -77,25 +77,26 @@ const resolveSupportedPaymentMethods = (listing: MarketplaceListing | null): Sup
     return {
       online: false,
       cashOnDelivery: false,
-      source: 'fallback',
+      hasValidData: false,
     };
   }
 
   const hasExplicitSupportData =
-    typeof listing.supportsOnlinePayment === 'boolean' || typeof listing.supportsCashOnDelivery === 'boolean';
+    typeof listing.supportsOnlinePayment === 'boolean' &&
+    typeof listing.supportsCashOnDelivery === 'boolean';
 
   if (!hasExplicitSupportData) {
     return {
-      online: true,
-      cashOnDelivery: true,
-      source: 'fallback',
+      online: false,
+      cashOnDelivery: false,
+      hasValidData: false,
     };
   }
 
   return {
     online: Boolean(listing.supportsOnlinePayment),
     cashOnDelivery: Boolean(listing.supportsCashOnDelivery),
-    source: 'listing',
+    hasValidData: true,
   };
 };
 
@@ -256,6 +257,7 @@ export function CheckoutPage() {
 
   const canPurchase = Boolean(listing && listing.isApproved && listing.quantity > 0);
   const hasSupportedPaymentMethods = availablePaymentMethods.length > 0;
+  const hasInvalidPaymentSupportData = Boolean(listing) && !supportedPaymentMethods.hasValidData;
   const isInvalidState = !isLoadingListing && (!listing || !canPurchase);
 
   const validateForm = (): boolean => {
@@ -462,8 +464,8 @@ export function CheckoutPage() {
               <h3>{t('pages.checkout.paymentMethodTitle')}</h3>
               <p className="checkout-summary-meta">{t('pages.checkout.paymentMethodSubtitle')}</p>
 
-              {supportedPaymentMethods.source === 'fallback' ? (
-                <p className="checkout-summary-meta">{t('pages.checkout.paymentMethodFallbackNote')}</p>
+              {hasInvalidPaymentSupportData ? (
+                <p className="auth-error">{t('pages.checkout.paymentMethodConfigurationError')}</p>
               ) : null}
 
               {!hasSupportedPaymentMethods ? (

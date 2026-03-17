@@ -50,7 +50,7 @@ public static class SellerProfileMapping
                 : serviceModel.PhoneNumber.Trim(),
             SupportsOnlinePayment = serviceModel.SupportsOnlinePayment,
             SupportsCashOnDelivery = serviceModel.SupportsCashOnDelivery,
-            IsActive = serviceModel.IsActive,
+            IsActive = true,
         };
 
     public static void UpdateDbModel(
@@ -63,7 +63,6 @@ public static class SellerProfileMapping
             : serviceModel.PhoneNumber.Trim();
         dbModel.SupportsOnlinePayment = serviceModel.SupportsOnlinePayment;
         dbModel.SupportsCashOnDelivery = serviceModel.SupportsCashOnDelivery;
-        dbModel.IsActive = serviceModel.IsActive;
     }
 
     public static UpsertSellerProfileServiceModel ToUpsertServiceModel(
@@ -74,6 +73,5 @@ public static class SellerProfileMapping
             PhoneNumber = webModel.PhoneNumber,
             SupportsOnlinePayment = webModel.SupportsOnlinePayment,
             SupportsCashOnDelivery = webModel.SupportsCashOnDelivery,
-            IsActive = webModel.IsActive,
         };
 }

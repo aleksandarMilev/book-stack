@@ -27,10 +27,12 @@ public class OrdersController(IOrderService service) : AdminApiController
     }
 
     [HttpGet(Common.Constants.ApiRoutes.Id)]
-    public async Task<ActionResult<OrderServiceModel>> Details(
+    public async Task<ActionResult<OrderServiceModel?>> Details(
         Guid id,
         CancellationToken cancellationToken = default)
-        => this.Ok(await this._service.Details(id, cancellationToken));
+        => await this._service.Details(
+            id,
+            cancellationToken);
 
     [HttpPut(ApiRoutes.Status)]
     public async Task<ActionResult> ChangeStatus(

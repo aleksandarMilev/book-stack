@@ -71,6 +71,21 @@ public class BookListingsController(IBookListingService service) : ApiController
             static id => id);
     }
 
+    [HttpPost(ApiRoutes.CreateWithBook)]
+    public async Task<ActionResult<Guid>> CreateWithBook(
+        [FromForm] CreateBookListingWithBookWebModel webModel,
+        CancellationToken cancellationToken = default)
+    {
+        var serviceModel = webModel.ToCreateServiceModel();
+        var result = await this._service.CreateWithBook(
+            serviceModel,
+            cancellationToken);
+
+        return this.OkOrBadRequest(
+            result,
+            static id => id);
+    }
+
     [HttpPut(Common.Constants.ApiRoutes.Id)]
     public async Task<ActionResult> Edit(
         Guid id,

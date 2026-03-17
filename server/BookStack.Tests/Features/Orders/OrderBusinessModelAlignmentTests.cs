@@ -249,11 +249,55 @@ public class OrderBusinessModelAlignmentTests
         Assert.Equal(53.97m, order.SellerNetAmount);
     }
 
+    [Fact]
+    public async Task Create_FailsWhenListingCurrencyIsNotEur()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService();
+
+        var dateTimeProvider = new TestDateTimeProvider(
+            new DateTime(2026, 03, 15, 5, 0, 0, DateTimeKind.Utc));
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-non-eur",
+            title: "Non-EUR Order Book",
+            currency: "USD");
+
+        var createResult = await orderService.Create(
+            MarketplaceTestData.CreateOrderModelWithPaymentMethod(
+                OrderPaymentMethod.Online,
+                (listing.Id, 1)),
+            CancellationToken.None);
+
+        Assert.False(createResult.Succeeded);
+        Assert.Contains(
+            "EUR",
+            createResult.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private static async Task<BookListingDbModel> SeedApprovedListing(
         BookStackDbContext data,
         string sellerId,
         string title,
         decimal price = 20m,
+        string currency = "EUR",
         bool supportsOnlinePayment = true,
         bool supportsCashOnDelivery = true)
     {
@@ -275,6 +319,7 @@ public class OrderBusinessModelAlignmentTests
             bookId: book.Id,
             creatorId: sellerId,
             price: price,
+            currency: currency,
             quantity: 20);
 
         data.BookListings.Add(listing);

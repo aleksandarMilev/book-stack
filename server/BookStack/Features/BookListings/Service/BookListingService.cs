@@ -1,6 +1,8 @@
 ﻿namespace BookStack.Features.BookListings.Service;
 
 using Books.Data.Models;
+using Books.Service.Models;
+using Books.Shared;
 using BookStack.Data;
 using Common;
 using Data.Models;
@@ -12,6 +14,7 @@ using Infrastructure.Services.Result;
 using Infrastructure.Services.StringSanitizer;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using SellerProfiles.Data.Models;
 using SellerProfiles.Service;
 using Shared;
 
@@ -36,6 +39,7 @@ public class BookListingService(
     private readonly ISellerProfileService _sellerProfileService = sellerProfileService;
     private readonly IStringSanitizerService _stringSanitizer = stringSanitizer;
     private readonly ILogger<BookListingService> _logger = logger;
+    private const string OfficialCurrency = "EUR";
 
     public async Task<PaginatedModel<BookListingServiceModel>> All(
         BookListingFilterServiceModel filter,
@@ -64,7 +68,7 @@ public class BookListingService(
         var rawItems = await query
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
-            .ToServiceModels()
+            .ToServiceModels(this.AllSellerProfilesAsNoTracking())
             .ToListAsync(cancellationToken);
 
         var items = rawItems
@@ -135,7 +139,7 @@ public class BookListingService(
         var items = await query
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
-            .ToServiceModels()
+            .ToServiceModels(this.AllSellerProfilesAsNoTracking())
             .ToListAsync(cancellationToken);
 
         return new PaginatedModel<BookListingServiceModel>(
@@ -164,7 +168,7 @@ public class BookListingService(
         }
 
         var model = await query
-            .ToServiceModels()
+            .ToServiceModels(this.AllSellerProfilesAsNoTracking())
             .SingleOrDefaultAsync(cancellationToken);
 
         if (model is null)
@@ -222,6 +226,11 @@ public class BookListingService(
             return "Book listing can only be created for an approved book.";
         }
 
+        if (!IsOfficialCurrency(model.Currency))
+        {
+            return $"Only {OfficialCurrency} is supported as official listing currency.";
+        }
+
         var dbModel = model.ToDbModel(creatorId);
 
         await this._imageWriter.Write(
@@ -241,6 +250,79 @@ public class BookListingService(
             creatorId);
 
         return ResultWith<Guid>.Success(dbModel.Id);
+    }
+
+    public async Task<ResultWith<Guid>> CreateWithBook(
+        CreateBookListingWithBookServiceModel model,
+        CancellationToken cancellationToken = default)
+    {
+        var creatorId = this._userService.GetId();
+        if (string.IsNullOrWhiteSpace(creatorId))
+        {
+            return ErrorMessages.CurrentUserNotAuthenticated;
+        }
+
+        if (!this._userService.IsAdmin())
+        {
+            var hasActiveSellerProfile = await this._sellerProfileService.HasActiveProfile(
+                creatorId,
+                cancellationToken);
+
+            if (!hasActiveSellerProfile)
+            {
+                return "An active seller profile is required to create a listing.";
+            }
+        }
+
+        await using var transaction = await this._data
+            .Database
+            .BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var createdBookResult = await this.CreatePendingBook(
+                model.Book,
+                creatorId,
+                cancellationToken);
+
+            if (!createdBookResult.Succeeded)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return createdBookResult.ErrorMessage!;
+            }
+
+            var listingCreateModel = model.ToListingCreateServiceModel(createdBookResult.Data);
+            var createdListingResult = await this.Create(
+                listingCreateModel,
+                cancellationToken);
+
+            if (!createdListingResult.Succeeded)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return createdListingResult.ErrorMessage!;
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            this._logger.LogInformation(
+                "Book and listing created atomically. BookId={BookId}, ListingId={ListingId}, CreatorId={CreatorId}",
+                createdBookResult.Data,
+                createdListingResult.Data,
+                creatorId);
+
+            return createdListingResult;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+
+            this._logger.LogError(
+                ex,
+                "Atomic book/listing creation failed and was rolled back. CreatorId={CreatorId}",
+                creatorId);
+
+            return "Combined book and listing creation failed.";
+        }
     }
 
     public async Task<Result> Edit(
@@ -304,6 +386,11 @@ public class BookListingService(
         if (!book.IsApproved && !currentUserIsAdmin && !currentUserIsBookCreator)
         {
             return "Book listing can only be assigned to an approved book.";
+        }
+
+        if (!IsOfficialCurrency(model.Currency))
+        {
+            return $"Only {OfficialCurrency} is supported as official listing currency.";
         }
 
         var oldImagePath = dbModel.ImagePath;
@@ -543,6 +630,11 @@ public class BookListingService(
             .BookListings
             .AsNoTracking();
 
+    private IQueryable<SellerProfileDbModel> AllSellerProfilesAsNoTracking()
+        => this._data
+            .SellerProfiles
+            .AsNoTracking();
+
     private static IQueryable<BookListingDbModel> ApplyFilter(
         IQueryable<BookListingDbModel> query,
         BookListingFilterServiceModel filter,
@@ -683,8 +775,65 @@ public class BookListingService(
                 .OrderByDescending(static l => l.CreatedOn),
         };
 
+    private async Task<ResultWith<Guid>> CreatePendingBook(
+        CreateBookServiceModel model,
+        string creatorId,
+        CancellationToken cancellationToken)
+    {
+        var title = model.Title.Trim();
+        var author = model.Author.Trim();
+        var isbn = string.IsNullOrWhiteSpace(model.Isbn)
+            ? null
+            : model.Isbn.Trim();
+        var normalizedTitle = BookMapping.NormalizeIdentityText(model.Title);
+        var normalizedAuthor = BookMapping.NormalizeIdentityText(model.Author);
+        var normalizedIsbn = BookMapping.NormalizeIdentityIsbn(model.Isbn);
+
+        var existingBooksQuery = this._data
+            .Books
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(normalizedIsbn))
+        {
+            var isbnExists = await existingBooksQuery
+                .AnyAsync(
+                    b => b.NormalizedIsbn == normalizedIsbn,
+                    cancellationToken);
+
+            if (isbnExists)
+            {
+                return $"Book with ISBN '{isbn}' already exists.";
+            }
+        }
+        else
+        {
+            var titleAndAuthorExists = await existingBooksQuery
+                .AnyAsync(
+                    b => b.NormalizedTitle == normalizedTitle && b.NormalizedAuthor == normalizedAuthor,
+                    cancellationToken);
+
+            if (titleAndAuthorExists)
+            {
+                return $"Book '{title}' by '{author}' already exists.";
+            }
+        }
+
+        var book = model.ToDbModel(creatorId);
+
+        this._data.Books.Add(book);
+        await this._data.SaveChangesAsync(cancellationToken);
+
+        return ResultWith<Guid>.Success(book.Id);
+    }
+
     private static bool DoesNotExistOrDeleted(BookListingDbModel? listing)
         => listing is null || listing.IsDeleted;
+
+    private static bool IsOfficialCurrency(string? currency)
+        => string.Equals(
+            currency?.Trim(),
+            OfficialCurrency,
+            StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeSearchFilter(string filter)
         => filter.Trim();
@@ -717,6 +866,8 @@ public class BookListingService(
             BookPublishedOn = model.BookPublishedOn,
             BookIsbn = model.BookIsbn,
             CreatorId = string.Empty,
+            SupportsOnlinePayment = model.SupportsOnlinePayment,
+            SupportsCashOnDelivery = model.SupportsCashOnDelivery,
             Price = model.Price,
             Currency = model.Currency,
             Condition = model.Condition,

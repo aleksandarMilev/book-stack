@@ -23,6 +23,10 @@ public interface IBookListingService : IScopedService
         CreateBookListingServiceModel model,
         CancellationToken cancellationToken = default);
 
+    Task<ResultWith<Guid>> CreateWithBook(
+        CreateBookListingWithBookServiceModel model,
+        CancellationToken cancellationToken = default);
+
     Task<Result> Edit(
         Guid id,
         CreateBookListingServiceModel model,

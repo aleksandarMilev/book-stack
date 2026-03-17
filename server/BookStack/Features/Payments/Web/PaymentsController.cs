@@ -64,10 +64,12 @@ public class PaymentsController(IPaymentService paymentService) : ApiController
             return this.Ok();
         }
 
-        return this.BadRequest(new
+        var error = new
         {
             errorMessage = result.ErrorMessage,
-        });
+        };
+
+        return this.BadRequest(error);
     }
 }
 

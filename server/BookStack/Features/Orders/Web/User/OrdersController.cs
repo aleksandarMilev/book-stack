@@ -61,17 +61,21 @@ public class OrdersController(IOrderService service) : ControllerBase
 
     [Authorize]
     [HttpGet(Common.Constants.ApiRoutes.Id)]
-    public async Task<ActionResult<OrderServiceModel>> Details(
+    public async Task<ActionResult<OrderServiceModel?>> Details(
         Guid id,
         CancellationToken cancellationToken = default)
-        => this.Ok(await this._service.Details(id, cancellationToken));
+        => await this._service.Details(
+            id,
+            cancellationToken);
 
     [Authorize]
     [HttpGet($"{ApiRoutes.Sold}{Common.Constants.ApiRoutes.Id}")]
-    public async Task<ActionResult<SellerOrderServiceModel>> SoldDetails(
+    public async Task<ActionResult<SellerOrderServiceModel?>> SoldDetails(
         Guid id,
         CancellationToken cancellationToken = default)
-        => this.Ok(await this._service.SoldDetails(id, cancellationToken));
+        => await this._service.SoldDetails(
+            id,
+            cancellationToken);
 
     [Authorize]
     [HttpPut(ApiRoutes.SoldConfirm)]

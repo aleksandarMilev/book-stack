@@ -24,6 +24,7 @@ public class PaymentService(
 {
     private const string UnauthorizedCheckoutMessage =
         "You are not authorized to initiate payment for this order.";
+    private const string OfficialCurrency = "EUR";
 
     private readonly BookStackDbContext _data = data;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -98,6 +99,11 @@ public class PaymentService(
             return "Checkout session can only be created for online payment orders.";
         }
 
+        if (!IsOfficialCurrency(order.Currency))
+        {
+            return $"Order currency must be {OfficialCurrency} for online payment checkout.";
+        }
+
         var isAlreadyFinalized = order!.PaymentStatus
             is PaymentStatus.Paid 
             or PaymentStatus.Refunded;
@@ -128,11 +134,25 @@ public class PaymentService(
             return "Order reservation has expired.";
         }
 
+        if (order.Status != OrderStatus.PendingPayment)
+        {
+            return "Order is no longer payable.";
+        }
+
+        var hasActivePendingAttempt = await HasActivePendingAttempt(
+            order.Id,
+            cancellationToken);
+
+        if (hasActivePendingAttempt)
+        {
+            return "An active pending payment attempt already exists for this order.";
+        }
+
         var providerRequest = new PaymentProviderCheckoutRequestServiceModel
         {
             OrderId = order.Id,
             Amount = order.TotalAmount,
-            Currency = order.Currency,
+            Currency = OfficialCurrency,
             Email = order.Email,
         };
 
@@ -152,7 +172,7 @@ public class PaymentService(
             Provider = providerName,
             ProviderPaymentId = providerSession.ProviderPaymentId,
             Amount = order.TotalAmount,
-            Currency = order.Currency,
+            Currency = OfficialCurrency,
             Status = PaymentRecordStatus.Pending,
             LastEventOnUtc = this._dateTimeProvider.UtcNow,
         };
@@ -344,6 +364,11 @@ public class PaymentService(
             return "Cash-on-delivery orders do not support online payment status updates.";
         }
 
+        if (!IsOfficialCurrency(order.Currency))
+        {
+            return $"Order currency must be {OfficialCurrency} for online payment operations.";
+        }
+
         if (paymentStatus is PaymentStatus.NotRequired or PaymentStatus.Expired)
         {
             return $"Payment status '{paymentStatus}' cannot be set manually.";
@@ -372,7 +397,7 @@ public class PaymentService(
             Provider = Shared.Constants.Providers.ManualAdmin,
             ProviderPaymentId = $"manual_{Guid.NewGuid():N}",
             Amount = order.TotalAmount,
-            Currency = order.Currency,
+            Currency = OfficialCurrency,
             Status = manualPaymentStatus,
             FailureReason = manualReason,
             LastProviderEventId = null,
@@ -848,6 +873,24 @@ public class PaymentService(
         => string.IsNullOrWhiteSpace(providerName)
             ? Shared.Constants.Providers.Mock
             : providerName.Trim().ToLowerInvariant();
+
+    private async Task<bool> HasActivePendingAttempt(
+        Guid orderId,
+        CancellationToken cancellationToken)
+        => await this._data
+            .Payments
+            .AsNoTracking()
+            .AnyAsync(
+                p => p.OrderId == orderId &&
+                     (p.Status == PaymentRecordStatus.Pending ||
+                      p.Status == PaymentRecordStatus.Processing),
+                cancellationToken);
+
+    private static bool IsOfficialCurrency(string? currency)
+        => string.Equals(
+            currency?.Trim(),
+            OfficialCurrency,
+            StringComparison.OrdinalIgnoreCase);
 
     private static string? TrimPayload(string payload)
     {

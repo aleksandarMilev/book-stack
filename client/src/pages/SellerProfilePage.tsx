@@ -14,7 +14,6 @@ interface SellerProfileFormState {
   phoneNumber: string;
   supportsOnlinePayment: boolean;
   supportsCashOnDelivery: boolean;
-  isActive: boolean;
 }
 
 const createInitialFormState = (): SellerProfileFormState => ({
@@ -22,7 +21,6 @@ const createInitialFormState = (): SellerProfileFormState => ({
   phoneNumber: '',
   supportsOnlinePayment: true,
   supportsCashOnDelivery: true,
-  isActive: true,
 });
 
 const toFormState = (profile: {
@@ -30,13 +28,11 @@ const toFormState = (profile: {
   phoneNumber?: string | null;
   supportsOnlinePayment: boolean;
   supportsCashOnDelivery: boolean;
-  isActive: boolean;
 }): SellerProfileFormState => ({
   displayName: profile.displayName,
   phoneNumber: profile.phoneNumber ?? '',
   supportsOnlinePayment: profile.supportsOnlinePayment,
   supportsCashOnDelivery: profile.supportsCashOnDelivery,
-  isActive: profile.isActive,
 });
 
 export function SellerProfilePage() {
@@ -100,7 +96,6 @@ export function SellerProfilePage() {
         phoneNumber: formState.phoneNumber,
         supportsOnlinePayment: formState.supportsOnlinePayment,
         supportsCashOnDelivery: formState.supportsCashOnDelivery,
-        isActive: formState.isActive,
       });
 
       setProfile(updatedProfile);
@@ -233,19 +228,7 @@ export function SellerProfilePage() {
             ) : null}
           </div>
 
-          <label className="auth-remember">
-            <input
-              checked={formState.isActive}
-              onChange={(event) => {
-                setFormState((previousState) => ({
-                  ...previousState,
-                  isActive: event.target.checked,
-                }));
-              }}
-              type="checkbox"
-            />
-            <span>{t('pages.sellerProfile.isActiveLabel')}</span>
-          </label>
+          <p className="ui-input-hint">{t('pages.sellerProfile.statusControlledByAdmins')}</p>
 
           {submitError ? <p className="auth-error">{submitError}</p> : null}
           {submitSuccess ? <p className="profile-success">{submitSuccess}</p> : null}

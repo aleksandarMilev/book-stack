@@ -14,8 +14,8 @@ export interface ListingApiModel {
   bookPublishedOn?: string | null;
   bookIsbn?: string | null;
   creatorId: string;
-  supportsOnlinePayment?: boolean | null;
-  supportsCashOnDelivery?: boolean | null;
+  supportsOnlinePayment: unknown;
+  supportsCashOnDelivery: unknown;
   price: number;
   currency: string;
   condition: number | string;
@@ -53,6 +53,22 @@ export interface UpsertListingRequest {
   description: string;
   image?: File | null;
   removeImage?: boolean;
+}
+
+export interface CreateListingWithBookRequest {
+  title: string;
+  author: string;
+  genre: string;
+  bookDescription?: string;
+  publisher?: string;
+  publishedOn?: string;
+  isbn?: string;
+  price: number;
+  currency: string;
+  condition: MarketplaceListingCondition;
+  quantity: number;
+  description: string;
+  image?: File | null;
 }
 
 interface ListingBackendFilterQuery {
@@ -137,6 +153,14 @@ const toBackendListingCondition = (condition: MarketplaceListingCondition): numb
   return 4;
 };
 
+const toSellerPaymentSupportFlag = (value: unknown, fieldName: string): boolean => {
+  if (typeof value !== 'boolean') {
+    throw new Error(`Invalid listing payment support field: ${fieldName}`);
+  }
+
+  return value;
+};
+
 const mapListing = (listing: ListingApiModel): MarketplaceListing => ({
   id: listing.id,
   bookId: listing.bookId,
@@ -147,12 +171,14 @@ const mapListing = (listing: ListingApiModel): MarketplaceListing => ({
   publishedOn: listing.bookPublishedOn ?? null,
   isbn: listing.bookIsbn ?? null,
   creatorId: listing.creatorId,
-  ...(typeof listing.supportsOnlinePayment === 'boolean'
-    ? { supportsOnlinePayment: listing.supportsOnlinePayment }
-    : {}),
-  ...(typeof listing.supportsCashOnDelivery === 'boolean'
-    ? { supportsCashOnDelivery: listing.supportsCashOnDelivery }
-    : {}),
+  supportsOnlinePayment: toSellerPaymentSupportFlag(
+    listing.supportsOnlinePayment,
+    'supportsOnlinePayment',
+  ),
+  supportsCashOnDelivery: toSellerPaymentSupportFlag(
+    listing.supportsCashOnDelivery,
+    'supportsCashOnDelivery',
+  ),
   condition: toListingCondition(listing.condition),
   quantity: listing.quantity,
   description: listing.description,
@@ -181,6 +207,44 @@ const createListingFormData = (payload: UpsertListingRequest): FormData => {
   formData.append('quantity', payload.quantity.toString());
   formData.append('description', payload.description.trim());
   formData.append('removeImage', String(Boolean(payload.removeImage)));
+
+  if (payload.image) {
+    formData.append('image', payload.image);
+  }
+
+  return formData;
+};
+
+const createListingWithBookFormData = (payload: CreateListingWithBookRequest): FormData => {
+  const formData = new FormData();
+  formData.append('title', payload.title.trim());
+  formData.append('author', payload.author.trim());
+  formData.append('genre', payload.genre.trim());
+
+  const trimmedBookDescription = payload.bookDescription?.trim();
+  if (trimmedBookDescription) {
+    formData.append('bookDescription', trimmedBookDescription);
+  }
+
+  const trimmedPublisher = payload.publisher?.trim();
+  if (trimmedPublisher) {
+    formData.append('publisher', trimmedPublisher);
+  }
+
+  if (payload.publishedOn) {
+    formData.append('publishedOn', payload.publishedOn);
+  }
+
+  const trimmedIsbn = payload.isbn?.trim();
+  if (trimmedIsbn) {
+    formData.append('isbn', trimmedIsbn);
+  }
+
+  formData.append('price', payload.price.toString());
+  formData.append('currency', payload.currency.trim().toUpperCase());
+  formData.append('condition', toBackendListingCondition(payload.condition).toString());
+  formData.append('quantity', payload.quantity.toString());
+  formData.append('description', payload.description.trim());
 
   if (payload.image) {
     formData.append('image', payload.image);
@@ -256,6 +320,18 @@ export const listingsApi = {
     const response = await httpClient.post<string>(
       LISTINGS_BASE_PATH,
       createListingFormData(payload),
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      },
+    );
+
+    return response.data;
+  },
+
+  async createListingWithBook(payload: CreateListingWithBookRequest): Promise<string> {
+    const response = await httpClient.post<string>(
+      `${LISTINGS_BASE_PATH}/with-book/`,
+      createListingWithBookFormData(payload),
       {
         headers: { 'Content-Type': 'multipart/form-data' },
       },

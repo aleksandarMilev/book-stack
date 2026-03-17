@@ -174,7 +174,6 @@ public static class ServiceCollectionExtensions
             services.Configure<JwtSettings>(
                 configuration.GetSection(nameof(JwtSettings)));
 
-        
             services.Configure<EmailSettings>(
                 configuration.GetSection(nameof(EmailSettings)));
 

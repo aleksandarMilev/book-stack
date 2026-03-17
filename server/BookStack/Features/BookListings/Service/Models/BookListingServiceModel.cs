@@ -22,6 +22,10 @@ public class BookListingServiceModel
 
     public string CreatorId { get; init; } = default!;
 
+    public bool SupportsOnlinePayment { get; init; }
+
+    public bool SupportsCashOnDelivery { get; init; }
+
     public decimal Price { get; init; }
 
     public string Currency { get; init; } = default!;

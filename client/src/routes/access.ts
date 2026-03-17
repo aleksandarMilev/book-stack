@@ -2,6 +2,15 @@ import { ROUTES } from '@/routes/paths';
 import type { AuthCapabilities } from '@/types/auth.types';
 
 export type RouteAccessLevel = 'public' | 'authenticated' | 'seller' | 'admin';
+export type SellerProfileLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
+export interface SellerCapabilityContext {
+  isAuthenticated: boolean;
+  currentUserId: string | null;
+  sellerProfileIsActive: boolean;
+  sellerProfileLoadState: SellerProfileLoadState;
+  sellerProfileLoadedForUserId: string | null;
+}
 
 export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.home]: 'public',
@@ -43,4 +52,32 @@ export const canAccessLevel = (
   }
 
   return capabilities.canAccessAdminArea;
+};
+
+export const isSellerCapabilityResolving = (context: SellerCapabilityContext): boolean => {
+  if (!context.isAuthenticated || !context.currentUserId) {
+    return false;
+  }
+
+  if (context.sellerProfileLoadedForUserId !== context.currentUserId) {
+    return true;
+  }
+
+  return context.sellerProfileLoadState === 'idle' || context.sellerProfileLoadState === 'loading';
+};
+
+export const hasActiveSellerCapability = (context: SellerCapabilityContext): boolean => {
+  if (!context.isAuthenticated || !context.currentUserId) {
+    return false;
+  }
+
+  if (context.sellerProfileLoadedForUserId !== context.currentUserId) {
+    return false;
+  }
+
+  if (context.sellerProfileLoadState !== 'ready') {
+    return false;
+  }
+
+  return context.sellerProfileIsActive;
 };

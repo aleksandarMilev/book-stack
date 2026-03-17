@@ -16,7 +16,6 @@ export interface UpsertSellerProfileRequest {
   phoneNumber?: string;
   supportsOnlinePayment: boolean;
   supportsCashOnDelivery: boolean;
-  isActive: boolean;
 }
 
 const SELLER_PROFILES_BASE_PATH = '/SellerProfiles';
@@ -41,7 +40,6 @@ export const sellerProfilesApi = {
         phoneNumber: normalizePhoneNumber(payload.phoneNumber),
         supportsOnlinePayment: payload.supportsOnlinePayment,
         supportsCashOnDelivery: payload.supportsCashOnDelivery,
-        isActive: payload.isActive,
       },
     );
 

@@ -236,8 +236,8 @@ const bg = {
       postalCodeLabel: 'Пощенски код (по избор)',
       paymentMethodTitle: 'Метод на плащане',
       paymentMethodSubtitle: 'Избери как искаш да платиш тази поръчка.',
-      paymentMethodFallbackNote:
-        'В този API отговор не се връщат методите на продавача, затова показваме и двата варианта и валидираме при изпращане.',
+      paymentMethodConfigurationError:
+        'Конфигурацията за методи на плащане на продавача не е налична за тази обява. Опитай отново по-късно.',
       noSupportedPaymentMethodsMessage: 'Този продавач в момента няма налични методи на плащане.',
       paymentMethodSummaryLabel: 'Избран метод на плащане',
       paymentMethods: {
@@ -392,7 +392,7 @@ const bg = {
       phoneNumberLabel: 'Phone number',
       supportsOnlinePaymentLabel: 'Support online payment',
       supportsCashOnDeliveryLabel: 'Support cash on delivery',
-      isActiveLabel: 'Seller profile is active',
+      statusControlledByAdmins: 'Seller profile status is controlled by administrators.',
       save: 'Save seller profile',
       saving: 'Saving...',
       saveSuccess: 'Seller profile saved successfully.',
@@ -405,6 +405,10 @@ const bg = {
         displayNameMin: 'Display name must contain at least 2 characters.',
         atLeastOnePaymentMethod: 'Select at least one supported payment method.',
       },
+    },
+    routeAccess: {
+      sellerLoadingTitle: 'Проверка на достъпа за продавач',
+      sellerLoadingDescription: 'Проверяваме статуса на твоя продавач профил.',
     },
     myListings: {
       title: 'Моите обяви',

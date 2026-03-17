@@ -9,6 +9,4 @@ public class UpsertSellerProfileServiceModel
     public bool SupportsOnlinePayment { get; init; }
 
     public bool SupportsCashOnDelivery { get; init; }
-
-    public bool IsActive { get; init; }
 }

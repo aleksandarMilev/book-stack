@@ -48,6 +48,8 @@ describe('SellerProfilePage', () => {
 
     expect(await screen.findByText('Become a seller')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save seller profile' })).toBeInTheDocument();
+    expect(screen.getByText('Seller profile status is controlled by administrators.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Seller profile is active')).not.toBeInTheDocument();
   });
 
   it('saves seller profile and shows success message', async () => {
@@ -84,7 +86,6 @@ describe('SellerProfilePage', () => {
         phoneNumber: '+359888111222',
         supportsOnlinePayment: true,
         supportsCashOnDelivery: true,
-        isActive: true,
       });
     });
 

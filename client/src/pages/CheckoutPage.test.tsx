@@ -78,6 +78,8 @@ describe('CheckoutPage', () => {
       author: 'Author',
       genre: 'Fiction',
       creatorId: 'seller-1',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
       condition: 'good',
       quantity: 3,
       description: 'desc',
@@ -102,6 +104,35 @@ describe('CheckoutPage', () => {
     expect(await screen.findByText('Email is required.')).toBeInTheDocument();
   });
 
+  it('shows both payment methods when seller supports both', async () => {
+    vi.mocked(listingsApi.getListingById).mockResolvedValue({
+      id: 'listing-both-1',
+      bookId: 'book-both-1',
+      title: 'Both Methods Listing',
+      author: 'Author',
+      genre: 'Fiction',
+      creatorId: 'seller-1',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
+      condition: 'good',
+      quantity: 3,
+      description: 'desc',
+      imageUrl: '',
+      isApproved: true,
+      rejectionReason: null,
+      createdOn: '2026-01-01T10:00:00Z',
+      modifiedOn: null,
+      price: { primary: { amount: 12.5, currency: 'EUR' } },
+    });
+
+    renderCheckoutRoute('/checkout?listingId=listing-both-1&quantity=1');
+
+    await screen.findByText('Order summary');
+
+    expect(screen.getByDisplayValue('online')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('cashOnDelivery')).toBeInTheDocument();
+  });
+
   it('prefills known user data for authenticated checkout', async () => {
     useAuthStore.setState({ session: createSession('buyer') });
     vi.mocked(listingsApi.getListingById).mockResolvedValue({
@@ -111,6 +142,8 @@ describe('CheckoutPage', () => {
       author: 'Author',
       genre: 'Fiction',
       creatorId: 'seller-1',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
       condition: 'new',
       quantity: 2,
       description: 'desc',
@@ -146,6 +179,8 @@ describe('CheckoutPage', () => {
       author: 'Author',
       genre: 'Fiction',
       creatorId: 'seller-1',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
       condition: 'good',
       quantity: 2,
       description: 'desc',
@@ -174,6 +209,40 @@ describe('CheckoutPage', () => {
     expect(
       await screen.findByText('Could not create your order. Please review details and try again.'),
     ).toBeInTheDocument();
+  });
+
+  it('handles missing payment-support data safely', async () => {
+    vi.mocked(listingsApi.getListingById).mockResolvedValue({
+      id: 'listing-invalid-support',
+      bookId: 'book-invalid-support',
+      title: 'Invalid Support Listing',
+      author: 'Author',
+      genre: 'Fiction',
+      creatorId: 'seller-1',
+      supportsOnlinePayment: undefined as unknown as boolean,
+      supportsCashOnDelivery: undefined as unknown as boolean,
+      condition: 'good',
+      quantity: 2,
+      description: 'desc',
+      imageUrl: '',
+      isApproved: true,
+      rejectionReason: null,
+      createdOn: '2026-01-01T10:00:00Z',
+      modifiedOn: null,
+      price: { primary: { amount: 10, currency: 'EUR' } },
+    });
+
+    renderCheckoutRoute('/checkout?listingId=listing-invalid-support&quantity=1');
+
+    await screen.findByText('Order summary');
+    expect(
+      screen.getByText(
+        'Seller payment-method configuration is unavailable for this listing. Please try again later.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('online')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('cashOnDelivery')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create order and continue' })).toBeDisabled();
   });
 
   it('submits online checkout and redirects to payment provider', async () => {

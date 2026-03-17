@@ -26,6 +26,8 @@ const listingsResponse = {
       publishedOn: '2014-01-01',
       isbn: '9780062316097',
       creatorId: 'seller-42',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
       condition: 'veryGood' as const,
       quantity: 2,
       description: 'Excellent condition listing',

@@ -16,6 +16,4 @@ public class UpsertSellerProfileWebModel
     public bool SupportsOnlinePayment { get; init; } = true;
 
     public bool SupportsCashOnDelivery { get; init; } = true;
-
-    public bool IsActive { get; init; } = true;
 }

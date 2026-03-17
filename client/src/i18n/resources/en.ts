@@ -238,8 +238,8 @@ const en = {
       postalCodeLabel: 'Postal code (optional)',
       paymentMethodTitle: 'Payment method',
       paymentMethodSubtitle: 'Choose how you want to pay for this order.',
-      paymentMethodFallbackNote:
-        'Seller payment-method capabilities are not exposed by this API response, so both methods are shown and validated on submit.',
+      paymentMethodConfigurationError:
+        'Seller payment-method configuration is unavailable for this listing. Please try again later.',
       noSupportedPaymentMethodsMessage: 'This seller currently has no available payment methods.',
       paymentMethodSummaryLabel: 'Selected payment method',
       paymentMethods: {
@@ -394,7 +394,7 @@ const en = {
       phoneNumberLabel: 'Phone number',
       supportsOnlinePaymentLabel: 'Support online payment',
       supportsCashOnDeliveryLabel: 'Support cash on delivery',
-      isActiveLabel: 'Seller profile is active',
+      statusControlledByAdmins: 'Seller profile status is controlled by administrators.',
       save: 'Save seller profile',
       saving: 'Saving...',
       saveSuccess: 'Seller profile saved successfully.',
@@ -407,6 +407,10 @@ const en = {
         displayNameMin: 'Display name must contain at least 2 characters.',
         atLeastOnePaymentMethod: 'Select at least one supported payment method.',
       },
+    },
+    routeAccess: {
+      sellerLoadingTitle: 'Checking seller access',
+      sellerLoadingDescription: 'Verifying your seller profile status.',
     },
     myListings: {
       title: 'My listings',

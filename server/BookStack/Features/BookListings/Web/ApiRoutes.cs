@@ -6,6 +6,8 @@ public static class ApiRoutes
 
     public const string Lookup = "lookup/";
 
+    public const string CreateWithBook = "with-book/";
+
     public const string Approve = "{id}/approve/";
 
     public const string Reject = "{id}/reject/";

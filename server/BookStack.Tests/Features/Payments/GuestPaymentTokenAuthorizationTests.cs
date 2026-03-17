@@ -442,6 +442,69 @@ public class GuestPaymentTokenAuthorizationTests
             StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task CreateCheckoutSession_FailsWhenOrderCurrencyIsNotEur()
+    {
+        await using var database = new TestDatabaseScope();
+        var currentUserService = new TestCurrentUserService();
+
+        var utc = new DateTime(2026, 02, 08, 0, 0, 0, DateTimeKind.Utc);
+        var dateTimeProvider = new TestDateTimeProvider(utc);
+
+        await using var data = database.CreateDbContext(
+            currentUserService,
+            dateTimeProvider);
+
+        var paymentService = TestServiceFactory.CreatePaymentService(
+            data,
+            dateTimeProvider,
+            currentUserService);
+
+        var orderService = TestServiceFactory.CreateOrderService(
+            data,
+            currentUserService,
+            paymentService,
+            dateTimeProvider);
+
+        var listing = await SeedApprovedListing(
+            data,
+            sellerId: "seller-1");
+
+        var createResult = await orderService.Create(
+            MarketplaceTestData.CreateOrderModel((listing.Id, 1)),
+            CancellationToken.None);
+
+        Assert.True(createResult.Succeeded);
+        var createdOrder = createResult.Data;
+        Assert.NotNull(createdOrder);
+
+        var order = await data
+            .Orders
+            .SingleAsync(o => o.Id == createdOrder!.OrderId);
+
+        order.Currency = "USD";
+        await data.SaveChangesAsync(CancellationToken.None);
+
+        var checkoutResult = await paymentService.CreateCheckoutSession(
+            createdOrder.OrderId,
+            model: new()
+            {
+                PaymentToken = createdOrder.PaymentToken,
+            },
+            CancellationToken.None);
+
+        var paymentCount = await data
+            .Payments
+            .CountAsync(CancellationToken.None);
+
+        Assert.False(checkoutResult.Succeeded);
+        Assert.Contains(
+            "EUR",
+            checkoutResult.ErrorMessage,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, paymentCount);
+    }
+
     private static async Task<BookListingDbModel> SeedApprovedListing(
         BookStackDbContext data,
         string sellerId,

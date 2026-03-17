@@ -27,6 +27,7 @@ vi.mock('@/features/marketplace/api/listings.api', () => ({
     getListingById: vi.fn(),
     deleteListing: vi.fn(),
     createListing: vi.fn(),
+    createListingWithBook: vi.fn(),
     editListing: vi.fn(),
   },
 }));
@@ -124,11 +125,10 @@ describe('MyListingCreatePage', () => {
     expect(booksApi.createBook).not.toHaveBeenCalled();
   });
 
-  it('switches to missing-book flow and creates canonical book before listing', async () => {
+  it('switches to missing-book flow and submits atomic create-with-book request', async () => {
     useAuthStore.setState({ session: createSession() });
     vi.mocked(sellerProfilesApi.getMine).mockResolvedValue(activeSellerProfile);
-    vi.mocked(booksApi.createBook).mockResolvedValue('book-new');
-    vi.mocked(listingsApi.createListing).mockResolvedValue('listing-new');
+    vi.mocked(listingsApi.createListingWithBook).mockResolvedValue('listing-new');
 
     render(
       <MemoryRouter>
@@ -153,21 +153,16 @@ describe('MyListingCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Submit listing for moderation' }));
 
     await waitFor(() => {
-      expect(booksApi.createBook).toHaveBeenCalledWith(
+      expect(listingsApi.createListingWithBook).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Missing Book',
           author: 'New Author',
           genre: 'Fantasy',
+          currency: 'EUR',
         }),
       );
     });
-
-    await waitFor(() => {
-      expect(listingsApi.createListing).toHaveBeenCalledWith(
-        expect.objectContaining({
-          bookId: 'book-new',
-        }),
-      );
-    });
+    expect(booksApi.createBook).not.toHaveBeenCalled();
+    expect(listingsApi.createListing).not.toHaveBeenCalled();
   });
 });

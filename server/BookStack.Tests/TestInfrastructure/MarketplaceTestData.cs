@@ -42,7 +42,7 @@ internal static class MarketplaceTestData
         string creatorId,
         decimal price = 20m,
         int quantity = 5,
-        string currency = "USD",
+        string currency = "EUR",
         bool isApproved = true)
         => new()
         {

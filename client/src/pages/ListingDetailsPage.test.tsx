@@ -28,6 +28,8 @@ describe('ListingDetailsPage purchase flow', () => {
       author: 'Ana Writer',
       genre: 'Fiction',
       creatorId: 'seller-1',
+      supportsOnlinePayment: true,
+      supportsCashOnDelivery: true,
       condition: 'likeNew',
       quantity: 4,
       description: 'desc',
