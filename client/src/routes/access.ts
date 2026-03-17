@@ -8,6 +8,8 @@ export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.marketplace]: 'public',
   [ROUTES.listingDetails]: 'public',
   [ROUTES.books]: 'public',
+  [ROUTES.checkout]: 'public',
+  [ROUTES.mockPaymentCheckout]: 'public',
   [ROUTES.login]: 'public',
   [ROUTES.register]: 'public',
   [ROUTES.profile]: 'authenticated',

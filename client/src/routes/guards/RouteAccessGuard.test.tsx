@@ -69,4 +69,12 @@ describe('RouteAccessGuard', () => {
 
     expect(screen.getByText('protected-page')).toBeInTheDocument();
   });
+
+  it('blocks non-admin users from admin routes', () => {
+    useAuthStore.setState({ session: createSession('seller') });
+
+    renderGuard('admin');
+
+    expect(screen.getByText('home-page')).toBeInTheDocument();
+  });
 });

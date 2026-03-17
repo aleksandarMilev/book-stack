@@ -5,10 +5,12 @@ import { AdminBooksModerationPage } from '@/pages/admin/AdminBooksModerationPage
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { AdminListingsModerationPage } from '@/pages/admin/AdminListingsModerationPage';
 import { BooksPage } from '@/pages/BooksPage';
+import { CheckoutPage } from '@/pages/CheckoutPage';
 import { HomePage } from '@/pages/HomePage';
 import { ListingDetailsPage } from '@/pages/ListingDetailsPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { MarketplacePage } from '@/pages/MarketplacePage';
+import { MockPaymentCheckoutPage } from '@/pages/MockPaymentCheckoutPage';
 import { MyListingCreatePage } from '@/pages/MyListingCreatePage';
 import { MyListingEditPage } from '@/pages/MyListingEditPage';
 import { MyListingsPage } from '@/pages/MyListingsPage';
@@ -32,6 +34,8 @@ export const appRouter = createBrowserRouter([
       { path: ROUTES.marketplace, element: <MarketplacePage /> },
       { path: ROUTES.listingDetails, element: <ListingDetailsPage /> },
       { path: ROUTES.books, element: <BooksPage /> },
+      { path: ROUTES.checkout, element: <CheckoutPage /> },
+      { path: ROUTES.mockPaymentCheckout, element: <MockPaymentCheckoutPage /> },
       { path: ROUTES.login, element: <LoginPage /> },
       { path: ROUTES.register, element: <RegisterPage /> },
       { path: ROUTES.paymentReturn, element: <PaymentReturnPage /> },

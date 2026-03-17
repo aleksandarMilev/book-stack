@@ -3,6 +3,8 @@ export const ROUTES = {
   marketplace: '/marketplace',
   listingDetails: '/marketplace/:listingId',
   books: '/books',
+  checkout: '/checkout',
+  mockPaymentCheckout: '/payments/mock/checkout',
   login: '/login',
   register: '/register',
   profile: '/profile',
@@ -19,3 +21,12 @@ export const ROUTES = {
 
 export const getListingDetailsRoute = (listingId: string): string => `${ROUTES.marketplace}/${listingId}`;
 export const getMyListingEditRoute = (listingId: string): string => `${ROUTES.myListings}/${listingId}/edit`;
+
+export const getCheckoutRoute = (listingId: string, quantity = 1): string => {
+  const query = new URLSearchParams({
+    listingId,
+    quantity: String(quantity),
+  });
+
+  return `${ROUTES.checkout}?${query.toString()}`;
+};

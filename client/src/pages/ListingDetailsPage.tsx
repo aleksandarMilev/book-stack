@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
 import { PriceDisplay } from '@/components/pricing/PriceDisplay';
-import { Button, Card, Container } from '@/components/ui';
+import { Button, Card, Container, Input } from '@/components/ui';
 import { listingsApi } from '@/features/marketplace/api/listings.api';
-import { ROUTES } from '@/routes/paths';
+import { getCheckoutRoute, ROUTES } from '@/routes/paths';
 import type { MarketplaceListing } from '@/types/marketplace.types';
 
 export function ListingDetailsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { listingId } = useParams<{ listingId: string }>();
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
 
   useEffect(() => {
     if (!listingId) {
@@ -37,6 +39,7 @@ export function ListingDetailsPage() {
         }
 
         setListing(response);
+        setSelectedQuantity((previousQuantity) => Math.min(previousQuantity, Math.max(response.quantity, 1)));
       } catch (error: unknown) {
         if (!isActive) {
           return;
@@ -80,6 +83,26 @@ export function ListingDetailsPage() {
       </Container>
     );
   }
+
+  const canPurchase = listing.isApproved && listing.quantity > 0;
+
+  const handleQuantityChange = (value: string): void => {
+    const parsedValue = Number.parseInt(value, 10);
+    if (Number.isNaN(parsedValue)) {
+      setSelectedQuantity(1);
+      return;
+    }
+
+    setSelectedQuantity(Math.min(Math.max(parsedValue, 1), listing.quantity));
+  };
+
+  const handleBuyNow = (): void => {
+    if (!canPurchase) {
+      return;
+    }
+
+    navigate(getCheckoutRoute(listing.id, selectedQuantity));
+  };
 
   return (
     <Container className="listing-details-page">
@@ -130,6 +153,30 @@ export function ListingDetailsPage() {
           <section className="listing-details-description">
             <h2>{t('pages.listingDetails.descriptionTitle')}</h2>
             <p>{listing.description}</p>
+          </section>
+
+          <section className="listing-details-purchase">
+            <h2>{t('pages.listingDetails.purchaseTitle')}</h2>
+            <div className="listing-details-purchase-row">
+              <Input
+                className="listing-details-quantity-input"
+                label={t('pages.listingDetails.purchaseQuantityLabel')}
+                min={1}
+                onChange={(event) => {
+                  handleQuantityChange(event.target.value);
+                }}
+                type="number"
+                value={String(selectedQuantity)}
+              />
+              <p className="listing-details-stock">
+                {canPurchase
+                  ? t('pages.listingDetails.inStock', { count: listing.quantity })
+                  : t('pages.listingDetails.outOfStock')}
+              </p>
+            </div>
+            <Button disabled={!canPurchase} onClick={handleBuyNow}>
+              {t('pages.listingDetails.buyNow')}
+            </Button>
           </section>
 
           <p className="placeholder-listing-id">{t('pages.listingDetails.listingId', { id: listing.id })}</p>

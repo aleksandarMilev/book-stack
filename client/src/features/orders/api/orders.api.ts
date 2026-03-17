@@ -80,6 +80,33 @@ export interface OrderFilterQuery {
   pageSize?: number | undefined;
 }
 
+export interface CreateOrderItemRequest {
+  listingId: string;
+  quantity: number;
+}
+
+export interface CreateOrderRequest {
+  customerFirstName: string;
+  customerLastName: string;
+  email: string;
+  phoneNumber?: string | undefined;
+  country: string;
+  city: string;
+  addressLine: string;
+  postalCode?: string | undefined;
+  items: CreateOrderItemRequest[];
+}
+
+interface CreateOrderResultApiModel {
+  orderId: string;
+  paymentToken?: string | null;
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  paymentToken?: string;
+}
+
 const ORDERS_BASE_PATH = '/Orders';
 
 const toCurrencyCode = (currency: string): CurrencyCode => {
@@ -305,6 +332,15 @@ const toBackendFilterQuery = (query: OrderFilterQuery): OrderBackendFilterQuery 
 });
 
 export const ordersApi = {
+  async createOrder(payload: CreateOrderRequest): Promise<CreateOrderResult> {
+    const response = await httpClient.post<CreateOrderResultApiModel>(ORDERS_BASE_PATH, payload);
+
+    return {
+      orderId: response.data.orderId,
+      ...(response.data.paymentToken ? { paymentToken: response.data.paymentToken } : {}),
+    };
+  },
+
   async getMyOrders(query: OrderFilterQuery): Promise<PaginatedResponse<UserOrder>> {
     const response = await httpClient.get<PaginatedResponse<UserOrderApiModel>>(`${ORDERS_BASE_PATH}/mine/`, {
       params: removeEmptyQueryValues(toBackendFilterQuery(query)),
