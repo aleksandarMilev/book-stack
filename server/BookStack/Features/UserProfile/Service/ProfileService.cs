@@ -67,6 +67,7 @@ public class ProfileService(
            cancellationToken);
 
         this._data.Add(dbModel);
+
         await this._data.SaveChangesAsync(cancellationToken);
 
         this._logger.LogInformation(

@@ -1,6 +1,7 @@
 ﻿namespace BookStack.Infrastructure.Services.ImageValidator;
 
 using System.Collections.Frozen;
+using System.Globalization;
 using System.Text;
 using Result;
 
@@ -34,7 +35,7 @@ public class ImageValidator : IImageValidator
 
         if (image.Length > MaxImageSizeBytes)
         {
-            return $"Image must be smaller than {MaxImageSizeBytes / 1_024 / 1_024} MB.";
+            return $"Image size is {ToPrettyMbString(image.Length)} MB. It should be smaller than {ToPrettyMbString(MaxImageSizeBytes)} MB.";
         }
 
         var extension = Path.GetExtension(image.FileName);
@@ -92,6 +93,7 @@ public class ImageValidator : IImageValidator
         var looksLikePng = hasPngHeader &&
             header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47 &&
             header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A;
+
         if (looksLikePng)
         {
             return ImageFormat.Png;
@@ -101,6 +103,7 @@ public class ImageValidator : IImageValidator
         var looksLikeWebp = hasRiffHeader &&
             header[0] == (byte)'R' && header[1] == (byte)'I' && header[2] == (byte)'F' && header[3] == (byte)'F' &&
             header[8] == (byte)'W' && header[9] == (byte)'E' && header[10] == (byte)'B' && header[11] == (byte)'P';
+
         if (looksLikeWebp)
         {
             return ImageFormat.Webp;
@@ -126,11 +129,15 @@ public class ImageValidator : IImageValidator
         string extension)
         => format switch
         {
-            ImageFormat.Jpeg => extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
-                                extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase),
-            ImageFormat.Png => extension.Equals(".png", StringComparison.OrdinalIgnoreCase),
-            ImageFormat.Webp => extension.Equals(".webp", StringComparison.OrdinalIgnoreCase),
-            ImageFormat.Avif => extension.Equals(".avif", StringComparison.OrdinalIgnoreCase),
+            ImageFormat.Jpeg =>
+                extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase),
+            ImageFormat.Png => 
+                extension.Equals(".png", StringComparison.OrdinalIgnoreCase),
+            ImageFormat.Webp => 
+                extension.Equals(".webp", StringComparison.OrdinalIgnoreCase),
+            ImageFormat.Avif => 
+                extension.Equals(".avif", StringComparison.OrdinalIgnoreCase),
             _ => false,
         };
 
@@ -157,4 +164,8 @@ public class ImageValidator : IImageValidator
             _ => false,
         };
     }
+
+    private static string ToPrettyMbString(long bytes)
+        => ((double)bytes / 1_024 / 1_024)
+            .ToString("F2", CultureInfo.InvariantCulture);
 }

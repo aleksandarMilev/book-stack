@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
-import { Button, Card, Container, Input } from '@/components/ui';
+import { Button, Card, Container, FileUploadField, Input } from '@/components/ui';
 import { authService } from '@/features/auth/services/auth.service';
 import { ROUTES } from '@/routes/paths';
 import { useAuthCapabilities } from '@/store/auth.store';
@@ -173,19 +173,18 @@ export function RegisterPage() {
             value={formState.confirmPassword}
           />
 
-          <label className="ui-input-wrapper">
-            <span className="ui-input-label">{t('pages.register.imageLabel')}</span>
-            <input
-              className="ui-input"
-              onChange={(event) => {
-                setFormState((previousState) => ({
-                  ...previousState,
-                  image: event.target.files?.[0] ?? null,
-                }));
-              }}
-              type="file"
-            />
-          </label>
+          <FileUploadField
+            accept="image/*"
+            file={formState.image}
+            label={t('pages.register.imageLabel')}
+            onFileChange={(nextImage) => {
+              setFormState((previousState) => ({
+                ...previousState,
+                image: nextImage,
+              }));
+            }}
+            showImagePreview
+          />
 
           {submitError ? <p className="auth-error">{submitError}</p> : null}
 

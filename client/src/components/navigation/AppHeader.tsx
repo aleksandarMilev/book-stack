@@ -21,7 +21,6 @@ interface HeaderNavItem {
 const primaryNavItems: HeaderNavItem[] = [
   { labelKey: 'nav.primary.home', to: ROUTES.home },
   { labelKey: 'nav.primary.marketplace', to: ROUTES.marketplace },
-  { labelKey: 'nav.primary.books', to: ROUTES.books },
 ];
 
 const guestItems: HeaderNavItem[] = [

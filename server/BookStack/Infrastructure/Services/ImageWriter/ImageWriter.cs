@@ -235,8 +235,6 @@ public class ImageWriter(
                 "Error saving {resourceName} image to path {Path}",
                 resourceName,
                 filePath);
-
-            throw;
         }
     }
 

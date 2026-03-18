@@ -4,7 +4,6 @@ const en = {
     language: 'Language',
     actions: {
       browseMarketplace: 'Browse marketplace',
-      discoverBooks: 'Discover books',
       proceedToCheckout: 'Proceed to checkout',
       clearFilters: 'Clear filters',
       learnMore: 'Learn more',
@@ -22,6 +21,12 @@ const en = {
       reject: 'Reject',
       delete: 'Delete',
     },
+    fileUpload: {
+      chooseFile: 'Choose file',
+      noFileSelected: 'No file selected',
+      clearSelectedFile: 'Remove selected file',
+      previewAlt: 'Selected file preview',
+    },
     labels: {
       comingSoon: 'Coming soon',
       premiumSelection: 'Premium selection',
@@ -32,7 +37,6 @@ const en = {
     primary: {
       home: 'Home',
       marketplace: 'Marketplace',
-      books: 'Books',
     },
     account: {
       login: 'Login',
@@ -271,33 +275,6 @@ const en = {
         paymentMethodRequired: 'Please choose a payment method.',
         noSupportedPaymentMethod: 'No supported payment method is available for this order.',
       },
-    },
-    books: {
-      title: 'Books',
-      subtitle: 'Browse approved canonical books from the BookStack catalog.',
-      searchLabel: 'Search books',
-      searchPlaceholder: 'Search by title, author, ISBN, or genre',
-      genreLabel: 'Genre',
-      genrePlaceholder: 'Filter by genre',
-      sortLabel: 'Sort',
-      sortOptions: {
-        newest: 'Newest first',
-        oldest: 'Oldest first',
-        titleAsc: 'Title: A to Z',
-        titleDesc: 'Title: Z to A',
-        publishedDateDesc: 'Published date: newest',
-        publishedDateAsc: 'Published date: oldest',
-      },
-      resultsCount: '{{count}} books',
-      loadingTitle: 'Loading books',
-      loadingDescription: 'Preparing the books catalog.',
-      errorTitle: 'Could not load books',
-      errorDescription: 'Something went wrong while loading books.',
-      emptyTitle: 'No books found',
-      emptyDescription: 'Try adjusting your search or filters.',
-      publisherLabel: 'Publisher',
-      publishedOnLabel: 'Published',
-      isbnLabel: 'ISBN',
     },
     login: {
       title: 'Login',

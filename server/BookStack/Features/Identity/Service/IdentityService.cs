@@ -3,8 +3,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using BookStack.Data;
 using Data.Models;
 using Emails;
+using Infrastructure.Services.ImageValidator;
 using Infrastructure.Services.Result;
 using Infrastructure.Settings;
 using Microsoft.AspNetCore.Identity;
@@ -21,17 +23,21 @@ using static Shared.Constants.ErrorMessages;
 using static Shared.Constants.TokenExpiration;
 
 public class IdentityService(
+    BookStackDbContext data,
     UserManager<UserDbModel> userManager,
     IEmailSender emailSender,
     IProfileService profileService,
     ILogger<IdentityService> logger,
+    IImageValidator imageValidator,
     IOptions<JwtSettings> jwtSettings,
     IOptions<AppUrlsSettings> appUrlsSettings) : IIdentityService
 {
+    private readonly BookStackDbContext _data = data;
     private readonly IProfileService _profileService = profileService;
     private readonly UserManager<UserDbModel> _userManager = userManager;
     private readonly IEmailSender _emailSender = emailSender;
     private readonly ILogger<IdentityService> _logger = logger;
+    private readonly IImageValidator _imageValidator = imageValidator;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly AppUrlsSettings _appUrlsSettings = appUrlsSettings.Value;
 
@@ -79,14 +85,35 @@ public class IdentityService(
             LockoutEnabled = true
         };
 
-        var identityResult = await this._userManager.CreateAsync(
-            user,
-            serviceModel.Password);
+        var executionStrategy = this._data.Database.CreateExecutionStrategy();
 
-        if (identityResult.Succeeded)
+        return await executionStrategy.ExecuteAsync(async () =>
         {
+            await using var transaction = await this
+               ._data
+               .Database
+               .BeginTransactionAsync(cancellationToken);
+
             try
             {
+                var identityResult = await this._userManager.CreateAsync(
+                    user,
+                    serviceModel.Password);
+
+                if (!identityResult.Succeeded)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+
+                    var identityResultError = identityResult
+                        .Errors
+                        .Select(static e => e.Description);
+
+                    var errorMessage = string.Join("; ", identityResultError);
+
+                    return ResultWith<string>
+                        .Failure(errorMessage ?? InvalidRegisterAttempt);
+                }
+
                 var jwt = this.GenerateJwtToken(
                     this._jwtSettings.Secret,
                     user.Id,
@@ -113,6 +140,8 @@ public class IdentityService(
                     baseUrl,
                     cancellationToken);
 
+                await transaction.CommitAsync(cancellationToken);
+
                 return ResultWith<string>.Success(jwt);
             }
             catch (Exception exception)
@@ -121,20 +150,11 @@ public class IdentityService(
                     "Failed to complete registration. UserId={UserId}",
                     user.Id);
 
-                await this._userManager.DeleteAsync(user);
+                await transaction.RollbackAsync(cancellationToken);
 
                 return ResultWith<string>.Failure(InvalidRegisterAttempt);
             }
-        }
-
-        var identityResultError = identityResult
-            .Errors
-            .Select(static e => e.Description);
-
-        var errorMessage = string.Join("; ", identityResultError);
-
-        return ResultWith<string>
-            .Failure(errorMessage ?? InvalidRegisterAttempt);
+        });
     }
 
     public async Task<ResultWith<string>> Login(

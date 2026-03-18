@@ -1,9 +1,10 @@
 ﻿namespace BookStack.Features.Identity.Web.Models;
 
 using System.ComponentModel.DataAnnotations;
+using Infrastructure.Validation;
 
-using static UserProfile.Shared.Constants.Validation;
 using static Shared.Constants.Validation;
+using static UserProfile.Shared.Constants.Validation;
 
 public class RegisterWebModel
 {
@@ -38,5 +39,6 @@ public class RegisterWebModel
         MinimumLength = NameMinLength)]
     public string LastName { get; init; } = default!;
 
+    [ImageUpload]
     public IFormFile? Image { get; init; }
 }

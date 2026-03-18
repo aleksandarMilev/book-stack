@@ -2,7 +2,6 @@ export const ROUTES = {
   home: '/',
   marketplace: '/marketplace',
   listingDetails: '/marketplace/:listingId',
-  books: '/books',
   checkout: '/checkout',
   mockPaymentCheckout: '/payments/mock/checkout',
   login: '/login',

@@ -49,6 +49,7 @@ describe('AppHeader', () => {
 
     expect(screen.getAllByText('Login').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Register').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: 'Books' })).not.toBeInTheDocument();
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
   });
 

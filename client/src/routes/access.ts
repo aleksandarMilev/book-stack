@@ -16,7 +16,6 @@ export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.home]: 'public',
   [ROUTES.marketplace]: 'public',
   [ROUTES.listingDetails]: 'public',
-  [ROUTES.books]: 'public',
   [ROUTES.checkout]: 'public',
   [ROUTES.orderConfirmation]: 'public',
   [ROUTES.mockPaymentCheckout]: 'public',

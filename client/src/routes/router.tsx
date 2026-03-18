@@ -5,7 +5,6 @@ import { AppShell } from '@/layouts/AppShell';
 import { AdminBooksModerationPage } from '@/pages/admin/AdminBooksModerationPage';
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { AdminListingsModerationPage } from '@/pages/admin/AdminListingsModerationPage';
-import { BooksPage } from '@/pages/BooksPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { HomePage } from '@/pages/HomePage';
 import { ListingDetailsPage } from '@/pages/ListingDetailsPage';
@@ -36,7 +35,6 @@ export const appRouter = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: ROUTES.marketplace, element: <MarketplacePage /> },
       { path: ROUTES.listingDetails, element: <ListingDetailsPage /> },
-      { path: ROUTES.books, element: <BooksPage /> },
       { path: ROUTES.checkout, element: <CheckoutPage /> },
       { path: ROUTES.orderConfirmation, element: <OrderConfirmationPage /> },
       ...(isMockPaymentUiEnabled

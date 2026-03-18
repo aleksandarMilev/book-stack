@@ -21,7 +21,6 @@ export function AppFooter() {
         <nav className="site-footer-nav">
           <NavLink to={ROUTES.home}>{t('nav.primary.home')}</NavLink>
           <NavLink to={ROUTES.marketplace}>{t('nav.primary.marketplace')}</NavLink>
-          <NavLink to={ROUTES.books}>{t('nav.primary.books')}</NavLink>
         </nav>
       </Container>
       <Container>

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
-import { Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
+import { Button, Card, Container, EmptyState, FileUploadField, Input, LoadingState } from '@/components/ui';
 import { profileApi, type ProfileResponse } from '@/features/auth/api/profile.api';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -266,22 +266,20 @@ export function ProfilePage() {
               value={formState.lastName}
             />
 
-            <label className="ui-input-wrapper">
-              <span className="ui-input-label">{t('pages.profile.imageUploadLabel')}</span>
-              <input
-                className="ui-input"
-                onChange={(event) => {
-                  const nextImage = event.target.files?.[0] ?? null;
-                  setFormState((previousState) => ({
-                    ...previousState,
-                    image: nextImage,
-                    removeImage: nextImage ? false : previousState.removeImage,
-                  }));
-                }}
-                type="file"
-              />
-              <span className="ui-input-hint">{t('pages.profile.imageUploadHint')}</span>
-            </label>
+            <FileUploadField
+              accept="image/*"
+              file={formState.image}
+              hint={t('pages.profile.imageUploadHint')}
+              label={t('pages.profile.imageUploadLabel')}
+              onFileChange={(nextImage) => {
+                setFormState((previousState) => ({
+                  ...previousState,
+                  image: nextImage,
+                  removeImage: nextImage ? false : previousState.removeImage,
+                }));
+              }}
+              showImagePreview
+            />
 
             <label className="auth-remember">
               <input

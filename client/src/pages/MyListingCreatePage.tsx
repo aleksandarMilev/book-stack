@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
-import { Button, Card, Container, Input, LoadingState } from '@/components/ui';
+import { Button, Card, Container, FileUploadField, Input, LoadingState } from '@/components/ui';
 import { type BookLookupItem, booksApi } from '@/features/books/api/books.api';
 import { listingsApi } from '@/features/marketplace/api/listings.api';
 import { SellerProfileRequiredState } from '@/features/sellerProfiles/components/SellerProfileRequiredState';
@@ -526,21 +526,20 @@ export function MyListingCreatePage() {
                 />
               </label>
 
-              <label className="ui-input-wrapper seller-listing-grid-span-full">
-                <span className="ui-input-label">{t('pages.myListingCreate.imageLabel')}</span>
-                <input
-                  className="ui-input"
-                  onChange={(event) => {
-                    const nextImage = event.target.files?.[0] ?? null;
-                    setListingFormState((previousState) => ({
-                      ...previousState,
-                      image: nextImage,
-                    }));
-                  }}
-                  type="file"
-                />
-                <span className="ui-input-hint">{t('pages.myListingCreate.imageHint')}</span>
-              </label>
+              <FileUploadField
+                accept="image/*"
+                className="seller-listing-grid-span-full"
+                file={listingFormState.image}
+                hint={t('pages.myListingCreate.imageHint')}
+                label={t('pages.myListingCreate.imageLabel')}
+                onFileChange={(nextImage) => {
+                  setListingFormState((previousState) => ({
+                    ...previousState,
+                    image: nextImage,
+                  }));
+                }}
+                showImagePreview
+              />
             </div>
           </section>
 

@@ -14,9 +14,9 @@ public sealed class ImageUploadAttribute : ValidationAttribute
             return ValidationResult.Success;
         }
 
-        if (value is not IFormFile image)
+        if (value is not IFormFile file)
         {
-             return new ValidationResult("Invalid file.");
+             return new("Invalid file.");
         }
 
         var imageValidator = (IImageValidator?)validationContext
@@ -24,13 +24,13 @@ public sealed class ImageUploadAttribute : ValidationAttribute
 
         if (imageValidator is null) 
         {
-            return new ValidationResult("ImageValidator service is not registrated in IoC container.");
+            return new("ImageValidator service is not registrated in the IoC container.");
         }
 
-        var validationReuslt = imageValidator.ValidateImageFile(image);
+        var validationReuslt = imageValidator.ValidateImageFile(file);
         if (!validationReuslt.Succeeded)
         {
-            return new ValidationResult(validationReuslt.ErrorMessage);
+            return new(validationReuslt.ErrorMessage);
         }
 
         return ValidationResult.Success;

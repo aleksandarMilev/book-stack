@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
-import { Badge, Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
+import { Badge, Button, Card, Container, EmptyState, FileUploadField, Input, LoadingState } from '@/components/ui';
 import { listingsApi } from '@/features/marketplace/api/listings.api';
 import { SellerProfileRequiredState } from '@/features/sellerProfiles/components/SellerProfileRequiredState';
 import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
@@ -352,26 +352,25 @@ export function MyListingEditPage() {
                 value={formState.description}
               />
             </label>
-            <label className="ui-input-wrapper seller-listing-grid-span-full">
-              <span className="ui-input-label">{t('pages.myListingEdit.imageLabel')}</span>
-              <input
-                className="ui-input"
-                onChange={(event) => {
-                  const nextImage = event.target.files?.[0] ?? null;
-                  setFormState((previousState) =>
-                    previousState
-                      ? {
-                          ...previousState,
-                          image: nextImage,
-                          removeImage: nextImage ? false : previousState.removeImage,
-                        }
-                      : previousState,
-                  );
-                }}
-                type="file"
-              />
-              <span className="ui-input-hint">{t('pages.myListingEdit.imageHint')}</span>
-            </label>
+            <FileUploadField
+              accept="image/*"
+              className="seller-listing-grid-span-full"
+              file={formState.image}
+              hint={t('pages.myListingEdit.imageHint')}
+              label={t('pages.myListingEdit.imageLabel')}
+              onFileChange={(nextImage) => {
+                setFormState((previousState) =>
+                  previousState
+                    ? {
+                        ...previousState,
+                        image: nextImage,
+                        removeImage: nextImage ? false : previousState.removeImage,
+                      }
+                    : previousState,
+                );
+              }}
+              showImagePreview
+            />
 
             <label className="auth-remember seller-listing-grid-span-full">
               <input
