@@ -24,6 +24,9 @@ Useful Playwright vars:
 
 - `PLAYWRIGHT_BASE_URL` (default: `http://127.0.0.1:4173`)
 - `PLAYWRIGHT_USE_EXISTING_SERVER=true` to run against an already running frontend
-- `VITE_REACT_APP_SERVER_URL` for frontend-to-backend API base URL
+- `VITE_REACT_APP_SERVER_URL` for frontend-to-backend API base URL (default in local runs: `http://127.0.0.1:8080`)
+
+Use `127.0.0.1` instead of `localhost` for local Docker/browser flows on Windows when possible.
+Some environments resolve `localhost` to IPv6 (`::1`) first, which can make backend calls hang even when IPv4 works.
 
 The default Playwright web server boot config enables mock checkout UI (`mock` provider) for local E2E reliability while keeping normal app flows provider-agnostic in production config.

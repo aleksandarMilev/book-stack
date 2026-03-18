@@ -11,9 +11,13 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     console.warn(
       '[httpClient] VITE_REACT_APP_SERVER_URL is empty. Requests will use the current browser origin.',
     );
+  } else if (/\/\/localhost(?::|\/|$)/i.test(baseURL)) {
+    console.warn(
+      '[httpClient] VITE_REACT_APP_SERVER_URL points to localhost. In some Windows Docker setups localhost resolves to ::1 and can hang; prefer http://127.0.0.1:8080.',
+    );
   } else if (baseURL.includes('host.docker.internal')) {
     console.warn(
-      '[httpClient] VITE_REACT_APP_SERVER_URL points to host.docker.internal. In browser-based dev flows this host can be unreachable; prefer a browser-reachable URL such as http://localhost:8080.',
+      '[httpClient] VITE_REACT_APP_SERVER_URL points to host.docker.internal. In browser-based dev flows this host can be unreachable; prefer http://127.0.0.1:8080.',
     );
   }
 }

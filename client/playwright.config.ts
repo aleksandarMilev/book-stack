@@ -35,7 +35,7 @@ export default defineConfig({
         timeout: 120_000,
         env: {
           ...process.env,
-          VITE_REACT_APP_SERVER_URL: process.env.VITE_REACT_APP_SERVER_URL ?? 'http://localhost:8080',
+          VITE_REACT_APP_SERVER_URL: process.env.VITE_REACT_APP_SERVER_URL ?? 'http://127.0.0.1:8080',
           VITE_REACT_APP_PAYMENT_PROVIDER: process.env.VITE_REACT_APP_PAYMENT_PROVIDER ?? 'mock',
           VITE_REACT_APP_ENABLE_MOCK_PAYMENT_UI: process.env.VITE_REACT_APP_ENABLE_MOCK_PAYMENT_UI ?? 'true',
         },
