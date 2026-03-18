@@ -1,11 +1,11 @@
 ﻿namespace BookStack.Features.Emails;
 
-using Templates;
 using Infrastructure.Settings;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using Templates;
 
 public class EmailSender(
     IOptions<EmailSettings> emailSettings,
@@ -43,20 +43,21 @@ public class EmailSender(
         string htmlBody,
         CancellationToken cancellationToken = default)
     {
-        var message = new MimeMessage();
-
-        message.From.Add(MailboxAddress.Parse(this.settings.From));
-        message.To.Add(MailboxAddress.Parse(to));
-        message.Subject = subject;
-        message.Body = new TextPart("html")
-        {
-            Text = htmlBody
-        };
-
         using var client = new SmtpClient();
 
         try
         {
+            var message = new MimeMessage();
+
+            message.From.Add(MailboxAddress.Parse(this.settings.From));
+            message.To.Add(MailboxAddress.Parse(to));
+            message.Subject = subject;
+            message.Body = new TextPart("html")
+            {
+                Text = htmlBody
+            };
+
+
             var secureOption = this.settings
                 .UseSsl
                     ? SecureSocketOptions.StartTls
@@ -81,7 +82,6 @@ public class EmailSender(
         catch (Exception exception)
         {
             this._logger.LogError(exception, "Error sending email.");
-            throw;
         }
         finally
         {

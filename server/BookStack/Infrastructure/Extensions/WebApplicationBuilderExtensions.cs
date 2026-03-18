@@ -16,6 +16,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
+using Serilog.Events;
 using Services.DateTimeProvider;
 using Services.ServiceLifetimes;
 using Settings;
@@ -23,35 +25,45 @@ using Settings;
 using static Common.Constants;
 using static Features.Identity.Shared.Constants;
 
-public static class ServiceCollectionExtensions
+public static class WebApplicationBuilderExtensions
 {
+    extension(IHostBuilder host)
+    {
+        public IHostBuilder AddLogging(IWebHostEnvironment env)
+        {
+            var logFilePath = Path.Combine(
+                env.ContentRootPath,
+                "logs",
+                "app-.log");
+
+            var directoryName = Path.GetDirectoryName(logFilePath)!;
+            Directory.CreateDirectory(directoryName);
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override(
+                    "Microsoft",
+                    LogEventLevel.Warning)
+                .MinimumLevel.Override(
+                    "Microsoft.AspNetCore",
+                    LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File(
+                    logFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    rollOnFileSizeLimit: true,
+                    retainedFileCountLimit: 14)
+                .CreateLogger();
+
+            host.UseSerilog();
+
+            return host;
+        }
+    }
+
     extension(IServiceCollection services)
     {
-        public IServiceCollection AddCustomHttpLogging(
-            IWebHostEnvironment env)
-        {
-            if (env.IsDevelopment())
-            {
-                services.AddHttpLogging(static options =>
-                {
-                    options.LoggingFields = HttpLoggingFields.All;
-                });
-            }
-            else
-            {
-                services.AddHttpLogging(static options =>
-                {
-                    options.LoggingFields =
-                        HttpLoggingFields.RequestMethod |
-                        HttpLoggingFields.RequestPath |
-                        HttpLoggingFields.RequestQuery |
-                        HttpLoggingFields.ResponseStatusCode;
-                });
-            }
-
-            return services;
-        }
-
         public IServiceCollection AddCustomRequestTimeouts()
         {
             services.AddRequestTimeouts(static options =>

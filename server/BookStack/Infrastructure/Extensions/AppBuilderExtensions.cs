@@ -1,10 +1,13 @@
 ﻿namespace BookStack.Infrastructure.Extensions;
 
-using BookStack.Data.Seeders.Books;
 using Data;
+using Data.Seeders.Books;
+using Data.Seeders.Listings;
 using Features.Identity.Data.Models;
 using Features.Identity.Service;
 using Features.Identity.Service.Models;
+using Features.SellerProfiles.Service;
+using Features.SellerProfiles.Service.Models;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,301 +16,402 @@ using static Common.Constants;
 
 public static class AppBuilderExtensions
 {
-    extension(IApplicationBuilder app)
+    public static IApplicationBuilder UseCustomForwardedHeaders(
+        this IApplicationBuilder app)
     {
-        public IApplicationBuilder UseCustomForwardedHeaders()
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
         {
-            var forwardedHeadersOptions = new ForwardedHeadersOptions
+            ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor |
+                ForwardedHeaders.XForwardedProto,
+        };
+
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
+
+        return app;
+    }
+
+    public static async Task<IApplicationBuilder> UseDevDb(
+        this IApplicationBuilder app,
+        CancellationToken cancellationToken)
+    {
+        await app.UseDevMigrations(cancellationToken);
+        await app.UseDevBuiltInUserBuyer(cancellationToken);
+        await app.UseDevBuiltInUserSeller(cancellationToken);
+        await app.UseDevAdminRole();
+        await app.UseDevCanonicalBookData(cancellationToken);
+        await app.UseDevListingBookData(cancellationToken);
+
+        return app;
+    }
+
+    public static IApplicationBuilder UseAppEndpoints(
+        this IApplicationBuilder app)
+    {
+        app.UseEndpoints(static endpoints =>
+        {
+            endpoints
+                .MapControllers();
+
+            endpoints.MapHealthChecks("/health");
+        });
+
+        return app;
+    }
+
+    public static IApplicationBuilder UseSwaggerUI(
+        this IApplicationBuilder app)
+        => app
+            .UseSwagger()
+            .UseSwaggerUI(static options =>
             {
-                ForwardedHeaders =
-                    ForwardedHeaders.XForwardedFor |
-                    ForwardedHeaders.XForwardedProto,
-            };
+                const string Url = "/swagger/v1/swagger.json";
+                const string Name = "BookStack API";
 
-            forwardedHeadersOptions.KnownProxies.Clear();
-
-            app.UseForwardedHeaders(forwardedHeadersOptions);
-
-            return app;
-        }
-
-        public async Task<IApplicationBuilder> UseMigrations(
-            CancellationToken cancellationToken)
-        {
-            using var services = app
-                .ApplicationServices
-                .CreateScope();
-
-            var data = services
-                .ServiceProvider
-                .GetRequiredService<BookStackDbContext>();
-
-            await data
-                .Database
-                .MigrateAsync(cancellationToken);
-
-            return app;
-        }
-
-        public IApplicationBuilder UseAppEndpoints()
-        {
-            app.UseEndpoints(static endpoints =>
-            {
-                endpoints
-                    .MapControllers();
-
-                endpoints.MapHealthChecks("/health");
+                options.SwaggerEndpoint(Url, Name);
+                options.RoutePrefix = string.Empty;
             });
 
+    public static IApplicationBuilder UseAllowedCors(
+        this IApplicationBuilder app)
+        => app.UseCors(Cors.FrontendPolicyName);
+
+    private static async Task<IApplicationBuilder> UseDevMigrations(
+        this IApplicationBuilder app,
+        CancellationToken cancellationToken = default)
+    {
+        using var services = app
+            .ApplicationServices
+            .CreateScope();
+
+        var data = services
+            .ServiceProvider
+            .GetRequiredService<BookStackDbContext>();
+
+        await data
+            .Database
+            .MigrateAsync(cancellationToken);
+
+        return app;
+    }
+
+    private static async Task<IApplicationBuilder> UseDevBuiltInUserBuyer(
+        this IApplicationBuilder app,
+        CancellationToken cancellationToken = default)
+    {
+        using var serviceScope = app
+            .ApplicationServices
+            .CreateScope();
+
+        var services = serviceScope.ServiceProvider;
+
+        var userManager = services
+            .GetRequiredService<UserManager<UserDbModel>>();
+
+        var buyerExists = await userManager
+            .Users
+            .AnyAsync(cancellationToken);
+
+        if (buyerExists)
+        {
             return app;
         }
 
-        public IApplicationBuilder UseSwaggerUI()
-            => app
-                .UseSwagger()
-                .UseSwaggerUI(static options =>
-                {
-                    const string Url = "/swagger/v1/swagger.json";
-                    const string Name = "BookStack API";
+        var identityService = services
+            .GetRequiredService<IIdentityService>();
 
-                    options.SwaggerEndpoint(Url, Name);
-                    options.RoutePrefix = string.Empty;
-                });
+        var config = services
+            .GetRequiredService<IConfiguration>();
 
-        public IApplicationBuilder UseAllowedCors()
-            => app.UseCors(Cors.FrontendPolicyName);
-
-        public async Task<IApplicationBuilder> UseBuiltInUser(
-            CancellationToken cancellationToken)
+        var serviceModel = new RegisterServiceModel()
         {
-            using var serviceScope = app
-                .ApplicationServices
-                .CreateScope();
+            Username = config["BootstrapSeedUserBuyer:Username"] ?? "seed-buyer",
+            Email = config["BootstrapSeedUserBuyer:Email"] ?? "seed-buyer@localhost",
+            Password = config["BootstrapSeedUserBuyer:Password"] ?? "123456",
+            FirstName = config["BootstrapSeedUserBuyer:FirstName"] ?? "Seed",
+            LastName = config["BootstrapSeedUserBuyer:LastName"] ?? "Buyer",
+            Image = null,
+        };
 
-            var services = serviceScope.ServiceProvider;
+        await identityService.Register(
+            serviceModel,
+            cancellationToken);
 
-            var userManager = services
-                .GetRequiredService<UserManager<UserDbModel>>();
+        return app;
+    }
 
-            var userExists = await userManager
-                .Users
-                .AnyAsync(cancellationToken);
+    private static async Task<IApplicationBuilder> UseDevBuiltInUserSeller(
+        this IApplicationBuilder app,
+        CancellationToken cancellationToken = default)
+    {
+        using var serviceScope = app
+            .ApplicationServices
+            .CreateScope();
 
-            if (userExists)
-            {
-                return app;
-            }
+        var services = serviceScope.ServiceProvider;
 
-            var identityService = services
-                .GetRequiredService<IIdentityService>();
+        var userManager = services
+            .GetRequiredService<UserManager<UserDbModel>>();
 
-            var config = services
-                .GetRequiredService<IConfiguration>();
+        var sellerExists = userManager
+           .Users
+           .Count() > 1;
 
-            var serviceModel = new RegisterServiceModel()
-            {
-                Username = config["BootstrapSeedUser:Username"] ?? "seed-user",
-                Email = config["BootstrapSeedUser:Email"] ?? "seed-user@localhost",
-                Password = config["BootstrapSeedUser:Password"] ?? "ChangeMe123!",
-                FirstName = config["BootstrapSeedUser:FirstName"] ?? "Seed",
-                LastName = config["BootstrapSeedUser:LastName"] ?? "User",
-                Image = null,
-            };
-
-            await identityService.Register(
-                serviceModel,
-                cancellationToken);
-
+        if (sellerExists)
+        {
             return app;
         }
 
-        public async Task<IApplicationBuilder> UseDevBookData(
-            CancellationToken cancellationToken)
+        var config = services
+           .GetRequiredService<IConfiguration>();
+
+        var identityService = services
+            .GetRequiredService<IIdentityService>();
+
+        var registerServiceModel = new RegisterServiceModel()
         {
-            using var serviceScope = app
-                .ApplicationServices
-                .CreateScope();
+            Username = config["BootstrapSeedUserSeller:Username"] ?? "seed-seller",
+            Email = config["BootstrapSeedUserSeller:Email"] ?? "seed-seller@localhost",
+            Password = config["BootstrapSeedUserSeller:Password"] ?? "123456",
+            FirstName = config["BootstrapSeedUserSeller:FirstName"] ?? "Seed",
+            LastName = config["BootstrapSeedUserSeller:LastName"] ?? "Seller",
+            Image = null,
+        };
 
-            var seeder = serviceScope
-                .ServiceProvider
-                .GetRequiredService<IBookSeeder>();
+        await identityService.Register(
+            registerServiceModel,
+            cancellationToken);
 
-            await seeder.Seed(cancellationToken);
+        var sellerService = services
+           .GetRequiredService<ISellerProfileService>();
 
+        var becomeSellerServiceModel = new UpsertSellerProfileServiceModel()
+        {
+            DisplayName = config["BootstrapSeedUserSeller:DisplayName"] ?? "DevSeller",
+            PhoneNumber = config["BootstrapSeedUserSeller:PhoneNumber"] ?? "0898989898",
+            SupportsCashOnDelivery = bool.Parse(config["BootstrapSeedUserSeller:SupportsCashOnDelivery"] ?? "true"),
+            SupportsOnlinePayment = bool.Parse(config["BootstrapSeedUserSeller:SupportsOnlinePayment"] ?? "true"),
+        };
+
+        var userProfile = await userManager
+            .FindByEmailAsync(config["BootstrapSeedUserBuyer:Email"] ?? "seed-buyer@localhost");
+
+        await sellerService.UpsertForUser(
+            userProfile!.Id,
+            becomeSellerServiceModel,
+            cancellationToken);
+
+        return app;
+    }
+
+    private static async Task<IApplicationBuilder> UseDevCanonicalBookData(
+        this IApplicationBuilder app,
+        CancellationToken cancellationToken = default)
+    {
+        using var serviceScope = app
+            .ApplicationServices
+            .CreateScope();
+
+        var seeder = serviceScope
+            .ServiceProvider
+            .GetRequiredService<IBookSeeder>();
+
+        await seeder.Seed(cancellationToken);
+
+        return app;
+    }
+
+    private static async Task<IApplicationBuilder> UseDevListingBookData(
+        this IApplicationBuilder app,
+        CancellationToken cancellationToken = default)
+    {
+        using var serviceScope = app
+            .ApplicationServices
+            .CreateScope();
+
+        var seeder = serviceScope
+            .ServiceProvider
+            .GetRequiredService<IListingsSeeder>();
+
+        await seeder.Seed(cancellationToken);
+
+        return app;
+    }
+
+    private static async Task<IApplicationBuilder> UseDevAdminRole(
+        this IApplicationBuilder app)
+    {
+        using var serviceScope = app
+            .ApplicationServices
+            .CreateScope();
+
+        var services = serviceScope.ServiceProvider;
+
+        var userManager = services
+            .GetRequiredService<UserManager<UserDbModel>>();
+
+        var roleManager = services
+            .GetRequiredService<RoleManager<IdentityRole>>();
+
+        if (await roleManager.RoleExistsAsync(Names.AdminRoleName))
+        {
             return app;
         }
 
-        public async Task<IApplicationBuilder> UseDevAdminRole()
+        var role = new IdentityRole
         {
-            using var serviceScope = app
-                .ApplicationServices
-                .CreateScope();
+            Name = Names.AdminRoleName
+        };
 
-            var services = serviceScope.ServiceProvider;
+        await roleManager.CreateAsync(role);
 
-            var userManager = services
-                .GetRequiredService<UserManager<UserDbModel>>();
+        var config = services
+            .GetRequiredService<IConfiguration>();
 
-            var roleManager = services
-                .GetRequiredService<RoleManager<IdentityRole>>();
+        var adminEmail = config["BootstrapAdmin:DevEmail"] ?? "admin@localhost";
+        var adminPassword = config["BootstrapAdmin:DevPassword"] ?? "123456";
 
-            if (await roleManager.RoleExistsAsync(Names.AdminRoleName))
-            {
-                return app;
-            }
+        var user = new UserDbModel
+        {
+            Email = adminEmail,
+            UserName = Names.AdminRoleName
+        };
 
-            var role = new IdentityRole
-            {
-                Name = Names.AdminRoleName
-            };
+        await userManager.CreateAsync(user, adminPassword);
+        await userManager.AddToRoleAsync(user, role.Name);
 
-            await roleManager.CreateAsync(role);
+        return app;
+    }
 
-            var config = services
-                .GetRequiredService<IConfiguration>();
+    // We need this method to create administrator if we drop the production db for some reason.
+    // Don't delete it!
+    private static async Task<IApplicationBuilder> UseProductionAdminRole(
+        this IApplicationBuilder app)
+    {
+        using var scope = app
+            .ApplicationServices
+            .CreateScope();
 
-            var adminEmail = config["BootstrapAdmin:DevEmail"] ?? "admin@localhost";
-            var adminPassword = config["BootstrapAdmin:DevPassword"] ?? "ChangeMe123!";
+        var services = scope.ServiceProvider;
 
-            var user = new UserDbModel
-            {
-                Email = adminEmail,
-                UserName = Names.AdminRoleName
-            };
+        var logger = services
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("BootstrapAdmin");
 
-            await userManager.CreateAsync(user, adminPassword);
-            await userManager.AddToRoleAsync(user, role.Name);
+        var config = services.GetRequiredService<IConfiguration>();
+        var enabled = string.Equals(
+            config["BootstrapAdmin:Enabled"],
+            "true",
+            StringComparison.OrdinalIgnoreCase);
 
+        logger.LogInformation("BootstrapAdmin Enabled = {Enabled}", enabled);
+
+        if (!enabled)
+        {
             return app;
         }
 
-        // We need this method to create administrator if we drop the production db for some reason.
-        // Don't delete it!
-        public async Task<IApplicationBuilder> UseProductionAdminRole()
+        var email = config["BootstrapAdmin:Email"];
+        var password = config["BootstrapAdmin:Password"];
+        var roleName = config["BootstrapAdmin:Role"] ?? Names.AdminRoleName;
+
+        var emailOrPasswordIsNotProvided =
+            string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(password);
+
+        if (emailOrPasswordIsNotProvided)
         {
-            using var scope = app
-                .ApplicationServices
-                .CreateScope();
+            throw new InvalidOperationException(
+                "BootstrapAdmin enabled but Email/Password not set.");
+        }
 
-            var services = scope.ServiceProvider;
+        var userManager = services
+            .GetRequiredService<UserManager<UserDbModel>>();
 
-            var logger = services
-                .GetRequiredService<ILoggerFactory>()
-                .CreateLogger("BootstrapAdmin");
+        var roleManager = services
+            .GetRequiredService<RoleManager<IdentityRole>>();
 
-            var config = services.GetRequiredService<IConfiguration>();
-            var enabled = string.Equals(
-                config["BootstrapAdmin:Enabled"],
-                "true",
-                StringComparison.OrdinalIgnoreCase);
+        if (!await roleManager.RoleExistsAsync(roleName))
+        {
+            var role = new IdentityRole(roleName);
+            var createRoleResult = await roleManager.CreateAsync(role);
 
-            logger.LogInformation("BootstrapAdmin Enabled = {Enabled}", enabled);
-
-            if (!enabled)
+            if (!createRoleResult.Succeeded)
             {
-                return app;
-            }
+                var roleResultErrorMessage = createRoleResult
+                    .Errors
+                    .Select(static e => e.Description);
 
-            var email = config["BootstrapAdmin:Email"];
-            var password = config["BootstrapAdmin:Password"];
-            var roleName = config["BootstrapAdmin:Role"] ?? Names.AdminRoleName;
-
-            var emailOrPasswordIsNotProvided =
-                string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(password);
-
-            if (emailOrPasswordIsNotProvided)
-            {
                 throw new InvalidOperationException(
-                    "BootstrapAdmin enabled but Email/Password not set.");
+                    "Failed to create role: " + string.Join("; ", roleResultErrorMessage));
             }
 
-            var userManager = services
-                .GetRequiredService<UserManager<UserDbModel>>();
-
-            var roleManager = services
-                .GetRequiredService<RoleManager<IdentityRole>>();
-
-            if (!await roleManager.RoleExistsAsync(roleName))
-            {
-                var role = new IdentityRole(roleName);
-                var createRoleResult = await roleManager.CreateAsync(role);
-
-                if (!createRoleResult.Succeeded)
-                {
-                    var roleResultErrorMessage = createRoleResult
-                        .Errors
-                        .Select(static e => e.Description);
-
-                    throw new InvalidOperationException(
-                        "Failed to create role: " + string.Join("; ", roleResultErrorMessage));
-                }
-
-                logger.LogInformation("Created role {Role}", roleName);
-            }
-            else
-            {
-                logger.LogInformation("Role {Role} already exists", roleName);
-            }
-
-            var user = await userManager.FindByEmailAsync(email!);
-            if (user is null)
-            {
-                user = new()
-                {
-                    Email = email,
-                    UserName = email
-                };
-
-                var createUserResult = await userManager
-                    .CreateAsync(user, password!);
-
-                if (!createUserResult.Succeeded)
-                {
-                    var errorMessage = createUserResult
-                        .Errors
-                        .Select(static e => e.Description);
-
-                    throw new InvalidOperationException(
-                        "Failed to create admin user: " + string.Join("; ", errorMessage));
-                }
-
-                logger.LogInformation("Created user {Email}", email);
-            }
-            else
-            {
-                logger.LogInformation("User {Email} already exists", email);
-            }
-
-            if (!await userManager.IsInRoleAsync(user, roleName))
-            {
-                var addToRoleResult = await userManager
-                    .AddToRoleAsync(user, roleName);
-
-                if (!addToRoleResult.Succeeded)
-                {
-                    var errorMessage = addToRoleResult
-                        .Errors
-                        .Select(static e => e.Description);
-
-                    throw new InvalidOperationException(
-                        "Failed to add role: " + string.Join("; ", errorMessage));
-                }
-
-                logger.LogInformation(
-                    "Added user {Email} to role {Role}",
-                    email,
-                    roleName);
-            }
-            else
-            {
-                logger.LogInformation(
-                    "User {Email} already in role {Role}",
-                    email,
-                    roleName);
-            }
-
-            return app;
+            logger.LogInformation("Created role {Role}", roleName);
         }
+        else
+        {
+            logger.LogInformation("Role {Role} already exists", roleName);
+        }
+
+        var user = await userManager.FindByEmailAsync(email!);
+        if (user is null)
+        {
+            user = new()
+            {
+                Email = email,
+                UserName = email
+            };
+
+            var createUserResult = await userManager
+                .CreateAsync(user, password!);
+
+            if (!createUserResult.Succeeded)
+            {
+                var errorMessage = createUserResult
+                    .Errors
+                    .Select(static e => e.Description);
+
+                throw new InvalidOperationException(
+                    "Failed to create admin user: " + string.Join("; ", errorMessage));
+            }
+
+            logger.LogInformation("Created user {Email}", email);
+        }
+        else
+        {
+            logger.LogInformation("User {Email} already exists", email);
+        }
+
+        if (!await userManager.IsInRoleAsync(user, roleName))
+        {
+            var addToRoleResult = await userManager
+                .AddToRoleAsync(user, roleName);
+
+            if (!addToRoleResult.Succeeded)
+            {
+                var errorMessage = addToRoleResult
+                    .Errors
+                    .Select(static e => e.Description);
+
+                throw new InvalidOperationException(
+                    "Failed to add role: " + string.Join("; ", errorMessage));
+            }
+
+            logger.LogInformation(
+                "Added user {Email} to role {Role}",
+                email,
+                roleName);
+        }
+        else
+        {
+            logger.LogInformation(
+                "User {Email} already in role {Role}",
+                email,
+                roleName);
+        }
+
+        return app;
     }
 }

@@ -1,8 +1,8 @@
 ﻿namespace BookStack.Data.Seeders.Books;
 
 using Areas.Admin.Service;
-using BookStack.Infrastructure.Services.DateTimeProvider;
 using Features.Books.Data.Models;
+using Infrastructure.Services.DateTimeProvider;
 using Microsoft.EntityFrameworkCore;
 
 using static Common.Constants;
@@ -14,7 +14,7 @@ public sealed class BookSeeder(
     ILogger<BookSeeder> logger) : IBookSeeder
 {
     private const string ZeroOrMoreThanOneUsersErrorMessage =
-        "There should be exactly one non-admin user in dev environment so books seeding works correctly.";
+        "There should be exactly one non-admin and non-seller user in dev environment so books seeding works correctly!";
 
     public async Task Seed(CancellationToken cancellationToken)
     {
@@ -25,7 +25,9 @@ public sealed class BookSeeder(
             userId = await data
                 .Users
                 .AsNoTracking()
-                .Where(static u => u.UserName != Names.AdminRoleName)
+                .Where(static
+                    u => u.UserName != Names.AdminRoleName &&
+                    u.SellerProfile == null)
                 .Select(static u => u.Id)
                 .SingleOrDefaultAsync(cancellationToken);
         }
@@ -207,7 +209,7 @@ public sealed class BookSeeder(
         await data.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Seeded {Count} fiction books for user {UserId} approved by admin {AdminId}.",
+            "Seeded {Count} books for user {UserId} approved by admin {AdminId}.",
             books.Count,
             userId,
             adminId);

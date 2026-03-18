@@ -1,5 +1,6 @@
 using BookStack.Infrastructure.Extensions;
 using Scalar.AspNetCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,6 @@ builder.Services
     .AddAppSettings(builder.Configuration)
     .AddIdentity(builder.Environment)
     .AddCustomRateLimiter(builder.Environment)
-    .AddCustomHttpLogging(builder.Environment)
     .AddDatabase(
         builder.Configuration,
         builder.Environment)
@@ -26,6 +26,10 @@ builder.Services
     .AddJwtAuthentication(
         builder.Configuration,
         builder.Environment);
+
+builder
+    .Host
+    .AddLogging(builder.Environment);
 
 var app = builder.Build();
 
@@ -47,7 +51,8 @@ else
     app.UseHttpsRedirection();
 }
 
-app.UseHttpLogging();
+app.UseSerilogRequestLogging();
+
 app.UseStaticFiles();
 app.UseRouting();
 
@@ -68,10 +73,8 @@ if (envIsDev)
         .Lifetime
         .ApplicationStopping;
 
-    await app.UseMigrations(cancellationToken);
-    await app.UseBuiltInUser(cancellationToken);
-    await app.UseDevBookData(cancellationToken);
-    await app.UseDevAdminRole();
+    await app.UseDevDb(cancellationToken);
+
 }
 
 app.Run();

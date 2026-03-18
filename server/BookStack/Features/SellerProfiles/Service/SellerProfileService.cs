@@ -88,6 +88,18 @@ public class SellerProfileService(
             return "Seller profile must support at least one payment method.";
         }
 
+        var alreadyRegistered = await this._data
+            .Profiles
+            .AsNoTracking()
+            .AnyAsync(
+                u => u.UserId == currentUserId,
+                cancellationToken);
+
+        if (!alreadyRegistered)
+        {
+            return "User can not become a seller without creating a normal user profile first.";
+        }
+
         var profile = await this._data
             .SellerProfiles
             .SingleOrDefaultAsync(
@@ -115,6 +127,59 @@ public class SellerProfileService(
 
         return ResultWith<SellerProfileServiceModel>
             .Success(profile.ToServiceModel());
+    }
+
+    public async Task<ResultWith<SellerProfileServiceModel>> UpsertForUser(
+        string userId,
+        UpsertSellerProfileServiceModel model,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User id is required.", nameof(userId));
+        }
+
+        if (!model.SupportsOnlinePayment && !model.SupportsCashOnDelivery)
+        {
+            return "Seller profile must support at least one payment method.";
+        }
+
+        var alreadyRegistered = await this._data
+            .Profiles
+            .AsNoTracking()
+            .AnyAsync(u => u.UserId == userId, cancellationToken);
+
+        if (!alreadyRegistered)
+        {
+            return "User can not become a seller without creating a normal user profile first.";
+        }
+
+        var profile = await this._data
+            .SellerProfiles
+            .SingleOrDefaultAsync(
+                p => p.UserId == userId,
+                cancellationToken);
+
+        if (profile is null)
+        {
+            profile = model.ToDbModel(userId);
+            this._data.Add(profile);
+        }
+        else
+        {
+            model.UpdateDbModel(profile);
+        }
+
+        await this._data.SaveChangesAsync(cancellationToken);
+
+        this._logger.LogInformation(
+            "Seller profile upserted. UserId={UserId}, IsActive={IsActive}, SupportsOnlinePayment={SupportsOnlinePayment}, SupportsCashOnDelivery={SupportsCashOnDelivery}",
+            userId,
+            profile.IsActive,
+            profile.SupportsOnlinePayment,
+            profile.SupportsCashOnDelivery);
+
+        return ResultWith<SellerProfileServiceModel>.Success(profile.ToServiceModel());
     }
 
     public async Task<Result> ChangeStatus(

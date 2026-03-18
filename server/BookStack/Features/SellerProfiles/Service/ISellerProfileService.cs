@@ -20,6 +20,11 @@ public interface ISellerProfileService : IScopedService
         UpsertSellerProfileServiceModel model,
         CancellationToken cancellationToken = default);
 
+    Task<ResultWith<SellerProfileServiceModel>> UpsertForUser(
+        string userId,
+        UpsertSellerProfileServiceModel model,
+        CancellationToken cancellationToken = default);
+
     Task<Result> ChangeStatus(
         string userId,
         bool isActive,
