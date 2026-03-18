@@ -11,7 +11,8 @@ using Features.SellerProfiles.Service.Models;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-
+using System.Diagnostics.Metrics;
+using System.Reflection.Metadata;
 using static Common.Constants;
 
 public static class AppBuilderExtensions
@@ -38,9 +39,9 @@ public static class AppBuilderExtensions
         CancellationToken cancellationToken)
     {
         await app.UseDevMigrations(cancellationToken);
+        await app.UseDevAdminRole();
         await app.UseDevBuiltInUserBuyer(cancellationToken);
         await app.UseDevBuiltInUserSeller(cancellationToken);
-        await app.UseDevAdminRole();
         await app.UseDevCanonicalBookData(cancellationToken);
         await app.UseDevListingBookData(cancellationToken);
 
@@ -110,11 +111,16 @@ public static class AppBuilderExtensions
         var userManager = services
             .GetRequiredService<UserManager<UserDbModel>>();
 
-        var buyerExists = await userManager
-            .Users
-            .AnyAsync(cancellationToken);
+        var config = services
+            .GetRequiredService<IConfiguration>();
 
-        if (buyerExists)
+        var buyerEmail = config["BootstrapSeedUserBuyer:Email"]
+            ?? "seed-buyer@localhost";
+
+        var buyer = await userManager
+            .FindByEmailAsync(buyerEmail);
+
+        if (buyer is not null)
         {
             return app;
         }
@@ -122,13 +128,10 @@ public static class AppBuilderExtensions
         var identityService = services
             .GetRequiredService<IIdentityService>();
 
-        var config = services
-            .GetRequiredService<IConfiguration>();
-
         var serviceModel = new RegisterServiceModel()
         {
             Username = config["BootstrapSeedUserBuyer:Username"] ?? "seed-buyer",
-            Email = config["BootstrapSeedUserBuyer:Email"] ?? "seed-buyer@localhost",
+            Email = buyerEmail,
             Password = config["BootstrapSeedUserBuyer:Password"] ?? "123456",
             FirstName = config["BootstrapSeedUserBuyer:FirstName"] ?? "Seed",
             LastName = config["BootstrapSeedUserBuyer:LastName"] ?? "Buyer",
@@ -155,17 +158,19 @@ public static class AppBuilderExtensions
         var userManager = services
             .GetRequiredService<UserManager<UserDbModel>>();
 
-        var sellerExists = userManager
-           .Users
-           .Count() > 1;
+        var config = services
+           .GetRequiredService<IConfiguration>();
 
-        if (sellerExists)
+        var sellerEmail = config["BootstrapSeedUserSeller:Email"]
+            ?? "seed-seller@localhost";
+
+        var seller = await userManager
+           .FindByEmailAsync(sellerEmail);
+
+        if (seller is not null)
         {
             return app;
         }
-
-        var config = services
-           .GetRequiredService<IConfiguration>();
 
         var identityService = services
             .GetRequiredService<IIdentityService>();
@@ -173,7 +178,7 @@ public static class AppBuilderExtensions
         var registerServiceModel = new RegisterServiceModel()
         {
             Username = config["BootstrapSeedUserSeller:Username"] ?? "seed-seller",
-            Email = config["BootstrapSeedUserSeller:Email"] ?? "seed-seller@localhost",
+            Email = sellerEmail,
             Password = config["BootstrapSeedUserSeller:Password"] ?? "123456",
             FirstName = config["BootstrapSeedUserSeller:FirstName"] ?? "Seed",
             LastName = config["BootstrapSeedUserSeller:LastName"] ?? "Seller",
@@ -196,10 +201,11 @@ public static class AppBuilderExtensions
         };
 
         var userProfile = await userManager
-            .FindByEmailAsync(config["BootstrapSeedUserBuyer:Email"] ?? "seed-buyer@localhost");
+            .FindByEmailAsync(config["BootstrapSeedUserSeller:Email"] ?? "seed-seller@localhost")
+            ?? throw new("Seller's normal profile was not created successfully!");
 
         await sellerService.UpsertForUser(
-            userProfile!.Id,
+            userProfile.Id,
             becomeSellerServiceModel,
             cancellationToken);
 

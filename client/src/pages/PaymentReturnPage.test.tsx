@@ -88,7 +88,7 @@ describe('PaymentReturnPage', () => {
       city: 'Sofia',
       addressLine: '1 Vitosha Blvd',
       postalCode: '1000',
-      total: { primary: { amount: 30, currency: 'BGN' } },
+      total: { primary: { amount: 30, currency: 'EUR' } },
       paymentMethod: 'online',
       status: 'confirmed',
       paymentStatus: 'paid',

@@ -240,5 +240,11 @@ public class BooksVisibilityBoundaryTests
             string userId,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+
+        public Task<ResultWith<SellerProfileServiceModel>> UpsertForUser(
+            string userId,
+            UpsertSellerProfileServiceModel model,
+            CancellationToken cancellationToken = default)
+            => throw new NotImplementedException();
     }
 }

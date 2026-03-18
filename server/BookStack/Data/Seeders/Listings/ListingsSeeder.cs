@@ -96,7 +96,7 @@ public sealed class ListingsSeeder(
             BookId = book.Id,
             CreatorId = sellerId,
             Price = GetPrice(book.Title),
-            Currency = "EU",
+            Currency = "EUR",
             Condition = GetCondition(book.Title),
             Quantity = GetQuantity(book.Title),
             Description = GetDescription(book),
@@ -190,7 +190,7 @@ public sealed class ListingsSeeder(
                 $"Good used copy of {book.Title} by {book.Author}. Clean pages and intact binding."
         };
 
-    // Will be used once the actual image are added in the wwwroot folder
+    // Will be used once the actual images are added in the wwwroot folder
     private static string GetImagePath(string title)
         => title switch
         {

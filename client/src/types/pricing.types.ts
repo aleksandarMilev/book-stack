@@ -5,7 +5,17 @@ export interface MoneyAmount {
   currency: CurrencyCode;
 }
 
+export interface OfficialMoneyAmount {
+  amount: number;
+  currency: 'EUR';
+}
+
+export interface InformationalMoneyAmount {
+  amount: number;
+  currency: 'BGN';
+}
+
 export interface PriceDisplayValue {
-  primary: MoneyAmount;
-  secondary?: MoneyAmount;
+  primary: OfficialMoneyAmount;
+  secondary?: InformationalMoneyAmount;
 }

@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Data;
@@ -10,12 +11,12 @@ using Features.Payments.Service;
 using Features.Payments.Service.Providers;
 using Filters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Outbox.Service;
 using Serilog;
 using Serilog.Events;
 using Services.DateTimeProvider;
@@ -295,38 +296,79 @@ public static class WebApplicationBuilderExtensions
                 })
                 .AddJwtBearer(options =>
                 {
+                    const int ClockSkewMinutes = 2;
+
                     options.SaveToken = true;
-                    if (env.IsDevelopment())
-                    {
-                        options.RequireHttpsMetadata = false;
-                        options.IncludeErrorDetails = true;
+                    options.RequireHttpsMetadata = !env.IsDevelopment();
+                    options.IncludeErrorDetails = env.IsDevelopment();
 
-                        options.TokenValidationParameters = new()
-                        {
-                            ValidateIssuer = false,
-                            ValidateAudience = false,
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = new SymmetricSecurityKey(key),
-                            ValidateLifetime = true
-                        };
-                    }
-                    else
+                    options.TokenValidationParameters = new()
                     {
-                        const int ClockSkewMinutes = 2;
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = true,
+                        ValidIssuer = settings.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = settings.Audience,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.FromMinutes(ClockSkewMinutes)
+                    };
 
-                        options.RequireHttpsMetadata = true;
-                        options.TokenValidationParameters = new()
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
                         {
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = new SymmetricSecurityKey(key),
-                            ValidateIssuer = true,
-                            ValidIssuer = settings.Issuer,
-                            ValidateAudience = true,
-                            ValidAudience = settings.Audience,
-                            ValidateLifetime = true,
-                            ClockSkew = TimeSpan.FromMinutes(ClockSkewMinutes)
-                        };
-                    }
+                            var userManager = context.HttpContext
+                                .RequestServices
+                                .GetRequiredService<UserManager<UserDbModel>>();
+
+                            var principal = context.Principal;
+                            if (principal is null)
+                            {
+                                context.Fail("Invalid token principal.");
+                                return;
+                            }
+
+                            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                            var tokenSecurityStamp = principal.FindFirstValue("security_stamp");
+
+                            if (string.IsNullOrWhiteSpace(userId))
+                            {
+                                context.Fail("Missing user id claim.");
+                                return;
+                            }
+
+                            if (string.IsNullOrWhiteSpace(tokenSecurityStamp))
+                            {
+                                context.Fail("Missing security stamp claim.");
+                                return;
+                            }
+
+                            var user = await userManager.FindByIdAsync(userId);
+                            if (user is null)
+                            {
+                                context.Fail("User not found.");
+                                return;
+                            }
+
+                            if (user.IsDeleted)
+                            {
+                                context.Fail("User is deleted.");
+                                return;
+                            }
+
+                            var currentSecurityStamp = user.SecurityStamp
+                                ?? string.Empty;
+
+                            if (!string.Equals(
+                                    tokenSecurityStamp,
+                                    currentSecurityStamp,
+                                    StringComparison.Ordinal))
+                            {
+                                context.Fail("Token is no longer valid.");
+                            }
+                        }
+                    };
                 });
 
             return services;
@@ -385,10 +427,10 @@ public static class WebApplicationBuilderExtensions
                     }
                 });
 
-            services.AddScoped<IDateTimeProvider, SystemDateTimeProvider>();
-            services.AddScoped<IPaymentProvider, MockPaymentProvider>();
-
-            return services;
+            return services
+                .AddSingleton<IDateTimeProvider, SystemDateTimeProvider>()
+                .AddScoped<IPaymentProvider, MockPaymentProvider>()
+                .AddHostedService<OutboxProcessor>();
         }
 
         public IServiceCollection AddApiControllers()

@@ -38,7 +38,7 @@ describe('ListingDetailsPage purchase flow', () => {
       rejectionReason: null,
       createdOn: '2026-01-01T10:00:00Z',
       modifiedOn: null,
-      price: { primary: { amount: 15, currency: 'BGN' } },
+      price: { primary: { amount: 15, currency: 'EUR' } },
     });
 
     render(

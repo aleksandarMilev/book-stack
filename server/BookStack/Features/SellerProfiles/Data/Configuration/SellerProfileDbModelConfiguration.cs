@@ -51,5 +51,8 @@ public sealed class SellerProfileDbModelConfiguration : IEntityTypeConfiguration
 
         builder
             .HasIndex(static p => p.CreatedOn);
+
+        builder
+            .HasQueryFilter(static p => !p.IsDeleted && !p.User.IsDeleted);
     }
 }

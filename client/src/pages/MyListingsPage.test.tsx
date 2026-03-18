@@ -72,7 +72,7 @@ describe('MyListingsPage', () => {
           rejectionReason: null,
           createdOn: '2026-01-01T10:00:00Z',
           modifiedOn: null,
-          price: { primary: { amount: 21.5, currency: 'BGN' } },
+          price: { primary: { amount: 21.5, currency: 'EUR' } },
         },
         {
           id: 'listing-rejected',

@@ -479,7 +479,7 @@ const bg = {
         'This creates a canonical book and your listing together, both pending moderation.',
       listingStepTitle: 'Step 2: Add listing details',
       listingStepDescription: 'Set listing-specific details and submit for moderation.',
-      currencyHint: 'Official listing currency is {{currency}}.',
+      currencyHint: 'Официалната валута на обявата е {{currency}}.',
       bookTitleLabel: 'Book title',
       bookAuthorLabel: 'Book author',
       bookGenreLabel: 'Book genre',

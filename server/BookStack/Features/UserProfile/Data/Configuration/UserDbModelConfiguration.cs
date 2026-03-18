@@ -35,5 +35,8 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
             .Property(static p => p.IsDeleted)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder
+            .HasQueryFilter(static p => !p.IsDeleted && !p.User.IsDeleted);
     }
 }

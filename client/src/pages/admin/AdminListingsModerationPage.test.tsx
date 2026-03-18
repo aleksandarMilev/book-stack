@@ -39,7 +39,7 @@ const listingsResponse = {
       price: {
         primary: {
           amount: 25.5,
-          currency: 'BGN' as const,
+          currency: 'EUR' as const,
         },
       },
     },

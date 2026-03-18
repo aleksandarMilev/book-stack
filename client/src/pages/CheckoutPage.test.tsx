@@ -88,7 +88,7 @@ describe('CheckoutPage', () => {
       rejectionReason: null,
       createdOn: '2026-01-01T10:00:00Z',
       modifiedOn: null,
-      price: { primary: { amount: 12.5, currency: 'BGN' } },
+      price: { primary: { amount: 12.5, currency: 'EUR' } },
     });
 
     renderCheckoutRoute('/checkout?listingId=listing-1&quantity=1');
@@ -189,7 +189,7 @@ describe('CheckoutPage', () => {
       rejectionReason: null,
       createdOn: '2026-01-01T10:00:00Z',
       modifiedOn: null,
-      price: { primary: { amount: 10, currency: 'BGN' } },
+      price: { primary: { amount: 10, currency: 'EUR' } },
     });
     vi.mocked(checkoutService.createOrderAndStartCheckout).mockRejectedValue(new Error('boom'));
 
