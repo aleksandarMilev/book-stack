@@ -4,25 +4,29 @@
   --font-heading: 'Literata', Georgia, serif;
   --font-body: 'Manrope', 'Segoe UI', sans-serif;
 
-  --color-bg: #f1eee6;
-  --color-bg-soft: #f7f5ee;
+  --color-bg: #ece8de;
+  --color-bg-soft: #f4f0e7;
+  --color-bg-elevated: #f8f3ea;
   --color-surface: #fffdf8;
-  --color-surface-muted: #f6f2e8;
-  --color-text: #1f2825;
-  --color-text-muted: #5f6f67;
-  --color-primary: #1d685b;
-  --color-primary-strong: #155045;
-  --color-accent: #9a6a33;
-  --color-border: #d6dbd1;
-  --color-border-strong: #b3c0b5;
-  --color-focus: #2f8d7d;
-  --color-success: #3d6f57;
+  --color-surface-muted: #f4efe3;
+  --color-surface-strong: #ffffff;
+  --color-text: #1d2522;
+  --color-text-muted: #5f6963;
+  --color-primary: #225f54;
+  --color-primary-strong: #18463e;
+  --color-primary-soft: #467f72;
+  --color-accent: #a8743d;
+  --color-accent-strong: #7f552b;
+  --color-border: #d6d0c2;
+  --color-border-strong: #b9b19f;
+  --color-focus: #2f8978;
+  --color-success: #2f6f5a;
   --color-danger: #a64646;
 
-  --radius-sm: 0.5rem;
-  --radius-md: 0.9rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.75rem;
+  --radius-sm: 0.55rem;
+  --radius-md: 0.95rem;
+  --radius-lg: 1.35rem;
+  --radius-xl: 2rem;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -33,10 +37,12 @@
   --space-7: 3rem;
   --space-8: 4.5rem;
 
-  --shadow-soft: 0 10px 30px rgba(33, 44, 38, 0.08);
-  --shadow-card: 0 14px 32px rgba(31, 46, 40, 0.12);
-  --transition-fast: 180ms ease;
-  --transition-normal: 260ms ease;
+  --shadow-soft: 0 16px 38px rgba(41, 38, 30, 0.08);
+  --shadow-card: 0 18px 42px rgba(42, 36, 28, 0.12);
+  --shadow-lift: 0 24px 52px rgba(33, 29, 22, 0.18);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --transition-fast: 170ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --container-md: 44rem;
   --container-lg: 64rem;

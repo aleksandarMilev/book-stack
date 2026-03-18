@@ -14,7 +14,7 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
   const { t } = useTranslation();
 
   return (
-    <Card className="marketplace-listing-card" elevated>
+    <Card className="marketplace-listing-card" data-reveal elevated>
       {listing.imageUrl ? (
         <img
           alt={t('marketplace.listingImageAlt', { title: listing.title })}

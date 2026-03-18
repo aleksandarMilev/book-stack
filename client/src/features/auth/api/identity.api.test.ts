@@ -9,9 +9,28 @@ vi.mock('@/api/httpClient', () => ({
   },
 }));
 
-describe('identityApi.register', () => {
+describe('identityApi', () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('posts login payload to the identity login endpoint', async () => {
+    vi.mocked(httpClient.post).mockResolvedValue({
+      data: { token: 'jwt-token' },
+    });
+
+    const response = await identityApi.login({
+      credentials: 'alice@example.com',
+      password: 'Password123',
+      rememberMe: true,
+    });
+
+    expect(httpClient.post).toHaveBeenCalledWith('/Identity/login/', {
+      credentials: 'alice@example.com',
+      password: 'Password123',
+      rememberMe: true,
+    });
+    expect(response.token).toBe('jwt-token');
   });
 
   it('sends multipart form-data payload when image is not provided', async () => {

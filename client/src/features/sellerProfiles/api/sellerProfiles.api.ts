@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 import { httpClient } from '@/api/httpClient';
 
 export interface SellerProfileResponse {
@@ -25,11 +27,23 @@ const normalizePhoneNumber = (phoneNumber: string | undefined): string | undefin
 
 export const sellerProfilesApi = {
   async getMine(): Promise<SellerProfileResponse | null> {
-    const response = await httpClient.get<SellerProfileResponse | null>(
-      `${SELLER_PROFILES_BASE_PATH}/mine/`,
-    );
+    try {
+      const response = await httpClient.get<SellerProfileResponse | null>(
+        `${SELLER_PROFILES_BASE_PATH}/mine/`,
+      );
 
-    return response.data;
+      if (response.status === 204 || response.data === null) {
+        return null;
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+
+      throw error;
+    }
   },
 
   async upsertMine(payload: UpsertSellerProfileRequest): Promise<SellerProfileResponse> {

@@ -257,12 +257,12 @@ export function MarketplacePage() {
 
   return (
     <Container className="marketplace-page">
-      <header className="marketplace-header">
+      <header className="marketplace-header" data-reveal>
         <h1>{t('marketplace.title')}</h1>
         <p>{t('marketplace.subtitle')}</p>
       </header>
 
-      <section className="marketplace-toolbar">
+      <section className="marketplace-toolbar" data-reveal>
         <Input
           label={t('marketplace.searchLabel')}
           name="search"
@@ -324,7 +324,7 @@ export function MarketplacePage() {
       </section>
 
       <section className="marketplace-layout">
-        <aside className="marketplace-desktop-filters">
+        <aside className="marketplace-desktop-filters" data-reveal>
           <p className="marketplace-filters-title">{t('marketplace.desktopFiltersTitle')}</p>
           <MarketplaceFilters
             author={queryState.author}
@@ -355,7 +355,7 @@ export function MarketplacePage() {
           />
         </aside>
 
-        <div className="marketplace-results">
+        <div className="marketplace-results" data-reveal>
           <p className="marketplace-results-count">{t('marketplace.resultsCount', { count: totalItems })}</p>
 
           {isLoading ? (

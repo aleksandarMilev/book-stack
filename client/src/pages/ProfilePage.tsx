@@ -39,11 +39,19 @@ export function ProfilePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
+  const [avatarImageLoadFailed, setAvatarImageLoadFailed] = useState(false);
 
   const profileDisplayName = useMemo(
     () => `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`.trim() || session?.user.displayName || '-',
     [profile?.firstName, profile?.lastName, session?.user.displayName],
   );
+  const profileEmail = session?.user.email ?? '-';
+  const profileRole = t(`pages.profile.roles.${session?.user.role ?? 'buyer'}`);
+  const shouldShowAvatarImage = Boolean(profile?.imageUrl) && !avatarImageLoadFailed;
+
+  useEffect(() => {
+    setAvatarImageLoadFailed(false);
+  }, [profile?.imageUrl]);
 
   useEffect(() => {
     let isActive = true;
@@ -192,30 +200,51 @@ export function ProfilePage() {
 
   return (
     <Container className="profile-page">
-      <header className="marketplace-header">
+      <header className="marketplace-header" data-reveal>
         <h1>{t('pages.profile.title')}</h1>
         <p>{t('pages.profile.subtitle')}</p>
       </header>
 
       <section className="profile-layout">
-        <Card className="profile-summary-card" elevated>
-          {profile.imageUrl && !formState.removeImage ? (
-            <img alt={t('pages.profile.imageAlt', { name: profileDisplayName })} className="profile-avatar" src={profile.imageUrl} />
-          ) : (
-            <div className="profile-avatar profile-avatar--fallback">{getInitials(profile.firstName, profile.lastName)}</div>
-          )}
+        <Card className="profile-summary-card" data-reveal elevated>
+          <div className="profile-avatar-shell">
+            {shouldShowAvatarImage ? (
+              <img
+                alt={t('pages.profile.imageAlt', { name: profileDisplayName })}
+                className="profile-avatar"
+                data-testid="profile-avatar-image"
+                onError={() => {
+                  setAvatarImageLoadFailed(true);
+                }}
+                src={profile.imageUrl}
+              />
+            ) : (
+              <div className="profile-avatar profile-avatar--fallback" data-testid="profile-avatar-fallback">
+                {getInitials(profile.firstName, profile.lastName)}
+              </div>
+            )}
+          </div>
+
           <div className="profile-summary-content">
-            <h2>{profileDisplayName}</h2>
+            <h2 className="profile-summary-name">{profileDisplayName}</h2>
             <dl className="profile-summary-meta">
-              <dt>{t('pages.profile.emailLabel')}</dt>
-              <dd>{session?.user.email ?? '-'}</dd>
-              <dt>{t('pages.profile.roleLabel')}</dt>
-              <dd>{t(`pages.profile.roles.${session?.user.role ?? 'buyer'}`)}</dd>
+              <div className="profile-summary-meta-row">
+                <dt>{t('pages.profile.emailLabel')}</dt>
+                <dd className="profile-summary-value" data-testid="profile-summary-email-value" title={profileEmail}>
+                  {profileEmail}
+                </dd>
+              </div>
+              <div className="profile-summary-meta-row">
+                <dt>{t('pages.profile.roleLabel')}</dt>
+                <dd className="profile-summary-value" data-testid="profile-summary-role-value">
+                  {profileRole}
+                </dd>
+              </div>
             </dl>
           </div>
         </Card>
 
-        <Card className="profile-edit-card" elevated>
+        <Card className="profile-edit-card" data-reveal elevated>
           <h2>{t('pages.profile.editTitle')}</h2>
           <form className="profile-form" onSubmit={handleSubmit}>
             <Input

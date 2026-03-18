@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
@@ -44,6 +45,8 @@ const adminItems: HeaderNavItem[] = [
   { labelKey: 'nav.admin.books', to: ROUTES.adminBooksModeration },
   { labelKey: 'nav.admin.listings', to: ROUTES.adminListingsModeration },
 ];
+
+const desktopLayoutMediaQuery = '(min-width: 60rem)';
 
 function HeaderLink({ labelKey, to, onClick }: HeaderNavItem & { onClick?: () => void }) {
   const { t } = useTranslation();
@@ -124,6 +127,60 @@ export function AppHeader() {
     };
   }, [close, isOpen]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQueryList = window.matchMedia(desktopLayoutMediaQuery);
+    const handleChange = (event: MediaQueryListEvent): void => {
+      if (event.matches) {
+        close();
+      }
+    };
+
+    if (mediaQueryList.matches) {
+      close();
+    }
+
+    if (typeof mediaQueryList.addEventListener === 'function') {
+      mediaQueryList.addEventListener('change', handleChange);
+      return () => {
+        mediaQueryList.removeEventListener('change', handleChange);
+      };
+    }
+
+    mediaQueryList.addListener(handleChange);
+    return () => {
+      mediaQueryList.removeListener(handleChange);
+    };
+  }, [close]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    if (!isOpen) {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - documentElement.clientWidth;
+
+    body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [isOpen]);
+
   const desktopQuickItems = isAuthenticated ? userItems : guestItems;
   const mobileAccountItems = isAuthenticated ? userItems : guestItems;
 
@@ -132,6 +189,61 @@ export function AppHeader() {
     navigate(ROUTES.home, { replace: true });
     close();
   };
+
+  const mobileNavigation =
+    typeof document !== 'undefined'
+      ? createPortal(
+          <>
+            <div
+              className={classNames('mobile-nav-overlay', isOpen && 'mobile-nav-overlay--open')}
+              data-testid="mobile-nav-overlay"
+              onClick={close}
+            />
+            <aside
+              aria-label={t('nav.mobile.navigationLabel')}
+              aria-modal="true"
+              aria-hidden={!isOpen}
+              className={classNames('mobile-nav-drawer', isOpen && 'mobile-nav-drawer--open')}
+              data-testid="mobile-nav-drawer"
+              id={mobileDrawerId}
+              role="dialog"
+            >
+              <div className="mobile-nav-head">
+                <p className="mobile-nav-title">{t('common.appName')}</p>
+                <Button onClick={close} size="sm" variant="ghost">
+                  {t('common.actions.close')}
+                </Button>
+              </div>
+
+              <div className="mobile-nav-sections">
+                <HeaderGroup
+                  items={primaryNavItems}
+                  onItemClick={close}
+                  title={t('common.labels.premiumSelection')}
+                />
+                <HeaderGroup
+                  items={mobileAccountItems}
+                  onItemClick={close}
+                  title={t('shell.accountArea')}
+                />
+                {hasActiveSellerProfile ? (
+                  <HeaderGroup items={sellerItems} onItemClick={close} title={t('shell.sellerArea')} />
+                ) : null}
+                {capabilities.canAccessAdminArea ? (
+                  <HeaderGroup items={adminItems} onItemClick={close} title={t('shell.adminArea')} />
+                ) : null}
+                {isAuthenticated ? (
+                  <Button fullWidth onClick={handleLogout} variant="secondary">
+                    {t('common.actions.logout')}
+                  </Button>
+                ) : null}
+                <LanguageSwitcher />
+              </div>
+            </aside>
+          </>,
+          document.body,
+        )
+      : null;
 
   return (
     <header className="site-header">
@@ -189,50 +301,7 @@ export function AppHeader() {
         </Container>
       ) : null}
 
-      <div
-        className={classNames('mobile-nav-overlay', isOpen && 'mobile-nav-overlay--open')}
-        onClick={close}
-      />
-      <aside
-        aria-label={t('nav.mobile.navigationLabel')}
-        aria-modal="true"
-        aria-hidden={!isOpen}
-        className={classNames('mobile-nav-drawer', isOpen && 'mobile-nav-drawer--open')}
-        id={mobileDrawerId}
-        role="dialog"
-      >
-        <div className="mobile-nav-head">
-          <p className="mobile-nav-title">{t('common.appName')}</p>
-          <Button onClick={close} size="sm" variant="ghost">
-            {t('common.actions.close')}
-          </Button>
-        </div>
-
-        <div className="mobile-nav-sections">
-          <HeaderGroup
-            items={primaryNavItems}
-            onItemClick={close}
-            title={t('common.labels.premiumSelection')}
-          />
-          <HeaderGroup
-            items={mobileAccountItems}
-            onItemClick={close}
-            title={t('shell.accountArea')}
-          />
-          {hasActiveSellerProfile ? (
-            <HeaderGroup items={sellerItems} onItemClick={close} title={t('shell.sellerArea')} />
-          ) : null}
-          {capabilities.canAccessAdminArea ? (
-            <HeaderGroup items={adminItems} onItemClick={close} title={t('shell.adminArea')} />
-          ) : null}
-          {isAuthenticated ? (
-            <Button fullWidth onClick={handleLogout} variant="secondary">
-              {t('common.actions.logout')}
-            </Button>
-          ) : null}
-          <LanguageSwitcher />
-        </div>
-      </aside>
+      {mobileNavigation}
     </header>
   );
 }

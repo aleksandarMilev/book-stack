@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppHeader } from '@/components/navigation/AppHeader';
 import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
+import i18n from '@/i18n';
 import { useAuthStore } from '@/store/auth.store';
 import type { AuthSession, UserRole } from '@/types/auth.types';
 
@@ -24,13 +26,20 @@ const renderHeader = () =>
   );
 
 describe('AppHeader', () => {
-  afterEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en');
+  });
+
+  afterEach(async () => {
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
     useAuthStore.setState({ session: null });
     useSellerProfileStore.setState({
       profile: null,
       loadState: 'idle',
       loadedForUserId: null,
     });
+    await i18n.changeLanguage('en');
   });
 
   it('shows public actions and hides admin links for guests', () => {
@@ -59,6 +68,15 @@ describe('AppHeader', () => {
     renderHeader();
 
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+  });
+
+  it('localizes seller profile account navigation label in Bulgarian', async () => {
+    useAuthStore.setState({ session: createSession('buyer') });
+    await i18n.changeLanguage('bg');
+
+    renderHeader();
+
+    expect(screen.getAllByText('Профил на продавач').length).toBeGreaterThan(0);
   });
 
   it('shows seller navigation links only for users with active seller profile', () => {
@@ -105,5 +123,47 @@ describe('AppHeader', () => {
 
     expect(screen.queryByText('My listings')).not.toBeInTheDocument();
     expect(screen.queryByText('Sold orders')).not.toBeInTheDocument();
+  });
+
+  it('renders mobile navigation in a body-level portal and locks body scroll while open', async () => {
+    const user = userEvent.setup();
+    useAuthStore.setState({ session: createSession('buyer') });
+
+    const { container } = renderHeader();
+    const openMenuButton = screen.getByRole('button', { name: 'Open menu' });
+
+    await user.click(openMenuButton);
+
+    const drawer = screen.getByTestId('mobile-nav-drawer');
+    const overlay = screen.getByTestId('mobile-nav-overlay');
+
+    expect(drawer).toHaveClass('mobile-nav-drawer--open');
+    expect(overlay).toHaveClass('mobile-nav-overlay--open');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(within(container).queryByTestId('mobile-nav-drawer')).not.toBeInTheDocument();
+
+    await user.click(overlay);
+
+    await waitFor(() => {
+      expect(drawer).not.toHaveClass('mobile-nav-drawer--open');
+      expect(document.body.style.overflow).toBe('');
+    });
+  });
+
+  it('closes mobile navigation when account link is selected', async () => {
+    const user = userEvent.setup();
+    useAuthStore.setState({ session: createSession('buyer') });
+
+    renderHeader();
+    await user.click(screen.getByRole('button', { name: 'Open menu' }));
+
+    const drawer = screen.getByTestId('mobile-nav-drawer');
+    const drawerProfileLink = within(drawer).getByRole('link', { name: 'Profile' });
+
+    await user.click(drawerProfileLink);
+
+    await waitFor(() => {
+      expect(drawer).not.toHaveClass('mobile-nav-drawer--open');
+    });
   });
 });

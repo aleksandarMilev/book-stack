@@ -5,6 +5,7 @@ using BookStack.Features.Identity.Service.Models;
 using BookStack.Features.Identity.Web;
 using BookStack.Features.Identity.Web.Models;
 using BookStack.Infrastructure.Services.Result;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 public class RegistrationContractTests
@@ -59,6 +60,49 @@ public class RegistrationContractTests
         Assert.Equal(webModel.FirstName, identityService.RegisterInput.FirstName);
         Assert.Equal(webModel.LastName, identityService.RegisterInput.LastName);
         Assert.Null(identityService.RegisterInput.Image);
+    }
+
+    [Fact]
+    public async Task Register_ForwardsImageWhenProvided()
+    {
+        const string JwtToken = "registration-jwt-token";
+        var identityService = new CapturingIdentityService(
+            ResultWith<string>.Success(JwtToken));
+
+        var image = CreateFormFile("avatar.png", "image/png", "avatar-bytes");
+        var controller = new IdentityController(identityService);
+
+        var webModel = new RegisterWebModel
+        {
+            Username = "bob",
+            Email = "bob@example.com",
+            Password = "Password123",
+            FirstName = "Bob",
+            LastName = "Miller",
+            Image = image
+        };
+
+        _ = await controller.Register(
+            webModel,
+            CancellationToken.None);
+
+        Assert.NotNull(identityService.RegisterInput);
+        Assert.Same(image, identityService.RegisterInput!.Image);
+    }
+
+    private static IFormFile CreateFormFile(
+        string fileName,
+        string contentType,
+        string content)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        var stream = new MemoryStream(bytes);
+
+        return new FormFile(stream, 0, bytes.Length, "image", fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
+        };
     }
 
     private sealed class CapturingIdentityService(

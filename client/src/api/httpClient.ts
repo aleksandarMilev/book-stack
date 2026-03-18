@@ -3,7 +3,20 @@ import axios from 'axios';
 import { isExpirationIsoExpired } from '@/features/auth/utils/jwtSession';
 import { useAuthStore } from '@/store/auth.store';
 
-const baseURL = import.meta.env.VITE_REACT_APP_SERVER_URL ?? '';
+const rawBaseURL = import.meta.env.VITE_REACT_APP_SERVER_URL?.trim() ?? '';
+const baseURL = rawBaseURL.replace(/\/+$/, '');
+
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  if (!baseURL) {
+    console.warn(
+      '[httpClient] VITE_REACT_APP_SERVER_URL is empty. Requests will use the current browser origin.',
+    );
+  } else if (baseURL.includes('host.docker.internal')) {
+    console.warn(
+      '[httpClient] VITE_REACT_APP_SERVER_URL points to host.docker.internal. In browser-based dev flows this host can be unreachable; prefer a browser-reachable URL such as http://localhost:8080.',
+    );
+  }
+}
 
 export const httpClient = axios.create({
   baseURL,

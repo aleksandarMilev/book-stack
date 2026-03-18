@@ -1,10 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { sellerProfilesApi } from '@/features/sellerProfiles/api/sellerProfiles.api';
 import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
+import i18n from '@/i18n';
 import { SellerProfilePage } from '@/pages/SellerProfilePage';
 import { useAuthStore } from '@/store/auth.store';
 import type { AuthSession } from '@/types/auth.types';
@@ -26,7 +27,11 @@ const createSession = (): AuthSession => ({
 });
 
 describe('SellerProfilePage', () => {
-  afterEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en');
+  });
+
+  afterEach(async () => {
     vi.clearAllMocks();
     useAuthStore.setState({ session: null });
     useSellerProfileStore.setState({
@@ -34,6 +39,7 @@ describe('SellerProfilePage', () => {
       loadState: 'idle',
       loadedForUserId: null,
     });
+    await i18n.changeLanguage('en');
   });
 
   it('shows onboarding when seller profile is missing', async () => {
@@ -50,6 +56,25 @@ describe('SellerProfilePage', () => {
     expect(screen.getByRole('button', { name: 'Save seller profile' })).toBeInTheDocument();
     expect(screen.getByText('Seller profile status is controlled by administrators.')).toBeInTheDocument();
     expect(screen.queryByLabelText('Seller profile is active')).not.toBeInTheDocument();
+  });
+
+  it('renders seller profile onboarding and form actions in Bulgarian locale', async () => {
+    useAuthStore.setState({ session: createSession() });
+    vi.mocked(sellerProfilesApi.getMine).mockResolvedValue(null);
+    await i18n.changeLanguage('bg');
+
+    render(
+      <MemoryRouter>
+        <SellerProfilePage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Стани продавач')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Запази профила на продавача' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Статусът на профила на продавача се управлява от администраторите.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Търговско име на продавача')).toBeInTheDocument();
   });
 
   it('saves seller profile and shows success message', async () => {
@@ -108,5 +133,20 @@ describe('SellerProfilePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save seller profile' }));
 
     expect(await screen.findByText('Could not save seller profile.')).toBeInTheDocument();
+  });
+
+  it('shows load error state when seller profile request fails', async () => {
+    useAuthStore.setState({ session: createSession() });
+    vi.mocked(sellerProfilesApi.getMine).mockRejectedValue(new Error('load failed'));
+
+    render(
+      <MemoryRouter>
+        <SellerProfilePage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Could not load seller profile')).toBeInTheDocument();
+    expect(screen.getByText('Please try again in a moment.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 });

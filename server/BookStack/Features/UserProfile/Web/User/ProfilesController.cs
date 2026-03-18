@@ -25,6 +25,7 @@ public class ProfilesController(IProfileService service) : ApiController
 
     [HttpPut]
     public async Task<ActionResult> Edit(
+        [FromForm]
         CreateProfileWebModel webModel,
         CancellationToken cancellationToken = default)
     {
