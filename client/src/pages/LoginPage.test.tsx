@@ -30,4 +30,11 @@ describe('LoginPage route guard context hints', () => {
 
     expect(await screen.findByText('Your session has expired. Please sign in again.')).toBeInTheDocument();
   });
+
+  it('renders forgot-password entrypoint link', async () => {
+    renderLoginRoute();
+
+    const forgotPasswordLink = await screen.findByRole('link', { name: 'Forgot password?' });
+    expect(forgotPasswordLink).toHaveAttribute('href', '/identity/forgot-password');
+  });
 });

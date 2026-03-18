@@ -1,5 +1,6 @@
 ﻿namespace BookStack.Infrastructure.Extensions;
 
+using BookStack.Data.Seeders.Books;
 using Data;
 using Features.Identity.Data.Models;
 using Features.Identity.Service;
@@ -30,7 +31,8 @@ public static class AppBuilderExtensions
             return app;
         }
 
-        public async Task<IApplicationBuilder> UseMigrations()
+        public async Task<IApplicationBuilder> UseMigrations(
+            CancellationToken cancellationToken)
         {
             using var services = app
                 .ApplicationServices
@@ -40,7 +42,9 @@ public static class AppBuilderExtensions
                 .ServiceProvider
                 .GetRequiredService<BookStackDbContext>();
 
-            await data.Database.MigrateAsync();
+            await data
+                .Database
+                .MigrateAsync(cancellationToken);
 
             return app;
         }
@@ -73,7 +77,8 @@ public static class AppBuilderExtensions
         public IApplicationBuilder UseAllowedCors()
             => app.UseCors(Cors.FrontendPolicyName);
 
-        public async Task<IApplicationBuilder> UseBuiltInUser()
+        public async Task<IApplicationBuilder> UseBuiltInUser(
+            CancellationToken cancellationToken)
         {
             using var serviceScope = app
                 .ApplicationServices
@@ -84,7 +89,11 @@ public static class AppBuilderExtensions
             var userManager = services
                 .GetRequiredService<UserManager<UserDbModel>>();
 
-            if (await userManager.Users.AnyAsync())
+            var userExists = await userManager
+                .Users
+                .AnyAsync(cancellationToken);
+
+            if (userExists)
             {
                 return app;
             }
@@ -105,7 +114,25 @@ public static class AppBuilderExtensions
                 Image = null,
             };
 
-            await identityService.Register(serviceModel);
+            await identityService.Register(
+                serviceModel,
+                cancellationToken);
+
+            return app;
+        }
+
+        public async Task<IApplicationBuilder> UseDevBookData(
+            CancellationToken cancellationToken)
+        {
+            using var serviceScope = app
+                .ApplicationServices
+                .CreateScope();
+
+            var seeder = serviceScope
+                .ServiceProvider
+                .GetRequiredService<IBookSeeder>();
+
+            await seeder.Seed(cancellationToken);
 
             return app;
         }

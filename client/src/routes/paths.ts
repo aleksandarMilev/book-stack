@@ -6,6 +6,8 @@ export const ROUTES = {
   mockPaymentCheckout: '/payments/mock/checkout',
   login: '/login',
   register: '/register',
+  forgotPassword: '/identity/forgot-password',
+  resetPassword: '/identity/reset-password',
   profile: '/profile',
   sellerProfile: '/seller/profile',
   myListings: '/my-listings',

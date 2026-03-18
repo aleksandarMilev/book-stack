@@ -64,8 +64,13 @@ app.UseAppEndpoints();
 
 if (envIsDev)
 {
-    await app.UseMigrations();
-    await app.UseBuiltInUser();
+    var cancellationToken = app
+        .Lifetime
+        .ApplicationStopping;
+
+    await app.UseMigrations(cancellationToken);
+    await app.UseBuiltInUser(cancellationToken);
+    await app.UseDevBookData(cancellationToken);
     await app.UseDevAdminRole();
 }
 

@@ -892,6 +892,10 @@ select {
   accent-color: var(--color-primary);
 }
 
+.auth-inline-link {
+  text-align: right;
+}
+
 .auth-error {
   color: var(--color-danger);
   font-weight: 600;

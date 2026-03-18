@@ -96,4 +96,38 @@ describe('identityApi', () => {
     expect(payload).toBeInstanceOf(FormData);
     expect((payload as FormData).get('image')).toBe(profileImage);
   });
+
+  it('posts forgot-password payload to the expected endpoint', async () => {
+    vi.mocked(httpClient.post).mockResolvedValue({
+      data: { message: 'If an account exists for that email, a password reset link has been sent.' },
+    });
+
+    const response = await identityApi.forgotPassword({
+      email: 'alice@example.com',
+    });
+
+    expect(httpClient.post).toHaveBeenCalledWith('/Identity/forgot-password/', {
+      email: 'alice@example.com',
+    });
+    expect(response.message).toBe('If an account exists for that email, a password reset link has been sent.');
+  });
+
+  it('posts reset-password payload to the expected endpoint', async () => {
+    vi.mocked(httpClient.post).mockResolvedValue({
+      data: { message: 'Password successfully reset.' },
+    });
+
+    const response = await identityApi.resetPassword({
+      email: 'alice@example.com',
+      token: 'encoded-token',
+      newPassword: 'Password123',
+    });
+
+    expect(httpClient.post).toHaveBeenCalledWith('/Identity/reset-password/', {
+      email: 'alice@example.com',
+      token: 'encoded-token',
+      newPassword: 'Password123',
+    });
+    expect(response.message).toBe('Password successfully reset.');
+  });
 });

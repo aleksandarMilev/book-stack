@@ -21,6 +21,8 @@ export const ROUTE_ACCESS_LEVELS = {
   [ROUTES.mockPaymentCheckout]: 'public',
   [ROUTES.login]: 'public',
   [ROUTES.register]: 'public',
+  [ROUTES.forgotPassword]: 'public',
+  [ROUTES.resetPassword]: 'public',
   [ROUTES.profile]: 'authenticated',
   [ROUTES.sellerProfile]: 'authenticated',
   [ROUTES.myOrders]: 'authenticated',

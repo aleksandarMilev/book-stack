@@ -52,6 +52,18 @@ export const authService = {
     await enrichSessionFromProfile();
   },
 
+  async forgotPassword(email: string): Promise<string> {
+    const response = await identityApi.forgotPassword({ email });
+
+    return response.message;
+  },
+
+  async resetPassword(payload: { email: string; token: string; newPassword: string }): Promise<string> {
+    const response = await identityApi.resetPassword(payload);
+
+    return response.message;
+  },
+
   logout(): void {
     useAuthStore.getState().clearSession();
   },

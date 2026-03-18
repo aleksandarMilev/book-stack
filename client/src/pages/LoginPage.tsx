@@ -111,6 +111,12 @@ export function LoginPage() {
             value={formState.password}
           />
 
+          <p className="auth-inline-link">
+            <Link className="auth-switch-link" to={ROUTES.forgotPassword}>
+              {t('pages.login.forgotPasswordAction')}
+            </Link>
+          </p>
+
           <label className="auth-remember">
             <input
               checked={formState.rememberMe}
