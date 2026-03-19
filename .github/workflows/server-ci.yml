@@ -1,0 +1,125 @@
+name: Server CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  detect-changes:
+    name: Detect server changes
+    runs-on: ubuntu-latest
+    outputs:
+      server_changed: ${{ steps.filter.outputs.server_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: filter
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$(git rev-parse HEAD~1)"
+          fi
+
+          git diff --name-only "$BASE_SHA" "${{ github.sha }}" > changed_files.txt || true
+
+          if grep -E '^(server/|sqlserver/|docker-compose\.dev\.yml|docker-compose\.prod\.yml|\.github/workflows/server-ci\.yml)' changed_files.txt >/dev/null; then
+            echo "server_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "server_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Show changed files
+        run: cat changed_files.txt || true
+
+  server-ci:
+    name: Restore, build, test
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.server_changed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            server/BookStack/packages.lock.json
+            server/BookStack.Tests/packages.lock.json
+            server/**/*.csproj
+
+      - name: Restore API
+        run: dotnet restore server/BookStack/BookStack.csproj
+
+      - name: Restore tests
+        run: dotnet restore server/BookStack.Tests/BookStack.Tests.csproj
+
+      - name: Build API
+        run: dotnet build server/BookStack/BookStack.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build server/BookStack.Tests/BookStack.Tests.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: >
+          dotnet test server/BookStack.Tests/BookStack.Tests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-test-results
+          path: |
+            server/BookStack.Tests/TestResults
+          if-no-files-found: warn
+
+      - name: Publish API artifact
+        run: >
+          dotnet publish server/BookStack/BookStack.csproj
+          --configuration Release
+          --no-build
+          --output ./publish
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-publish
+          path: ./publish
+          if-no-files-found: error
+
+  server-noop:
+    name: No server changes
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.server_changed != 'true'
+    steps:
+      - name: Skip
+        run: echo "No server changes detected."
