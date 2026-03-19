@@ -2988,6 +2988,221 @@ select {
   gap: 0.22rem;
 }
 
+.seller-sold-orders-page {
+  gap: clamp(1.2rem, 2.5vw, var(--space-6));
+}
+
+.seller-sold-orders-header {
+  gap: var(--space-3);
+  max-width: 64ch;
+}
+
+.seller-sold-orders-header h1 {
+  font-size: clamp(2rem, 1.35rem + 1.92vw, 3.05rem);
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.seller-sold-orders-header p {
+  color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text) 16%);
+  font-size: clamp(1.01rem, 0.95rem + 0.24vw, 1.1rem);
+  line-height: 1.74;
+  max-width: 60ch;
+}
+
+.seller-sold-orders-toolbar {
+  align-items: center;
+  background:
+    radial-gradient(circle at 97% 5%, rgba(34, 95, 84, 0.13), transparent 42%),
+    linear-gradient(156deg, rgba(255, 255, 255, 0.97), rgba(246, 239, 226, 0.86)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 76%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 34px rgba(44, 38, 30, 0.1);
+  gap: clamp(0.72rem, 1.7vw, 1rem);
+  padding: clamp(0.84rem, 2vw, 1.15rem);
+}
+
+.seller-sold-orders-toolbar .ui-input,
+.seller-sold-orders-toolbar .marketplace-sort-select {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 244, 233, 0.86));
+  border-color: color-mix(in srgb, var(--color-border) 82%, white);
+}
+
+.seller-sold-orders-toolbar .ui-input:hover,
+.seller-sold-orders-toolbar .marketplace-sort-select:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-border));
+}
+
+.seller-sold-orders-results {
+  background:
+    radial-gradient(circle at 100% 0, rgba(34, 95, 84, 0.1), transparent 34%),
+    linear-gradient(162deg, rgba(255, 255, 255, 0.8), rgba(247, 240, 228, 0.54)),
+    transparent;
+  border-color: color-mix(in srgb, var(--color-border) 62%, transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 28px rgba(42, 36, 28, 0.08);
+  padding: clamp(0.95rem, 2.1vw, 1.35rem);
+}
+
+.seller-sold-orders-results-count {
+  margin-bottom: clamp(0.8rem, 1.7vw, 1rem);
+}
+
+.seller-sold-orders-results .ui-loading-state,
+.seller-sold-orders-results .ui-empty-state {
+  margin-top: 0;
+}
+
+.seller-sold-orders-list {
+  gap: clamp(0.82rem, 1.8vw, 1.12rem);
+}
+
+.seller-sold-orders-entry {
+  background:
+    radial-gradient(circle at 100% 0, rgba(29, 104, 91, 0.11), transparent 35%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(247, 240, 227, 0.9)),
+    var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, white);
+  box-shadow: 0 14px 30px rgba(44, 38, 30, 0.1);
+  gap: clamp(0.72rem, 1.6vw, 0.98rem);
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal);
+}
+
+.seller-sold-orders-entry::before {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 26%, transparent), transparent);
+  border-radius: 999px;
+  content: '';
+  height: 2px;
+  left: clamp(1rem, 1.8vw, 1.2rem);
+  position: absolute;
+  right: clamp(3rem, 6vw, 4.6rem);
+  top: clamp(0.8rem, 1.7vw, 0.95rem);
+}
+
+.seller-sold-orders-entry:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  box-shadow: 0 18px 36px rgba(41, 35, 28, 0.12);
+  transform: translateY(-2px);
+}
+
+.seller-sold-orders-entry:focus-within {
+  border-color: var(--color-focus);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-focus) 16%, transparent),
+    0 18px 36px rgba(41, 35, 28, 0.12);
+}
+
+.seller-sold-orders-entry-head {
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.seller-sold-orders-entry-summary {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.seller-sold-orders-entry-id {
+  color: color-mix(in srgb, var(--color-text) 88%, var(--color-primary) 12%);
+  font-size: 0.93rem;
+  letter-spacing: 0.02em;
+}
+
+.seller-sold-orders-entry-date {
+  color: color-mix(in srgb, var(--color-text-muted) 90%, var(--color-text) 10%);
+}
+
+.seller-sold-orders-entry-total {
+  text-align: end;
+}
+
+.seller-sold-orders-entry-total .price-display-primary {
+  font-size: clamp(1.35rem, 1.05rem + 0.66vw, 1.68rem);
+}
+
+.seller-sold-orders-entry-statuses {
+  gap: 0.4rem;
+}
+
+.seller-sold-orders-status-badge {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.52);
+  letter-spacing: 0.07em;
+  padding: 0.34rem 0.68rem;
+}
+
+.seller-sold-orders-entry-description.checkout-summary-meta {
+  color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text) 16%);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 64ch;
+}
+
+.seller-sold-orders-entry-items {
+  color: color-mix(in srgb, var(--color-text-muted) 92%, var(--color-text) 8%);
+  gap: 0.3rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.seller-sold-orders-entry-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.seller-sold-orders-primary-action,
+.seller-sold-orders-secondary-action {
+  min-width: clamp(9.8rem, 18vw, 12.5rem);
+}
+
+.seller-sold-orders-blocked-message.checkout-summary-meta {
+  color: color-mix(in srgb, #84592a 84%, var(--color-text) 16%);
+  line-height: 1.58;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.seller-sold-orders-details-panel {
+  border-top-color: color-mix(in srgb, var(--color-border) 72%, white);
+  gap: var(--space-3);
+  margin-top: 0.1rem;
+  padding-top: clamp(0.8rem, 1.8vw, 1rem);
+}
+
+.seller-sold-orders-details-panel > p {
+  color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-text) 15%);
+  line-height: 1.56;
+  margin: 0;
+}
+
+.seller-sold-orders-details-financials {
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 72%, white);
+  gap: var(--space-2);
+}
+
+.seller-sold-orders-details-items {
+  gap: var(--space-3);
+}
+
+.seller-sold-orders-details-item {
+  background: color-mix(in srgb, var(--color-surface) 88%, white);
+  border-color: color-mix(in srgb, var(--color-border) 72%, white);
+  box-shadow: 0 10px 20px rgba(45, 39, 31, 0.06);
+  gap: var(--space-3);
+}
+
+.seller-sold-orders-details-item-content {
+  display: grid;
+  gap: 0.22rem;
+}
+
 .conversion-surface-card {
   background: var(
     --conversion-surface-bg,
@@ -3649,6 +3864,10 @@ select {
     grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(9.8rem, 0.82fr));
   }
 
+  .seller-sold-orders-toolbar {
+    grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(9.8rem, 0.82fr));
+  }
+
   .marketplace-toolbar-controls {
     grid-template-columns: repeat(2, minmax(8.7rem, 1fr)) auto;
     justify-self: end;
@@ -3816,6 +4035,37 @@ select {
 
   .my-orders-details-item-image,
   .my-orders-details-item-image-placeholder {
+    width: 4.2rem;
+  }
+
+  .seller-sold-orders-toolbar {
+    gap: var(--space-3);
+  }
+
+  .seller-sold-orders-entry-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .seller-sold-orders-entry-total {
+    text-align: left;
+  }
+
+  .seller-sold-orders-entry-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .seller-sold-orders-entry-actions .ui-button {
+    width: 100%;
+  }
+
+  .seller-sold-orders-details-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .seller-sold-orders-details-item .order-details-item-image,
+  .seller-sold-orders-details-item .order-details-item-image-placeholder {
     width: 4.2rem;
   }
 }

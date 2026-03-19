@@ -290,7 +290,8 @@ public static class WebApplicationBuilderExtensions
                 })
                 .AddJwtBearer();
 
-            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            services
+                .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
                 .Configure<IOptions<JwtSettings>>((options, jwtOptions) =>
                 {
                     var settings = jwtOptions.Value;
@@ -407,18 +408,14 @@ public static class WebApplicationBuilderExtensions
                 Version = Version
             };
 
-            services
-                .AddSwaggerGen(options => options.SwaggerDoc(Version, apiInfo));
+            services.AddSwaggerGen(
+                options => options.SwaggerDoc(Version, apiInfo));
 
             return services;
         }
 
         public IServiceCollection AddServices()
         {
-            var singletonInterfaceType = typeof(ISingletonService);
-            var scopedInterfaceType = typeof(IScopedService);
-            var transientInterfaceType = typeof(ITransientService);
-
             Assembly
                 .GetExecutingAssembly()
                 .GetExportedTypes()
@@ -433,17 +430,17 @@ public static class WebApplicationBuilderExtensions
                 .ToList()
                 .ForEach(type =>
                 {
-                    if (singletonInterfaceType.IsAssignableFrom(type.Service))
+                    if (typeof(ISingletonService).IsAssignableFrom(type.Service))
                     {
                         services.AddSingleton(type.Service, type.Implementation);
                     }
 
-                    if (scopedInterfaceType.IsAssignableFrom(type.Service))
+                    if (typeof(IScopedService).IsAssignableFrom(type.Service))
                     {
                         services.AddScoped(type.Service, type.Implementation);
                     }
 
-                    if (transientInterfaceType.IsAssignableFrom(type.Service))
+                    if (typeof(ITransientService).IsAssignableFrom(type.Service))
                     {
                         services.AddTransient(type.Service, type.Implementation);
                     }
@@ -460,7 +457,9 @@ public static class WebApplicationBuilderExtensions
             services
                 .AddControllers(static options =>
                 {
-                    options.Filters.Add<ModelOrNotFoundActionFilter>();
+                    options
+                        .Filters
+                        .Add<ModelOrNotFoundActionFilter>();
                 });
 
             return services;

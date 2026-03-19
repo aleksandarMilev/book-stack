@@ -191,13 +191,13 @@ export function SellerSoldOrdersPage() {
   const hasOrders = !isLoading && !errorMessage && orders.length > 0;
 
   return (
-    <Container className="account-page">
-      <header className="marketplace-header">
+    <Container className="account-page seller-sold-orders-page">
+      <header className="marketplace-header seller-sold-orders-header">
         <h1>{t('pages.sellerSoldOrders.title')}</h1>
         <p>{t('pages.sellerSoldOrders.subtitle')}</p>
       </header>
 
-      <section className="marketplace-toolbar account-toolbar account-toolbar--orders">
+      <section className="marketplace-toolbar account-toolbar account-toolbar--orders seller-sold-orders-toolbar">
         <Input
           label={t('pages.sellerSoldOrders.searchLabel')}
           onChange={(event) => {
@@ -263,8 +263,10 @@ export function SellerSoldOrdersPage() {
         </label>
       </section>
 
-      <div className="marketplace-results" ref={resultsSectionRef}>
-        <p className="marketplace-results-count">{t('pages.sellerSoldOrders.resultsCount', { count: totalItems })}</p>
+      <div className="marketplace-results seller-sold-orders-results" ref={resultsSectionRef}>
+        <p className="marketplace-results-count seller-sold-orders-results-count">
+          {t('pages.sellerSoldOrders.resultsCount', { count: totalItems })}
+        </p>
 
         {isLoading ? (
           <LoadingState
@@ -297,7 +299,7 @@ export function SellerSoldOrdersPage() {
         ) : null}
 
         {hasOrders ? (
-          <div className="order-card-list">
+          <div className="order-card-list seller-sold-orders-list">
             {orders.map((order) => {
               const isExpanded = expandedOrderId === order.id;
               const detail = orderDetails[order.id] ?? order;
@@ -309,36 +311,43 @@ export function SellerSoldOrdersPage() {
               const canRunAction = availableAction !== null && !isActionBlockedByPayment;
 
               return (
-                <Card className="order-card" key={order.id}>
-                  <div className="order-card-head">
-                    <div>
-                      <p className="order-card-id">
+                <Card className="order-card seller-sold-orders-entry" key={order.id}>
+                  <div className="order-card-head seller-sold-orders-entry-head">
+                    <div className="seller-sold-orders-entry-summary">
+                      <p className="order-card-id seller-sold-orders-entry-id">
                         {t('pages.myOrders.orderIdLabel')}: {formatOrderId(order.id)}
                       </p>
-                      <p className="order-card-date">
+                      <p className="order-card-date seller-sold-orders-entry-date">
                         {formatDateTime({ value: order.createdOn, language })}
                       </p>
                     </div>
-                    <PriceDisplay value={order.sellerTotal} />
+                    <div className="seller-sold-orders-entry-total">
+                      <PriceDisplay value={order.sellerTotal} />
+                    </div>
                   </div>
 
-                  <div className="order-card-statuses">
-                    <Badge variant={getPaymentMethodBadgeVariant(order.paymentMethod)}>
+                  <div className="order-card-statuses seller-sold-orders-entry-statuses">
+                    <Badge className="seller-sold-orders-status-badge" variant={getPaymentMethodBadgeVariant(order.paymentMethod)}>
                       {t(`taxonomy.paymentMethod.${order.paymentMethod}`)}
                     </Badge>
-                    <Badge variant={getOrderStatusBadgeVariant(order.status)}>
+                    <Badge className="seller-sold-orders-status-badge" variant={getOrderStatusBadgeVariant(order.status)}>
                       {t(`taxonomy.orderStatus.${order.status}`)}
                     </Badge>
-                    <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
+                    <Badge className="seller-sold-orders-status-badge" variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
                       {t(`taxonomy.paymentStatus.${order.paymentStatus}`)}
                     </Badge>
-                    <Badge variant={getSettlementStatusBadgeVariant(order.settlementStatus)}>
+                    <Badge
+                      className="seller-sold-orders-status-badge"
+                      variant={getSettlementStatusBadgeVariant(order.settlementStatus)}
+                    >
                       {t(`taxonomy.settlementStatus.${order.settlementStatus}`)}
                     </Badge>
                   </div>
-                  <p className="checkout-summary-meta">{t(`pages.sellerSoldOrders.statusDescriptions.${order.status}`)}</p>
+                  <p className="checkout-summary-meta seller-sold-orders-entry-description">
+                    {t(`pages.sellerSoldOrders.statusDescriptions.${order.status}`)}
+                  </p>
 
-                  <ul className="order-items-summary">
+                  <ul className="order-items-summary seller-sold-orders-entry-items">
                     {order.items.slice(0, 2).map((item) => (
                       <li key={item.id}>
                         {item.bookTitle} x{item.quantity}
@@ -352,39 +361,46 @@ export function SellerSoldOrdersPage() {
                   {detailsError[order.id] ? <p className="auth-error">{detailsError[order.id]}</p> : null}
                   {actionError[order.id] ? <p className="auth-error">{actionError[order.id]}</p> : null}
 
-                  {availableAction ? (
-                    <Button
-                      disabled={Boolean(actionLoading[order.id]) || !canRunAction}
-                      onClick={() => {
-                        if (canRunAction) {
-                          void handleSellerAction(order.id, availableAction);
-                        }
-                      }}
-                    >
-                      {actionLoading[order.id]
-                        ? t('pages.sellerSoldOrders.actionInProgress')
-                        : t(`pages.sellerSoldOrders.actions.${availableAction}`)}
-                    </Button>
-                  ) : null}
-                  {isActionBlockedByPayment ? (
-                    <p className="checkout-summary-meta">{t('pages.sellerSoldOrders.actionBlockedByPayment')}</p>
-                  ) : null}
+                  <div className="seller-sold-orders-entry-actions">
+                    {availableAction ? (
+                      <Button
+                        className="seller-sold-orders-primary-action"
+                        disabled={Boolean(actionLoading[order.id]) || !canRunAction}
+                        onClick={() => {
+                          if (canRunAction) {
+                            void handleSellerAction(order.id, availableAction);
+                          }
+                        }}
+                      >
+                        {actionLoading[order.id]
+                          ? t('pages.sellerSoldOrders.actionInProgress')
+                          : t(`pages.sellerSoldOrders.actions.${availableAction}`)}
+                      </Button>
+                    ) : null}
 
-                  <Button
-                    onClick={() => {
-                      void handleToggleDetails(order.id);
-                    }}
-                    variant="secondary"
-                  >
-                    {isExpanded
-                      ? t('pages.sellerSoldOrders.hideDetails')
-                      : detailsLoading[order.id]
-                        ? t('pages.sellerSoldOrders.loadingDetails')
-                        : t('pages.sellerSoldOrders.showDetails')}
-                  </Button>
+                    <Button
+                      className="seller-sold-orders-secondary-action"
+                      onClick={() => {
+                        void handleToggleDetails(order.id);
+                      }}
+                      variant="secondary"
+                    >
+                      {isExpanded
+                        ? t('pages.sellerSoldOrders.hideDetails')
+                        : detailsLoading[order.id]
+                          ? t('pages.sellerSoldOrders.loadingDetails')
+                          : t('pages.sellerSoldOrders.showDetails')}
+                    </Button>
+                  </div>
+
+                  {isActionBlockedByPayment ? (
+                    <p className="checkout-summary-meta seller-sold-orders-blocked-message">
+                      {t('pages.sellerSoldOrders.actionBlockedByPayment')}
+                    </p>
+                  ) : null}
 
                   {isExpanded ? (
-                    <div className="order-details-panel">
+                    <div className="order-details-panel seller-sold-orders-details-panel">
                       <h3>{t('pages.sellerSoldOrders.detailsTitle')}</h3>
                       <p>
                         {detail.customerFirstName} {detail.customerLastName}
@@ -394,7 +410,7 @@ export function SellerSoldOrdersPage() {
                         {detail.addressLine}, {detail.city}, {detail.country}
                         {detail.postalCode ? `, ${detail.postalCode}` : ''}
                       </p>
-                      <div className="order-details-financials">
+                      <div className="order-details-financials seller-sold-orders-details-financials">
                         <div className="checkout-summary-price-line">
                           <span>{t('pages.sellerSoldOrders.financial.sellerTotalLabel')}</span>
                           <PriceDisplay value={detail.sellerTotal} />
@@ -412,9 +428,9 @@ export function SellerSoldOrdersPage() {
                           <PriceDisplay value={detail.sellerNetAmount} />
                         </div>
                       </div>
-                      <div className="order-details-items">
+                      <div className="order-details-items seller-sold-orders-details-items">
                         {detail.items.map((item) => (
-                          <div className="order-details-item" key={item.id}>
+                          <div className="order-details-item seller-sold-orders-details-item" key={item.id}>
                             {item.listingImageUrl ? (
                               <img
                                 alt={t('marketplace.listingImageAlt', { title: item.bookTitle })}
@@ -424,7 +440,7 @@ export function SellerSoldOrdersPage() {
                             ) : (
                               <div className="order-details-item-image-placeholder" />
                             )}
-                            <div>
+                            <div className="seller-sold-orders-details-item-content">
                               <p className="order-details-item-title">{item.bookTitle}</p>
                               <p className="order-details-item-meta">
                                 {item.bookAuthor} · {t(`taxonomy.conditions.${item.condition}`)}

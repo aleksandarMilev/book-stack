@@ -11,64 +11,60 @@ public class StatisticsService(
     ICurrentUserService currentUserService,
     ILogger<StatisticsService> logger) : IStatisticsService
 {
-    private readonly BookStackDbContext _data = data;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
-    private readonly ILogger<StatisticsService> _logger = logger;
-
     public async Task<AdminStatisticsServiceModel> Get(
         CancellationToken cancellationToken = default)
     {
-        if (!this._currentUserService.IsAdmin())
+        if (!currentUserService.IsAdmin())
         {
-            this._logger.LogWarning(
+            logger.LogWarning(
                 "Unauthorized statistics access attempt. UserId={UserId}",
-                this._currentUserService.GetId());
+                currentUserService.GetId());
 
             return new AdminStatisticsServiceModel();
         }
 
-        var totalUsers = await this._data
+        var totalUsers = await data
             .Users
             .AsNoTracking()
             .CountAsync(cancellationToken);
 
-        var totalSellerProfiles = await this._data
+        var totalSellerProfiles = await data
             .SellerProfiles
             .AsNoTracking()
             .CountAsync(cancellationToken);
 
-        var activeSellerProfiles = await this._data
+        var activeSellerProfiles = await data
             .SellerProfiles
             .AsNoTracking()
             .CountAsync(
                 static p => p.IsActive,
                 cancellationToken);
 
-        var totalBooks = await this._data
+        var totalBooks = await data
             .Books
             .AsNoTracking()
             .CountAsync(cancellationToken);
 
-        var totalListings = await this._data
+        var totalListings = await data
             .BookListings
             .AsNoTracking()
             .CountAsync(cancellationToken);
 
-        var pendingBooks = await this._data
+        var pendingBooks = await data
             .Books
             .AsNoTracking()
             .CountAsync(
                 static b => !b.IsApproved,
                 cancellationToken);
 
-        var pendingListings = await this._data
+        var pendingListings = await data
             .BookListings
             .AsNoTracking()
             .CountAsync(
                 static l => !l.IsApproved,
                 cancellationToken);
 
-        var ordersQuery = this._data
+        var ordersQuery = data
             .Orders
             .AsNoTracking();
 

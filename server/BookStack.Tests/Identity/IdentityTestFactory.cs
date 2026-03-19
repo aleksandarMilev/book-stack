@@ -16,16 +16,16 @@ using Microsoft.Extensions.Options;
 internal sealed class IdentityTestFactory
 {
     private readonly BookStackDbContext data;
-    private readonly FakeCurrentUserService currentUser;
+    private readonly FakeCurrentUserService currentUserService;
     private readonly FakeDateTimeProvider dateTimeProvider;
 
     public IdentityTestFactory(
         BookStackDbContext data,
-        FakeCurrentUserService currentUser,
+        FakeCurrentUserService currentUserService,
         FakeDateTimeProvider dateTimeProvider)
     {
         this.data = data;
-        this.currentUser = currentUser;
+        this.currentUserService = currentUserService;
         this.dateTimeProvider = dateTimeProvider;
 
         this.EmailSender = new FakeEmailSender();
@@ -55,7 +55,7 @@ internal sealed class IdentityTestFactory
         => new(
             this.data,
             this.UserManager,
-            this.currentUser,
+            this.currentUserService,
             this.ImageWriter,
             this.StringSanitizer,
             NullLogger<ProfileService>.Instance);

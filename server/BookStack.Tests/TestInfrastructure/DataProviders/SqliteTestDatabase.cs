@@ -12,7 +12,7 @@ internal sealed class SqliteTestDatabase : IAsyncDisposable
 
     public SqliteTestDatabase()
     {
-        this.connection = new SqliteConnection("Data Source=:memory:");
+        this.connection = new("Data Source=:memory:");
         this.connection.Open();
 
         var user = new FakeCurrentUserService
@@ -25,7 +25,10 @@ internal sealed class SqliteTestDatabase : IAsyncDisposable
         var utc = new DateTime(2026, 01, 01, 0, 0, 0, DateTimeKind.Utc);
         var dateTimeProvider = new FakeDateTimeProvider(utc);
 
-        using var data = this.CreateDbContext(user, dateTimeProvider);
+        using var data = this.CreateDbContext(
+            user,
+            dateTimeProvider);
+
         data.Database.EnsureCreated();
     }
 
@@ -37,7 +40,7 @@ internal sealed class SqliteTestDatabase : IAsyncDisposable
             .UseSqlite(this.connection)
             .Options;
 
-        return new BookStackDbContext(
+        return new(
             options,
             currentUserService,
             dateTimeProvider);

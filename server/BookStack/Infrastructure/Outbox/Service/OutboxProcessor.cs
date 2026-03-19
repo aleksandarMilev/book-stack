@@ -2,9 +2,9 @@
 
 using System.Text.Json;
 using BookStack.Data;
+using Data.Models;
 using Features.Emails;
 using Features.Identity.Outbox;
-using Infrastructure.Outbox.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Services.DateTimeProvider;
 
@@ -17,7 +17,8 @@ public sealed class OutboxProcessor(
 {
     private readonly string workerId = $"{Environment.MachineName}-{Guid.NewGuid():N}";
 
-    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken cancellationToken)
     {
         logger.LogInformation(
             "Outbox processor started. WorkerId={WorkerId}",
@@ -58,7 +59,8 @@ public sealed class OutboxProcessor(
             this.workerId);
     }
 
-    private async Task<int> ProcessBatch(CancellationToken cancellationToken)
+    private async Task<int> ProcessBatch(
+        CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
 
@@ -149,44 +151,50 @@ public sealed class OutboxProcessor(
         var now = dateTimeProvider.UtcNow;
         var lockUntilUtc = now.AddMinutes(Processing.LockDurationMinutes);
 
-        await using var transaction = await data
+        var executionStrategy = data
             .Database
-            .BeginTransactionAsync(cancellationToken);
+            .CreateExecutionStrategy();
 
-        var messages = await data
-            .OutboxMessages
-            .Where(m =>
-                m.ProcessedOnUtc == null &&
-                m.RetryCount < Processing.MaxRetryCount &&
-                (m.NextAttemptOnUtc == null || m.NextAttemptOnUtc <= now) &&
-                (m.LockedUntilUtc == null || m.LockedUntilUtc <= now))
-            .OrderBy(m => m.OccurredOnUtc)
-            .Take(Processing.BatchSize)
-            .ToListAsync(cancellationToken);
+        return await executionStrategy.ExecuteAsync(async () => {
+            await using var transaction = await data
+               .Database
+               .BeginTransactionAsync(cancellationToken);
 
-        if (messages.Count == 0)
-        {
+            var messages = await data
+                .OutboxMessages
+                .Where(m =>
+                    m.ProcessedOnUtc == null &&
+                    m.RetryCount < Processing.MaxRetryCount &&
+                    (m.NextAttemptOnUtc == null || m.NextAttemptOnUtc <= now) &&
+                    (m.LockedUntilUtc == null || m.LockedUntilUtc <= now))
+                .OrderBy(m => m.OccurredOnUtc)
+                .Take(Processing.BatchSize)
+                .ToListAsync(cancellationToken);
+
+            if (messages.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return messages;
+            }
+
+            foreach (var message in messages)
+            {
+                message.LockedBy = this.workerId;
+                message.LockedUntilUtc = lockUntilUtc;
+            }
+
+            await data.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+
             return messages;
-        }
-
-        foreach (var message in messages)
-        {
-            message.LockedBy = this.workerId;
-            message.LockedUntilUtc = lockUntilUtc;
-        }
-
-        await data.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        return messages;
+        });
     }
 
     private static Task ProcessMessage(
         IServiceProvider serviceProvider,
         OutboxMessageDbModel message,
-        CancellationToken cancellationToken) =>
-        message.Type switch
+        CancellationToken cancellationToken)
+        => message.Type switch
         {
             MessageTypes.IdentityWelcomeEmailRequested =>
                 ProcessWelcomeEmail(serviceProvider, message, cancellationToken),
@@ -252,7 +260,11 @@ public sealed class OutboxProcessor(
         string value, 
         int maxLength)
     {
-        if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+        var shouldNotBeTruncated = 
+            string.IsNullOrEmpty(value) ||
+            value.Length <= maxLength;
+
+        if (shouldNotBeTruncated)
         {
             return value;
         }

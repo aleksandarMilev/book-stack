@@ -7,7 +7,7 @@ using BookStack.Features.Identity.Web.Models;
 using BookStack.Infrastructure.Services.Result;
 using Microsoft.AspNetCore.Mvc;
 
-public class IdentityControllerTests
+public class IdentityUnitTests
 {
     [Fact]
     public async Task Register_ShouldReturnOk_WithJwtToken_WhenServiceSucceeds()
@@ -18,7 +18,7 @@ public class IdentityControllerTests
         };
 
         var controller = new IdentityController(fakeService);
-        var webModel = new RegisterWebModel
+        var model = new RegisterWebModel
         {
             Username = "alice",
             Email = "alice@example.com",
@@ -28,7 +28,7 @@ public class IdentityControllerTests
         };
 
         var result = await controller.Register(
-            webModel,
+            model,
             CancellationToken.None);
 
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -36,10 +36,10 @@ public class IdentityControllerTests
 
         Assert.Equal("jwt-token", response.Token);
         Assert.NotNull(fakeService.LastRegisterModel);
-        Assert.Equal(webModel.Username, fakeService.LastRegisterModel!.Username);
-        Assert.Equal(webModel.Email, fakeService.LastRegisterModel.Email);
-        Assert.Equal(webModel.FirstName, fakeService.LastRegisterModel.FirstName);
-        Assert.Equal(webModel.LastName, fakeService.LastRegisterModel.LastName);
+        Assert.Equal(model.Username, fakeService.LastRegisterModel!.Username);
+        Assert.Equal(model.Email, fakeService.LastRegisterModel.Email);
+        Assert.Equal(model.FirstName, fakeService.LastRegisterModel.FirstName);
+        Assert.Equal(model.LastName, fakeService.LastRegisterModel.LastName);
     }
 
     [Fact]
@@ -51,14 +51,15 @@ public class IdentityControllerTests
         };
 
         var controller = new IdentityController(fakeService);
-
         var model = new LoginWebModel
         {
             Credentials = "alice",
             Password = "wrong-pass"
         };
 
-        var result = await controller.Login(model, CancellationToken.None);
+        var result = await controller.Login(
+            model,
+            CancellationToken.None);
 
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
 
@@ -85,7 +86,6 @@ public class IdentityControllerTests
         };
 
         var controller = new IdentityController(fakeService);
-
         var model = new ForgotPasswordWebModel
         {
             Email = "alice@example.com"
@@ -114,7 +114,6 @@ public class IdentityControllerTests
         };
 
         var controller = new IdentityController(fakeService);
-
         var model =  new ResetPasswordWebModel
         {
             Email = "alice@example.com",

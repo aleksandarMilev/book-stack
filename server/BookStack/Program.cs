@@ -4,7 +4,8 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
+builder
+    .Services
     .AddOpenApi()
     .AddSwagger()
     .AddServices()
@@ -33,8 +34,13 @@ builder
 
 var app = builder.Build();
 
-var envIsDev = app.Environment.IsDevelopment();
-var envIsNotTesting = !app.Environment.IsEnvironment("Testing");
+var envIsDev = app
+    .Environment
+    .IsDevelopment();
+
+var envIsNotTesting = !app
+    .Environment
+    .IsEnvironment("Testing");
 
 if (envIsDev)
 {

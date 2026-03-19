@@ -17,7 +17,7 @@ using Models.Base;
 
 public class BookStackDbContext(
     DbContextOptions<BookStackDbContext> options,
-    ICurrentUserService userService,
+    ICurrentUserService currentUserService,
     IDateTimeProvider dateTimeProvider) : IdentityDbContext<UserDbModel>(options)
 {
     public DbSet<BookDbModel> Books { get; init; }
@@ -60,8 +60,10 @@ public class BookStackDbContext(
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.ApplyConfigurationsFromAssembly(
-            Assembly.GetExecutingAssembly());
+        var executingAssembly = Assembly.GetExecutingAssembly();
+
+        modelBuilder
+            .ApplyConfigurationsFromAssembly(executingAssembly);
     }
 
     private void ApplyAuditInfo() 
@@ -71,7 +73,7 @@ public class BookStackDbContext(
             .ForEach(entry =>
             {
                 var utcNow = dateTimeProvider.UtcNow;
-                var username = userService.GetUsername();
+                var username = currentUserService.GetUsername();
 
                 if (entry.State == EntityState.Deleted && 
                     entry.Entity is IDeletableEntity deletableEntity)
