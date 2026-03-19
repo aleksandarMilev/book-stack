@@ -5,7 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { getApiErrorMessage } from '@/api/utils/apiError';
 import { PriceDisplay } from '@/components/pricing/PriceDisplay';
-import { Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
+import { Badge, Button, Card, Container, EmptyState, Input, LoadingState } from '@/components/ui';
 import { profileApi } from '@/features/auth/api/profile.api';
 import { checkoutService } from '@/features/checkout/services/checkout.service';
 import { mapCheckoutSubmissionToCreateOrderRequest } from '@/features/checkout/utils/checkoutPayload';
@@ -15,6 +15,7 @@ import type { PaymentMethod } from '@/features/orders/types';
 import { getOrderConfirmationRoute, ROUTES } from '@/routes/paths';
 import { useAuthCapabilities, useAuthStore } from '@/store/auth.store';
 import type { MarketplaceListing } from '@/types/marketplace.types';
+import { classNames } from '@/utils/classNames';
 import { redirectTo } from '@/utils/navigation';
 
 interface CheckoutFormState {
@@ -364,14 +365,14 @@ export function CheckoutPage() {
   }
 
   return (
-    <Container className="checkout-page">
-      <header className="marketplace-header">
+    <Container className="checkout-page checkout-page--conversion">
+      <header className="marketplace-header checkout-header">
         <h1>{t('pages.checkout.title')}</h1>
         <p>{t('pages.checkout.subtitle')}</p>
       </header>
 
       {!capabilities.isAuthenticated ? (
-        <Card className="checkout-auth-hint">
+        <Card className="checkout-auth-hint checkout-auth-hint--conversion">
           <p>{t('pages.checkout.guestNotice')}</p>
           <Link to={ROUTES.login}>
             <Button size="sm" variant="secondary">
@@ -381,9 +382,12 @@ export function CheckoutPage() {
         </Card>
       ) : null}
 
-      <div className="checkout-layout">
-        <Card className="checkout-form-card" elevated>
-          <h2>{t('pages.checkout.contactSectionTitle')}</h2>
+      <div className="checkout-layout checkout-layout--conversion">
+        <Card className="checkout-form-card checkout-form-card--conversion conversion-surface-card" elevated>
+          <div className="checkout-form-head">
+            <h2>{t('pages.checkout.contactSectionTitle')}</h2>
+            <p className="checkout-form-kicker">{t('common.labels.trustedMarketplace')}</p>
+          </div>
           <form className="checkout-form" onSubmit={handleCheckoutSubmit}>
             <div className="checkout-form-grid">
               <Input
@@ -460,7 +464,7 @@ export function CheckoutPage() {
               />
             </div>
 
-            <div className="checkout-payment-methods">
+            <div className="checkout-payment-methods checkout-payment-methods--conversion">
               <h3>{t('pages.checkout.paymentMethodTitle')}</h3>
               <p className="checkout-summary-meta">{t('pages.checkout.paymentMethodSubtitle')}</p>
 
@@ -473,7 +477,13 @@ export function CheckoutPage() {
               ) : (
                 <div className="checkout-payment-options">
                   {availablePaymentMethods.map((paymentMethod) => (
-                    <label className="checkout-payment-option" key={paymentMethod}>
+                    <label
+                      className={classNames(
+                        'checkout-payment-option',
+                        selectedPaymentMethod === paymentMethod && 'checkout-payment-option--selected',
+                      )}
+                      key={paymentMethod}
+                    >
                       <input
                         checked={selectedPaymentMethod === paymentMethod}
                         name="paymentMethod"
@@ -484,9 +494,13 @@ export function CheckoutPage() {
                         type="radio"
                         value={paymentMethod}
                       />
-                      <span>
-                        <strong>{t(`pages.checkout.paymentMethods.${paymentMethod}.title`)}</strong>
-                        <small>{t(`pages.checkout.paymentMethods.${paymentMethod}.description`)}</small>
+                      <span className="checkout-payment-option-copy">
+                        <strong className="checkout-payment-option-title">
+                          {t(`pages.checkout.paymentMethods.${paymentMethod}.title`)}
+                        </strong>
+                        <small className="checkout-payment-option-description">
+                          {t(`pages.checkout.paymentMethods.${paymentMethod}.description`)}
+                        </small>
                       </span>
                     </label>
                   ))}
@@ -494,22 +508,43 @@ export function CheckoutPage() {
               )}
             </div>
 
-            {submitError ? <p className="auth-error">{submitError}</p> : null}
-            {paymentMethodError ? <p className="auth-error">{paymentMethodError}</p> : null}
+            <div className="checkout-action-panel">
+              {submitError ? <p className="auth-error">{submitError}</p> : null}
+              {paymentMethodError ? <p className="auth-error">{paymentMethodError}</p> : null}
 
-            <Button disabled={isSubmitting || !hasSupportedPaymentMethods} type="submit">
-              {isSubmitting ? t('pages.checkout.submitting') : t('pages.checkout.submit')}
-            </Button>
+              {hasSupportedPaymentMethods ? (
+                <div className="checkout-reassurance-list">
+                  {availablePaymentMethods.map((paymentMethod) => (
+                    <Badge className="checkout-reassurance-pill" key={paymentMethod} variant="neutral">
+                      {t(`pages.checkout.paymentMethods.${paymentMethod}.title`)}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+
+              <Button className="checkout-submit-button" disabled={isSubmitting || !hasSupportedPaymentMethods} type="submit">
+                {isSubmitting ? t('pages.checkout.submitting') : t('pages.checkout.submit')}
+              </Button>
+            </div>
           </form>
         </Card>
 
-        <Card className="checkout-summary-card" elevated>
-          <h2>{t('pages.checkout.summaryTitle')}</h2>
+        <Card className="checkout-summary-card checkout-summary-card--conversion conversion-surface-card" elevated>
+          <div className="checkout-summary-head">
+            <h2>{t('pages.checkout.summaryTitle')}</h2>
+            {selectedPaymentMethod ? (
+              <Badge className="checkout-summary-payment-badge" variant="accent">
+                {t(`pages.checkout.paymentMethods.${selectedPaymentMethod}.title`)}
+              </Badge>
+            ) : null}
+          </div>
           {listing ? (
             <div className="checkout-summary-item">
-              <p className="checkout-summary-title">{listing.title}</p>
-              <p className="checkout-summary-meta">{listing.author}</p>
-              <p className="checkout-summary-meta">{listing.genre}</p>
+              <div className="checkout-summary-book">
+                <p className="checkout-summary-title">{listing.title}</p>
+                <p className="checkout-summary-meta">{listing.author}</p>
+                <p className="checkout-summary-meta">{listing.genre}</p>
+              </div>
 
               <div className="checkout-quantity-control">
                 <span>{t('pages.checkout.quantityLabel')}</span>
@@ -567,16 +602,18 @@ export function CheckoutPage() {
                 </div>
               ) : null}
 
-              <div className="checkout-summary-price-line">
-                <span>{t('pages.checkout.unitPriceLabel')}</span>
-                <PriceDisplay value={listing.price} />
-              </div>
-              {totalPrice ? (
-                <div className="checkout-summary-price-line checkout-summary-price-line--total">
-                  <span>{t('pages.checkout.totalPriceLabel')}</span>
-                  <PriceDisplay value={totalPrice} />
+              <div className="checkout-summary-pricing">
+                <div className="checkout-summary-price-line">
+                  <span>{t('pages.checkout.unitPriceLabel')}</span>
+                  <PriceDisplay value={listing.price} />
                 </div>
-              ) : null}
+                {totalPrice ? (
+                  <div className="checkout-summary-price-line checkout-summary-price-line--total">
+                    <span>{t('pages.checkout.totalPriceLabel')}</span>
+                    <PriceDisplay value={totalPrice} />
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </Card>

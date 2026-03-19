@@ -67,9 +67,18 @@ describe('PaymentReturnPage', () => {
     renderPaymentReturnRoute('/payment/return?orderId=order-101&status=failed');
 
     expect(await screen.findByText('Payment failed')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retry payment' })).toBeInTheDocument();
+    expect(screen.getByText('Payment return details')).toBeInTheDocument();
+    expect(screen.getByLabelText('Support and reassurance')).toBeInTheDocument();
+    expect(screen.getByText('order-101')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Retry payment' }));
+    const retryButton = screen.getByRole('button', { name: 'Retry payment' });
+    const marketplaceButton = screen.getByRole('button', { name: 'Back to marketplace' });
+
+    expect(retryButton).toBeInTheDocument();
+    expect(retryButton).toHaveClass('ui-button--primary');
+    expect(marketplaceButton).toHaveClass('ui-button--ghost');
+
+    await userEvent.click(retryButton);
 
     expect(checkoutService.startCheckoutForOrder).toHaveBeenCalledWith('order-101', false);
     expect(redirectTo).toHaveBeenCalledWith('/payments/mock/checkout?sessionId=retry-101');
@@ -103,6 +112,17 @@ describe('PaymentReturnPage', () => {
     renderPaymentReturnRoute('/payment/return?orderId=order-202&status=processing');
 
     expect(await screen.findByText('Payment successful')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'View my orders' })).toBeInTheDocument();
+    expect(screen.getByText('Payment return details')).toBeInTheDocument();
+    expect(screen.getByText('Payment method')).toBeInTheDocument();
+    expect(screen.getByText('Order status')).toBeInTheDocument();
+    expect(screen.getByText('Payment status')).toBeInTheDocument();
+    expect(screen.getByText('Order total')).toBeInTheDocument();
+
+    const myOrdersButton = screen.getByRole('button', { name: 'View my orders' });
+    const marketplaceButton = screen.getByRole('button', { name: 'Back to marketplace' });
+
+    expect(myOrdersButton).toBeInTheDocument();
+    expect(myOrdersButton).toHaveClass('ui-button--primary');
+    expect(marketplaceButton).toHaveClass('ui-button--secondary');
   });
 });

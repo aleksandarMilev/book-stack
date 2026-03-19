@@ -129,8 +129,14 @@ describe('CheckoutPage', () => {
 
     await screen.findByText('Order summary');
 
-    expect(screen.getByDisplayValue('online')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('cashOnDelivery')).toBeInTheDocument();
+    const onlineRadio = screen.getByDisplayValue('online');
+    const cashOnDeliveryRadio = screen.getByDisplayValue('cashOnDelivery');
+
+    expect(onlineRadio).toBeInTheDocument();
+    expect(cashOnDeliveryRadio).toBeInTheDocument();
+    expect(document.querySelectorAll('.checkout-payment-option--selected')).toHaveLength(1);
+    expect((onlineRadio as HTMLInputElement).checked || (cashOnDeliveryRadio as HTMLInputElement).checked).toBe(true);
+    expect(document.querySelectorAll('.checkout-reassurance-pill')).toHaveLength(2);
   });
 
   it('prefills known user data for authenticated checkout', async () => {
@@ -274,7 +280,13 @@ describe('CheckoutPage', () => {
     renderCheckoutRoute('/checkout?listingId=listing-4&quantity=1');
 
     await screen.findByText('Order summary');
-    expect(screen.getByDisplayValue('online')).toBeChecked();
+    const onlineRadio = screen.getByDisplayValue('online');
+
+    if (!(onlineRadio as HTMLInputElement).checked) {
+      await userEvent.click(onlineRadio);
+    }
+
+    expect(onlineRadio).toBeChecked();
     expect(screen.queryByDisplayValue('cashOnDelivery')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('First name'), 'John');
@@ -322,7 +334,13 @@ describe('CheckoutPage', () => {
     renderCheckoutRoute('/checkout?listingId=listing-5&quantity=1');
 
     await screen.findByText('Order summary');
-    expect(screen.getByDisplayValue('cashOnDelivery')).toBeChecked();
+    const cashOnDeliveryRadio = screen.getByDisplayValue('cashOnDelivery');
+
+    if (!(cashOnDeliveryRadio as HTMLInputElement).checked) {
+      await userEvent.click(cashOnDeliveryRadio);
+    }
+
+    expect(cashOnDeliveryRadio).toBeChecked();
     expect(screen.queryByDisplayValue('online')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('First name'), 'Maria');

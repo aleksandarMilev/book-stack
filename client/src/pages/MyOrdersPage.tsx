@@ -138,13 +138,13 @@ export function MyOrdersPage() {
   const hasOrders = !isLoading && !errorMessage && orders.length > 0;
 
   return (
-    <Container className="account-page">
-      <header className="marketplace-header">
+    <Container className="account-page my-orders-page">
+      <header className="marketplace-header my-orders-header">
         <h1>{t('pages.myOrders.title')}</h1>
         <p>{t('pages.myOrders.subtitle')}</p>
       </header>
 
-      <section className="marketplace-toolbar account-toolbar account-toolbar--orders">
+      <section className="marketplace-toolbar account-toolbar account-toolbar--orders my-orders-toolbar">
         <Input
           label={t('pages.myOrders.searchLabel')}
           onChange={(event) => {
@@ -210,8 +210,10 @@ export function MyOrdersPage() {
         </label>
       </section>
 
-      <div className="marketplace-results" ref={resultsSectionRef}>
-        <p className="marketplace-results-count">{t('pages.myOrders.resultsCount', { count: totalItems })}</p>
+      <div className="marketplace-results my-orders-results" ref={resultsSectionRef}>
+        <p className="marketplace-results-count my-orders-results-count">
+          {t('pages.myOrders.resultsCount', { count: totalItems })}
+        </p>
 
         {isLoading ? (
           <LoadingState
@@ -244,42 +246,49 @@ export function MyOrdersPage() {
         ) : null}
 
         {hasOrders ? (
-          <div className="order-card-list">
+          <div className="order-card-list my-orders-list">
             {orders.map((order) => {
               const isExpanded = expandedOrderId === order.id;
               const detail = orderDetails[order.id] ?? order;
 
               return (
-                <Card className="order-card" key={order.id}>
-                  <div className="order-card-head">
-                    <div>
-                      <p className="order-card-id">
+                <Card className="order-card my-orders-entry" key={order.id}>
+                  <div className="order-card-head my-orders-entry-head">
+                    <div className="my-orders-entry-summary">
+                      <p className="order-card-id my-orders-entry-id">
                         {t('pages.myOrders.orderIdLabel')}: {formatOrderId(order.id)}
                       </p>
-                      <p className="order-card-date">
+                      <p className="order-card-date my-orders-entry-date">
                         {formatDateTime({ value: order.createdOn, language })}
                       </p>
                     </div>
-                    <PriceDisplay value={order.total} />
+                    <div className="my-orders-entry-total">
+                      <PriceDisplay value={order.total} />
+                    </div>
                   </div>
 
-                  <div className="order-card-statuses">
-                    <Badge variant={getPaymentMethodBadgeVariant(order.paymentMethod)}>
+                  <div className="order-card-statuses my-orders-entry-statuses">
+                    <Badge className="my-orders-status-badge" variant={getPaymentMethodBadgeVariant(order.paymentMethod)}>
                       {t(`taxonomy.paymentMethod.${order.paymentMethod}`)}
                     </Badge>
-                    <Badge variant={getOrderStatusBadgeVariant(order.status)}>
+                    <Badge className="my-orders-status-badge" variant={getOrderStatusBadgeVariant(order.status)}>
                       {t(`taxonomy.orderStatus.${order.status}`)}
                     </Badge>
-                    <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
+                    <Badge className="my-orders-status-badge" variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
                       {t(`taxonomy.paymentStatus.${order.paymentStatus}`)}
                     </Badge>
-                    <Badge variant={getSettlementStatusBadgeVariant(order.settlementStatus)}>
+                    <Badge
+                      className="my-orders-status-badge"
+                      variant={getSettlementStatusBadgeVariant(order.settlementStatus)}
+                    >
                       {t(`taxonomy.settlementStatus.${order.settlementStatus}`)}
                     </Badge>
                   </div>
-                  <p className="checkout-summary-meta">{t(`pages.myOrders.statusDescriptions.${order.status}`)}</p>
+                  <p className="checkout-summary-meta my-orders-entry-description">
+                    {t(`pages.myOrders.statusDescriptions.${order.status}`)}
+                  </p>
 
-                  <ul className="order-items-summary">
+                  <ul className="order-items-summary my-orders-entry-items">
                     {order.items.slice(0, 2).map((item) => (
                       <li key={item.id}>
                         {item.bookTitle} x{item.quantity}
@@ -292,21 +301,24 @@ export function MyOrdersPage() {
 
                   {detailsError[order.id] ? <p className="auth-error">{detailsError[order.id]}</p> : null}
 
-                  <Button
-                    onClick={() => {
-                      void handleToggleDetails(order.id);
-                    }}
-                    variant="secondary"
-                  >
-                    {isExpanded
-                      ? t('pages.myOrders.hideDetails')
-                      : detailsLoading[order.id]
-                        ? t('pages.myOrders.loadingDetails')
-                        : t('pages.myOrders.showDetails')}
-                  </Button>
+                  <div className="my-orders-entry-actions">
+                    <Button
+                      className="my-orders-entry-action"
+                      onClick={() => {
+                        void handleToggleDetails(order.id);
+                      }}
+                      variant="secondary"
+                    >
+                      {isExpanded
+                        ? t('pages.myOrders.hideDetails')
+                        : detailsLoading[order.id]
+                          ? t('pages.myOrders.loadingDetails')
+                          : t('pages.myOrders.showDetails')}
+                    </Button>
+                  </div>
 
                   {isExpanded ? (
-                    <div className="order-details-panel">
+                    <div className="order-details-panel my-orders-details-panel">
                       <h3>{t('pages.myOrders.detailsTitle')}</h3>
                       <p>
                         {detail.customerFirstName} {detail.customerLastName}
@@ -316,7 +328,7 @@ export function MyOrdersPage() {
                         {detail.addressLine}, {detail.city}, {detail.country}
                         {detail.postalCode ? `, ${detail.postalCode}` : ''}
                       </p>
-                      <div className="order-details-financials">
+                      <div className="order-details-financials my-orders-details-financials">
                         <div className="checkout-summary-price-line">
                           <span>{t('pages.myOrders.financial.totalLabel')}</span>
                           <PriceDisplay value={detail.total} />
@@ -334,9 +346,9 @@ export function MyOrdersPage() {
                           <PriceDisplay value={detail.sellerNetAmount} />
                         </div>
                       </div>
-                      <div className="order-details-items">
+                      <div className="order-details-items my-orders-details-items">
                         {detail.items.map((item) => (
-                          <div className="order-details-item" key={item.id}>
+                          <div className="order-details-item my-orders-details-item" key={item.id}>
                             {item.listingImageUrl ? (
                               <img
                                 alt={t('marketplace.listingImageAlt', { title: item.bookTitle })}
@@ -346,7 +358,7 @@ export function MyOrdersPage() {
                             ) : (
                               <div className="order-details-item-image-placeholder" />
                             )}
-                            <div>
+                            <div className="my-orders-details-item-content">
                               <p className="order-details-item-title">{item.bookTitle}</p>
                               <p className="order-details-item-meta">
                                 {item.bookAuthor} · {t(`taxonomy.conditions.${item.condition}`)}

@@ -23,27 +23,20 @@ public class ProfileService(
     IStringSanitizerService stringSanitizer,
     ILogger<ProfileService> logger) : IProfileService
 {
-    private readonly BookStackDbContext _data = data;
-    private readonly UserManager<UserDbModel> _userManager = userManager;
-    private readonly ICurrentUserService _userService = userService;
-    private readonly IImageWriter _imageWriter = imageWriter;
-    private readonly IStringSanitizerService _stringSanitizer = stringSanitizer;
-    private readonly ILogger<ProfileService> _logger = logger;
-
     public async Task<ProfileServiceModel?> Mine(
         CancellationToken cancellationToken = default)
-        => await this._data
+        => await data
             .Profiles
             .AsNoTracking()
             .ToServiceModels()
             .SingleOrDefaultAsync(
-                p => p.Id == this._userService.GetId(),
+                p => p.Id == userService.GetId(),
                 cancellationToken);
 
     public async Task<ProfileServiceModel?> OtherUser(
         string userId,
         CancellationToken cancellationToken = default)
-        => await this._data
+        => await data
             .Profiles
             .AsNoTracking()
             .ToServiceModels()
@@ -59,18 +52,18 @@ public class ProfileService(
         var dbModel = serviceModel.ToDbModel();
         dbModel.UserId = userId;
 
-        await this._imageWriter.Write(
+        await imageWriter.Write(
            resourceName: Paths.ProfilesImagePathPrefix,
            dbModel,
            serviceModel,
            Paths.DefaultImagePath,
            cancellationToken);
 
-        this._data.Add(dbModel);
+        data.Add(dbModel);
 
-        await this._data.SaveChangesAsync(cancellationToken);
+        await data.SaveChangesAsync(cancellationToken);
 
-        this._logger.LogInformation(
+        logger.LogInformation(
             "Profile for user with id {UserId} was created.",
             userId);
 
@@ -81,7 +74,7 @@ public class ProfileService(
         CreateProfileServiceModel serviceModel,
         CancellationToken cancellationToken = default)
     {
-        var userId = this._userService.GetId()!;
+        var userId = userService.GetId()!;
         var dbModel = await this.GetDbModel(
             userId,
             cancellationToken);
@@ -115,7 +108,7 @@ public class ProfileService(
         }
         else
         {
-            await this._imageWriter.Write(
+            await imageWriter.Write(
                 resourceName: Paths.ProfilesImagePathPrefix,
                 dbModel,
                 serviceModel,
@@ -125,7 +118,7 @@ public class ProfileService(
             willDeleteOld &= serviceModel.Image is not null;
         }
 
-        await this._data.SaveChangesAsync(cancellationToken);
+        await data.SaveChangesAsync(cancellationToken);
 
         var shouldDeleteOldImage = 
             willDeleteOld &&
@@ -136,14 +129,14 @@ public class ProfileService(
 
         if (shouldDeleteOldImage)
         {
-            var successfullyDeleted = this._imageWriter.Delete(
+            var successfullyDeleted = imageWriter.Delete(
                 Paths.ProfilesImagePathPrefix,
                 oldImagePath,
                 Paths.DefaultImagePath);
 
             if (!successfullyDeleted)
             {
-                this._logger.LogWarning(
+                logger.LogWarning(
                     "Profile updated but old image was not deleted. UserId={UserId}, OldImagePath={OldImagePath}, NewImagePath={NewImagePath}",
                     userId,
                     oldImagePath,
@@ -151,7 +144,7 @@ public class ProfileService(
             }
         }
 
-        this._logger.LogInformation(
+        logger.LogInformation(
             "Profile updated. UserId={UserId}, RemoveImage={RemoveImage}, NewImageUploaded={NewImageUploaded}, ImagePath={ImagePath}",
             userId,
             serviceModel.RemoveImage,
@@ -165,7 +158,7 @@ public class ProfileService(
         string? userToDeleteId = null,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = this._userService.GetId()!;
+        var currentUserId = userService.GetId()!;
         userToDeleteId ??= currentUserId;
 
         var profile = await this.GetDbModel(
@@ -178,7 +171,7 @@ public class ProfileService(
         }
 
         var isNotCurrentUserProfile = profile.UserId != currentUserId;
-        var userIsNotAdmin = !this._userService.IsAdmin();
+        var userIsNotAdmin = userService.IsAdmin();
 
         if (isNotCurrentUserProfile && userIsNotAdmin)
         {
@@ -187,9 +180,9 @@ public class ProfileService(
                 profile.UserId);
         }
 
-        this._data.Remove(profile);
+        data.Remove(profile);
 
-        var user = await this._userManager
+        var user = await userManager
             .FindByIdAsync(profile.UserId);
 
         if (user is null)
@@ -197,7 +190,7 @@ public class ProfileService(
             return false;
         }
 
-        var identityResult = await this._userManager
+        var identityResult = await userManager
             .DeleteAsync(user);
 
         if (!identityResult.Succeeded)
@@ -215,16 +208,16 @@ public class ProfileService(
     private async Task<UserProfileDbModel?> GetDbModel(
         string id,
         CancellationToken cancellationToken = default)
-        => await this._data
+        => await data
             .Profiles
             .FindAsync([id], cancellationToken);
 
     private string LogAndReturnNotFoundMessage(string userId)
     {
-        var sanitizedUserIdId = this._stringSanitizer
+        var sanitizedUserIdId = stringSanitizer
             .SanitizeStringForLog(userId);
 
-        this._logger.LogWarning(
+        logger.LogWarning(
             ErrorMessages.DbEntityNotFoundTemplate,
             nameof(UserProfileDbModel),
             sanitizedUserIdId);
@@ -239,13 +232,13 @@ public class ProfileService(
         string currentUserId,
         string profileId)
     {
-        var sanitizedCurrentUserId = this._stringSanitizer
+        var sanitizedCurrentUserId = stringSanitizer
             .SanitizeStringForLog(currentUserId);
 
-        var sanitizedProfileId = this._stringSanitizer
+        var sanitizedProfileId = stringSanitizer
             .SanitizeStringForLog(profileId);
 
-        this._logger.LogWarning(
+        logger.LogWarning(
             ErrorMessages.UnauthorizedMessageTemplate,
             sanitizedCurrentUserId,
             nameof(UserProfileDbModel),
