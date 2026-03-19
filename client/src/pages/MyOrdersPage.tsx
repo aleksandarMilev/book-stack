@@ -15,6 +15,7 @@ import {
   PAYMENT_STATUS_FILTERS,
 } from '@/features/orders/ui/statusPresentation';
 import { useLanguage } from '@/hooks/useLanguage';
+import { usePaginationScrollReset } from '@/hooks/usePaginationScrollReset';
 import { formatDateTime } from '@/utils/formatters';
 
 type OrderStatusFilter = 'all' | OrderStatus;
@@ -49,6 +50,7 @@ export function MyOrdersPage() {
   const [reloadCounter, setReloadCounter] = useState(0);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))), [pageSize, totalItems]);
+  const resultsSectionRef = usePaginationScrollReset<HTMLDivElement>(pageIndex);
 
   useEffect(() => {
     let isActive = true;
@@ -208,7 +210,7 @@ export function MyOrdersPage() {
         </label>
       </section>
 
-      <div className="marketplace-results">
+      <div className="marketplace-results" ref={resultsSectionRef}>
         <p className="marketplace-results-count">{t('pages.myOrders.resultsCount', { count: totalItems })}</p>
 
         {isLoading ? (

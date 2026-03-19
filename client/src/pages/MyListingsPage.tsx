@@ -12,6 +12,7 @@ import {
 } from '@/features/marketplace/types';
 import { SellerProfileRequiredState } from '@/features/sellerProfiles/components/SellerProfileRequiredState';
 import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
+import { usePaginationScrollReset } from '@/hooks/usePaginationScrollReset';
 import { getListingDetailsRoute, getMyListingEditRoute, ROUTES } from '@/routes/paths';
 import type { MarketplaceListing } from '@/types/marketplace.types';
 
@@ -68,6 +69,7 @@ export function MyListingsPage() {
     () => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))),
     [pageSize, totalItems],
   );
+  const resultsSectionRef = usePaginationScrollReset<HTMLDivElement>(pageIndex);
   const hasActiveSellerProfile = Boolean(sellerProfile?.isActive);
   const isCheckingSellerProfile =
     (sellerProfileLoadState === 'loading' || sellerProfileLoadState === 'idle') && !sellerProfile;
@@ -253,7 +255,7 @@ export function MyListingsPage() {
         </label>
       </section>
 
-      <div className="marketplace-results">
+      <div className="marketplace-results" ref={resultsSectionRef}>
         <p className="marketplace-results-count">
           {t('pages.myListings.resultsCount', { count: totalItems })}
         </p>

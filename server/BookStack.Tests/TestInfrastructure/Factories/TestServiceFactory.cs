@@ -1,4 +1,4 @@
-namespace BookStack.Tests.TestInfrastructure;
+namespace BookStack.Tests.TestInfrastructure.Factories;
 
 using BookStack.Features.Books.Service;
 using BookStack.Features.BookListings.Service;
@@ -13,13 +13,14 @@ using BookStack.Infrastructure.Settings;
 using BookStack.Data;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using BookStack.Tests.TestInfrastructure.Fakes;
 
 internal static class TestServiceFactory
 {
     public static BookService CreateBookService(
         BookStackDbContext data,
-        TestCurrentUserService currentUserService,
-        TestDateTimeProvider dateTimeProvider)
+        FakeCurrentUserService currentUserService,
+        FakeDateTimeProvider dateTimeProvider)
         => new(
             data,
             currentUserService,
@@ -30,8 +31,8 @@ internal static class TestServiceFactory
 
     public static PaymentService CreatePaymentService(
         BookStackDbContext data,
-        TestDateTimeProvider dateTimeProvider,
-        TestCurrentUserService currentUserService)
+        FakeDateTimeProvider dateTimeProvider,
+        FakeCurrentUserService currentUserService)
     {
         var appUrlSettings = new AppUrlsSettings
         {
@@ -56,9 +57,9 @@ internal static class TestServiceFactory
 
     public static OrderService CreateOrderService(
         BookStackDbContext data,
-        TestCurrentUserService currentUserService,
+        FakeCurrentUserService currentUserService,
         PaymentService paymentService,
-        TestDateTimeProvider dateTimeProvider)
+        FakeDateTimeProvider dateTimeProvider)
         => new(
             data,
             currentUserService,
@@ -77,8 +78,8 @@ internal static class TestServiceFactory
 
     public static BookListingService CreateBookListingService(
         BookStackDbContext data,
-        TestCurrentUserService currentUserService,
-        TestDateTimeProvider dateTimeProvider,
+        FakeCurrentUserService currentUserService,
+        FakeDateTimeProvider dateTimeProvider,
         IImageWriter imageWriter)
         => new(
             data,

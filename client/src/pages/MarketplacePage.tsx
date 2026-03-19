@@ -13,6 +13,7 @@ import {
   type MarketplaceSortOption,
 } from '@/features/marketplace/types';
 import { useDisclosure } from '@/hooks/useDisclosure';
+import { usePaginationScrollReset } from '@/hooks/usePaginationScrollReset';
 import type { MarketplaceListing, MarketplaceListingCondition } from '@/types/marketplace.types';
 import { classNames } from '@/utils/classNames';
 
@@ -128,6 +129,7 @@ export function MarketplacePage() {
   const closeMobileFilters = mobileFilters.close;
 
   const queryState = useMemo(() => parseQueryState(searchParams), [searchParams]);
+  const resultsSectionRef = usePaginationScrollReset<HTMLDivElement>(queryState.pageIndex);
 
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -355,7 +357,7 @@ export function MarketplacePage() {
           />
         </aside>
 
-        <div className="marketplace-results" data-reveal>
+        <div className="marketplace-results" data-reveal ref={resultsSectionRef}>
           <p className="marketplace-results-count">{t('marketplace.resultsCount', { count: totalItems })}</p>
 
           {isLoading ? (

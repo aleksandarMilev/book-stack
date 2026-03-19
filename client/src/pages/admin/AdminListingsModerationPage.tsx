@@ -14,6 +14,7 @@ import type {
 import { deriveModerationStatus } from '@/features/admin/utils/moderationStatus';
 import { MARKETPLACE_CONDITIONS } from '@/features/marketplace/types';
 import { useLanguage } from '@/hooks/useLanguage';
+import { usePaginationScrollReset } from '@/hooks/usePaginationScrollReset';
 import type { MarketplaceListing, MarketplaceListingCondition } from '@/types/marketplace.types';
 import { formatDateTime } from '@/utils/formatters';
 
@@ -50,6 +51,7 @@ export function AdminListingsModerationPage() {
   const [reloadCounter, setReloadCounter] = useState(0);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))), [pageSize, totalItems]);
+  const resultsSectionRef = usePaginationScrollReset<HTMLDivElement>(pageIndex);
 
   const loadListings = useCallback(async () => {
     setIsLoading(true);
@@ -243,7 +245,7 @@ export function AdminListingsModerationPage() {
         </label>
       </section>
 
-      <div className="marketplace-results">
+      <div className="marketplace-results" ref={resultsSectionRef}>
         <p className="marketplace-results-count">{t('pages.adminListings.resultsCount', { count: totalItems })}</p>
 
         {actionError ? <p className="auth-error">{actionError}</p> : null}

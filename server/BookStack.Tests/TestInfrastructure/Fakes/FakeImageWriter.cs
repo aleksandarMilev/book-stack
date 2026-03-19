@@ -1,4 +1,4 @@
-namespace BookStack.Tests.TestInfrastructure;
+namespace BookStack.Tests.TestInfrastructure.Fakes;
 
 using BookStack.Infrastructure.Services.ImageWriter;
 using BookStack.Infrastructure.Services.ImageWriter.Models;
@@ -7,7 +7,7 @@ internal sealed class FakeImageWriter : IImageWriter
 {
     public Task Write(
         string resourceName,
-        IImageDdModel dbModel,
+        IImageDbModel dbModel,
         IImageServiceModel serviceModel,
         string? defaultImagePath = null,
         CancellationToken cancellationToken = default)

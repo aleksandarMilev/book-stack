@@ -8,6 +8,7 @@ import { ModerationStatusBadge, RejectionReasonDialog } from '@/features/admin/c
 import type { AdminApprovalFilter, AdminBooksModerationItem,AdminBookSortOption } from '@/features/admin/types/admin.types';
 import { deriveModerationStatus } from '@/features/admin/utils/moderationStatus';
 import { useLanguage } from '@/hooks/useLanguage';
+import { usePaginationScrollReset } from '@/hooks/usePaginationScrollReset';
 import { formatDateTime } from '@/utils/formatters';
 
 const SORT_OPTIONS: AdminBookSortOption[] = [
@@ -40,6 +41,7 @@ export function AdminBooksModerationPage() {
   const [reloadCounter, setReloadCounter] = useState(0);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalItems / Math.max(pageSize, 1))), [pageSize, totalItems]);
+  const resultsSectionRef = usePaginationScrollReset<HTMLDivElement>(pageIndex);
 
   const loadBooks = useCallback(async () => {
     setIsLoading(true);
@@ -212,7 +214,7 @@ export function AdminBooksModerationPage() {
         </label>
       </section>
 
-      <div className="marketplace-results">
+      <div className="marketplace-results" ref={resultsSectionRef}>
         <p className="marketplace-results-count">{t('pages.adminBooks.resultsCount', { count: totalItems })}</p>
 
         {actionError ? <p className="auth-error">{actionError}</p> : null}

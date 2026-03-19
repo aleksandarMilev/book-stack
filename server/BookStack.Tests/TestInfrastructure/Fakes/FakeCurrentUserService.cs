@@ -1,8 +1,8 @@
-namespace BookStack.Tests.TestInfrastructure;
+namespace BookStack.Tests.TestInfrastructure.Fakes;
 
 using BookStack.Infrastructure.Services.CurrentUser;
 
-internal sealed class TestCurrentUserService : ICurrentUserService
+internal sealed class FakeCurrentUserService : ICurrentUserService
 {
     public string? UserId { get; set; }
 

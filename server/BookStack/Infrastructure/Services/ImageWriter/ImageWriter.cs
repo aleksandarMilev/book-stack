@@ -12,7 +12,7 @@ public class ImageWriter(
 
     public async Task Write(
         string resourceName,
-        IImageDdModel dbModel,
+        IImageDbModel dbModel,
         IImageServiceModel serviceModel,
         string? defaultImagePath = null,
         CancellationToken cancelationToken = default)
@@ -196,7 +196,7 @@ public class ImageWriter(
 
     private async Task SaveImageFile(
         string resourceName,
-        IImageDdModel dbModel,
+        IImageDbModel dbModel,
         IImageServiceModel serviceModel,
         CancellationToken cancellationToken = default)
     {

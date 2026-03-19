@@ -1,6 +1,6 @@
 ﻿namespace BookStack.Infrastructure.Services.ImageWriter.Models;
 
-public interface IImageDdModel
+public interface IImageDbModel
 {
     string ImagePath { get; set; }
 }

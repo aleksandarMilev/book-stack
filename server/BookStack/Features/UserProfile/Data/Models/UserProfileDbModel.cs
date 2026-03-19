@@ -6,7 +6,7 @@ using Infrastructure.Services.ImageWriter.Models;
 
 public class UserProfileDbModel:
     IDeletableEntity,
-    IImageDdModel
+    IImageDbModel
 {
     public bool IsDeleted { get; set; }
 

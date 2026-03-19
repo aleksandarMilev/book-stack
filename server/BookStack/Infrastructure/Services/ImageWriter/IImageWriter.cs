@@ -7,7 +7,7 @@ public interface IImageWriter : IScopedService
 {
     Task Write(
         string resourceName,
-        IImageDdModel dbModel,
+        IImageDbModel dbModel,
         IImageServiceModel serviceModel,
         string? defaultImagePath = null,
         CancellationToken cancellationToken = default);

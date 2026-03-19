@@ -8,7 +8,7 @@ using Shared;
 public class BookListingDbModel:
     DeletableEntity<Guid>,
     IApprovableEntity,
-    IImageDdModel
+    IImageDbModel
 {
     public Guid BookId { get; set; }
 
