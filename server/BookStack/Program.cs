@@ -43,7 +43,7 @@ if (envIsDev)
     app.MapScalarApiReference();
     app.UseSwaggerUI();
 }
-else
+else if (envIsNotTesting)
 {
     app.UseExceptionHandler();
     app.UseHsts();

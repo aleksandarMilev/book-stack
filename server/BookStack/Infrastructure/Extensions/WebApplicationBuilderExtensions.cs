@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Outbox.Service;
@@ -241,7 +242,7 @@ public static class WebApplicationBuilderExtensions
                     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(Lockout.AccountLockoutTimeSpan);
                     options.Lockout.MaxFailedAccessAttempts = Lockout.MaxFailedLoginAttempts;
 
-                    if (env.IsDevelopment())
+                    if (env.IsDevelopment() || env.IsEnvironment("Testing"))
                     {
                         const int RequiredDevLength = 6;
 
@@ -277,16 +278,9 @@ public static class WebApplicationBuilderExtensions
         }
 
         public IServiceCollection AddJwtAuthentication(
-            IConfiguration configuration,
+            IConfiguration _configuration,
             IWebHostEnvironment env)
         {
-            var settings = configuration
-                .GetSection(nameof(JwtSettings))
-                .Get<JwtSettings>()
-                ?? throw new InvalidOperationException("JwtSettings section is missing!");
-
-            var key = Encoding.ASCII.GetBytes(settings.Secret);
-
             services
                 .AddAuthentication(static options =>
                 {
@@ -294,10 +288,37 @@ public static class WebApplicationBuilderExtensions
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 })
-                .AddJwtBearer(options =>
+                .AddJwtBearer();
+
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<JwtSettings>>((options, jwtOptions) =>
                 {
+                    var settings = jwtOptions.Value;
+
+                    if (string.IsNullOrWhiteSpace(settings.Secret))
+                    {
+                        throw new InvalidOperationException("JwtSettings:Secret is missing or empty.");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(settings.Issuer))
+                    {
+                        throw new InvalidOperationException("JwtSettings:Issuer is missing or empty.");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(settings.Audience))
+                    {
+                        throw new InvalidOperationException("JwtSettings:Audience is missing or empty.");
+                    }
+
                     const int ClockSkewMinutes = 2;
 
+                    var keyBytes = Encoding.UTF8.GetBytes(settings.Secret);
+                    var signingKey = new SymmetricSecurityKey(keyBytes)
+                    {
+                        KeyId = Jwt.SigningKeyId
+                    };
+
+                    options.MapInboundClaims = false;
                     options.SaveToken = true;
                     options.RequireHttpsMetadata = !env.IsDevelopment();
                     options.IncludeErrorDetails = env.IsDevelopment();
@@ -305,16 +326,18 @@ public static class WebApplicationBuilderExtensions
                     options.TokenValidationParameters = new()
                     {
                         ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        IssuerSigningKey = signingKey,
                         ValidateIssuer = true,
                         ValidIssuer = settings.Issuer,
                         ValidateAudience = true,
                         ValidAudience = settings.Audience,
                         ValidateLifetime = true,
-                        ClockSkew = TimeSpan.FromMinutes(ClockSkewMinutes)
+                        ClockSkew = TimeSpan.FromMinutes(ClockSkewMinutes),
+                        ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                        TryAllIssuerSigningKeys = true
                     };
 
-                    options.Events = new JwtBearerEvents
+                    options.Events = new()
                     {
                         OnTokenValidated = async context =>
                         {
@@ -357,8 +380,7 @@ public static class WebApplicationBuilderExtensions
                                 return;
                             }
 
-                            var currentSecurityStamp = user.SecurityStamp
-                                ?? string.Empty;
+                            var currentSecurityStamp = user.SecurityStamp ?? "";
 
                             if (!string.Equals(
                                     tokenSecurityStamp,

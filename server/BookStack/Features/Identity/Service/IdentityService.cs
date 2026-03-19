@@ -23,8 +23,7 @@ using UserProfile.Service;
 
 using static Common.Constants.Names;
 using static Infrastructure.Outbox.Common.Constants;
-using static Shared.Constants.ErrorMessages;
-using static Shared.Constants.TokenExpiration;
+using static Shared.Constants;
 
 /// <summary>
 /// Implements registration, authentication, and password-reset workflows for identity users.
@@ -129,7 +128,7 @@ public class IdentityService(
                     var errorMessage = string.Join("; ", identityResultError);
 
                     return ResultWith<string>
-                        .Failure(errorMessage ?? InvalidRegisterAttempt);
+                        .Failure(errorMessage ?? ErrorMessages.InvalidRegisterAttempt);
                 }
 
                 await profileService.Create(
@@ -166,11 +165,21 @@ public class IdentityService(
                 await data.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                var jwt = GenerateJwtToken(user);
+                var createdUser = await userManager.FindByIdAsync(user.Id);
+                if (createdUser is null)
+                {
+                    logger.LogError(
+                        "User was created but could not be reloaded. UserId={UserId}",
+                        user.Id);
+
+                    return ResultWith<string>.Failure(ErrorMessages.InvalidRegisterAttempt);
+                }
+
+                var jwt = GenerateJwtToken(createdUser);
 
                 logger.LogInformation(
                     "User successfully registered. UserId={UserId}",
-                    user.Id);
+                    createdUser.Id);
 
                 return ResultWith<string>.Success(jwt);
             }
@@ -182,7 +191,7 @@ public class IdentityService(
 
                 await transaction.RollbackAsync(cancellationToken);
 
-                return ResultWith<string>.Failure(InvalidRegisterAttempt);
+                return ResultWith<string>.Failure(ErrorMessages.InvalidRegisterAttempt);
             }
         });
     }
@@ -203,12 +212,12 @@ public class IdentityService(
 
         if (user is null || user.IsDeleted)
         {
-            return ResultWith<string>.Failure(InvalidLoginAttempt);
+            return ResultWith<string>.Failure(ErrorMessages.InvalidLoginAttempt);
         }
 
         if (await userManager.IsLockedOutAsync(user))
         {
-            return ResultWith<string>.Failure(AccountIsLocked);
+            return ResultWith<string>.Failure(ErrorMessages.AccountIsLocked);
         }
 
         var passwordIsValid = await userManager.CheckPasswordAsync(
@@ -235,10 +244,10 @@ public class IdentityService(
 
         if (await userManager.IsLockedOutAsync(user))
         {
-            return ResultWith<string>.Failure(AccountWasLocked);
+            return ResultWith<string>.Failure(ErrorMessages.AccountWasLocked);
         }
 
-        return ResultWith<string>.Failure(InvalidLoginAttempt);
+        return ResultWith<string>.Failure(ErrorMessages.InvalidLoginAttempt);
     }
 
     /// <summary>
@@ -328,7 +337,7 @@ public class IdentityService(
 
         if (user is null || user.IsDeleted)
         {
-            return ResultWith<string>.Failure(InvalidPasswordResetAttempt);
+            return ResultWith<string>.Failure(ErrorMessages.InvalidPasswordResetAttempt);
         }
 
         string token;
@@ -340,7 +349,7 @@ public class IdentityService(
         }
         catch
         {
-            return ResultWith<string>.Failure(InvalidPasswordResetAttempt);
+            return ResultWith<string>.Failure(ErrorMessages.InvalidPasswordResetAttempt);
         }
 
         var result = await userManager.ResetPasswordAsync(
@@ -357,7 +366,7 @@ public class IdentityService(
             var errorMessage = string.Join("; ", identityResultError);
 
             return ResultWith<string>
-                .Failure(errorMessage ?? InvalidPasswordResetAttempt);
+                .Failure(errorMessage ?? ErrorMessages.InvalidPasswordResetAttempt);
         }
 
         var updateSecurityStampResult = await userManager
@@ -399,14 +408,18 @@ public class IdentityService(
         tokenHandler.OutboundClaimTypeMap.Clear();
 
         var secret = jwtSettings.Value.Secret;
-        var key = Encoding.ASCII.GetBytes(secret);
+        var keyBytes = Encoding.UTF8.GetBytes(secret);
+        var signingKey = new SymmetricSecurityKey(keyBytes)
+        {
+            KeyId = Jwt.SigningKeyId
+        };
 
         var claimList = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Name, user.UserName!),
             new(ClaimTypes.Email, user.Email!),
-            new("security_stamp", user.SecurityStamp ?? string.Empty)
+            new("security_stamp", user.SecurityStamp ?? "")
         };
 
         if (isAdmin)
@@ -414,22 +427,23 @@ public class IdentityService(
             claimList.Add(new(ClaimTypes.Role, AdminRoleName));
         }
 
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claimList),
-            Expires = rememberMe
-                ? dateTimeProvider.UtcNow.AddDays(ExtendedTokenExpirationTime)
-                : dateTimeProvider.UtcNow.AddDays(DefaultTokenExpirationTime),
-            Issuer = jwtSettings.Value.Issuer,
-            Audience = jwtSettings.Value.Audience,
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-        };
+        var expires = rememberMe
+            ? dateTimeProvider.UtcNow.AddDays(TokenExpiration.ExtendedTokenExpirationTime)
+            : dateTimeProvider.UtcNow.AddDays(TokenExpiration.DefaultTokenExpirationTime);
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var jwt = new JwtSecurityToken(
+            issuer: jwtSettings.Value.Issuer,
+            audience: jwtSettings.Value.Audience,
+            claims: claimList,
+            notBefore: dateTimeProvider.UtcNow,
+            expires: expires,
+            signingCredentials: new SigningCredentials(
+                signingKey,
+                SecurityAlgorithms.HmacSha256));
 
-        return tokenHandler.WriteToken(token);
+        jwt.Header["kid"] = signingKey.KeyId;
+
+        return tokenHandler.WriteToken(jwt);
     }
 
     /// <summary>

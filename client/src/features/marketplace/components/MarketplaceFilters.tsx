@@ -43,7 +43,7 @@ export function MarketplaceFilters({
 
   return (
     <Card className={classNames('marketplace-filters', className)}>
-      <div className="marketplace-filters-block">
+      <div className="marketplace-filters-block marketplace-filters-block--fields">
         <h3>{t('marketplace.filtersTitle')}</h3>
         <Input
           label={t('marketplace.titleLabel')}
@@ -92,7 +92,7 @@ export function MarketplaceFilters({
         </div>
       </div>
 
-      <div className="marketplace-filters-block">
+      <div className="marketplace-filters-block marketplace-filters-block--conditions">
         <h3>{t('marketplace.conditionLabel')}</h3>
         <div className="marketplace-filters-options">
           <label className="filter-radio">
@@ -123,7 +123,7 @@ export function MarketplaceFilters({
         </div>
       </div>
 
-      <Button onClick={onClearFilters} variant="ghost">
+      <Button className="marketplace-filters-clear" onClick={onClearFilters} variant="ghost">
         {t('common.actions.clearFilters')}
       </Button>
     </Card>

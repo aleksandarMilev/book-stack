@@ -13,7 +13,7 @@ public static class Constants
         /// <summary>
         /// Generic message for failed login attempts.
         /// </summary>
-        public const string InvalidLoginAttempt = "Invalid log in attempt!";
+        public const string InvalidLoginAttempt = "Invalid login attempt!";
 
         /// <summary>
         /// Generic message for failed registration attempts.
@@ -112,5 +112,16 @@ public static class Constants
         /// Extended token lifetime in days when remember-me is enabled.
         /// </summary>
         public const int ExtendedTokenExpirationTime = 30;
+    }
+
+    /// <summary>
+    /// JWT settings shared across token issuing and validation.
+    /// </summary>
+    public static class Jwt
+    {
+        /// <summary>
+        /// Identifier of the signing key used in the JWT <c>kid</c> header.
+        /// </summary>
+        public const string SigningKeyId = "bookstack-jwt-signing-key";
     }
 }

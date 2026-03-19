@@ -36,6 +36,9 @@ internal sealed class IdentityTestFactory
         this.IdentityService = this.CreateIdentityService();
     }
 
+    public BookStackDbContext Data
+        => this.data;
+
     public FakeEmailSender EmailSender { get; }
 
     public IImageWriter ImageWriter { get; }

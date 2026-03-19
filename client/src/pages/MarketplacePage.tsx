@@ -240,6 +240,14 @@ export function MarketplacePage() {
   };
 
   const hasListings = !isLoading && !errorMessage && listings.length > 0;
+  const hasActiveFilters =
+    queryState.search.length > 0 ||
+    queryState.title.length > 0 ||
+    queryState.author.length > 0 ||
+    queryState.genre.length > 0 ||
+    queryState.condition !== 'all' ||
+    queryState.priceFrom.length > 0 ||
+    queryState.priceTo.length > 0;
 
   const goToPreviousPage = (): void => {
     if (queryState.pageIndex <= 1) {
@@ -258,71 +266,75 @@ export function MarketplacePage() {
   };
 
   return (
-    <Container className="marketplace-page">
-      <header className="marketplace-header" data-reveal>
+    <Container className="marketplace-page marketplace-page--discovery">
+      <header className="marketplace-header marketplace-header--discovery" data-reveal>
         <h1>{t('marketplace.title')}</h1>
         <p>{t('marketplace.subtitle')}</p>
       </header>
 
-      <section className="marketplace-toolbar" data-reveal>
-        <Input
-          label={t('marketplace.searchLabel')}
-          name="search"
-          onChange={(event) => {
-            updateQueryState({ search: event.target.value });
-          }}
-          placeholder={t('marketplace.searchPlaceholder')}
-          value={queryState.search}
-        />
-
-        <label className="marketplace-sort-label" htmlFor="marketplace-sort">
-          <span>{t('marketplace.sortLabel')}</span>
-          <select
-            className="marketplace-sort-select"
-            id="marketplace-sort"
+      <section className="marketplace-toolbar marketplace-toolbar--discovery" data-reveal>
+        <div className="marketplace-toolbar-search">
+          <Input
+            label={t('marketplace.searchLabel')}
+            name="search"
             onChange={(event) => {
-              if (isSortOption(event.target.value)) {
-                updateQueryState({ sort: event.target.value });
-              }
+              updateQueryState({ search: event.target.value });
             }}
-            value={queryState.sort}
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {t(`taxonomy.sort.${option}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+            placeholder={t('marketplace.searchPlaceholder')}
+            value={queryState.search}
+          />
+        </div>
 
-        <label className="marketplace-sort-label" htmlFor="marketplace-page-size">
-          <span>{t('marketplace.pageSizeLabel')}</span>
-          <select
-            className="marketplace-sort-select"
-            id="marketplace-page-size"
-            onChange={(event) => {
-              updateQueryState({ pageSize: normalizePageSize(Number.parseInt(event.target.value, 10)) });
-            }}
-            value={queryState.pageSize}
-          >
-            {PAGE_SIZE_OPTIONS.map((pageSize) => (
-              <option key={pageSize} value={pageSize}>
-                {t('marketplace.pageSizeOption', { count: pageSize })}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="marketplace-toolbar-controls">
+          <label className="marketplace-sort-label" htmlFor="marketplace-sort">
+            <span>{t('marketplace.sortLabel')}</span>
+            <select
+              className="marketplace-sort-select"
+              id="marketplace-sort"
+              onChange={(event) => {
+                if (isSortOption(event.target.value)) {
+                  updateQueryState({ sort: event.target.value });
+                }
+              }}
+              value={queryState.sort}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {t(`taxonomy.sort.${option}`)}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <Button
-          aria-controls="marketplace-mobile-filters"
-          aria-expanded={mobileFilters.isOpen}
-          aria-label={t('common.actions.openFilters')}
-          className="marketplace-mobile-filters-trigger"
-          onClick={mobileFilters.open}
-          variant="secondary"
-        >
-          {t('common.actions.openFilters')}
-        </Button>
+          <label className="marketplace-sort-label" htmlFor="marketplace-page-size">
+            <span>{t('marketplace.pageSizeLabel')}</span>
+            <select
+              className="marketplace-sort-select"
+              id="marketplace-page-size"
+              onChange={(event) => {
+                updateQueryState({ pageSize: normalizePageSize(Number.parseInt(event.target.value, 10)) });
+              }}
+              value={queryState.pageSize}
+            >
+              {PAGE_SIZE_OPTIONS.map((pageSize) => (
+                <option key={pageSize} value={pageSize}>
+                  {t('marketplace.pageSizeOption', { count: pageSize })}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <Button
+            aria-controls="marketplace-mobile-filters"
+            aria-expanded={mobileFilters.isOpen}
+            aria-label={t('common.actions.openFilters')}
+            className="marketplace-mobile-filters-trigger"
+            onClick={mobileFilters.open}
+            variant="secondary"
+          >
+            {t('common.actions.openFilters')}
+          </Button>
+        </div>
       </section>
 
       <section className="marketplace-layout">
@@ -330,6 +342,7 @@ export function MarketplacePage() {
           <p className="marketplace-filters-title">{t('marketplace.desktopFiltersTitle')}</p>
           <MarketplaceFilters
             author={queryState.author}
+            className="marketplace-filters--discovery"
             genre={queryState.genre}
             onClearFilters={clearFilters}
             onAuthorChange={(value) => {
@@ -357,8 +370,15 @@ export function MarketplacePage() {
           />
         </aside>
 
-        <div className="marketplace-results" data-reveal ref={resultsSectionRef}>
-          <p className="marketplace-results-count">{t('marketplace.resultsCount', { count: totalItems })}</p>
+        <div className="marketplace-results marketplace-results--discovery" data-reveal ref={resultsSectionRef}>
+          <div className="marketplace-results-head">
+            <p className="marketplace-results-count">{t('marketplace.resultsCount', { count: totalItems })}</p>
+            {hasActiveFilters ? (
+              <Button className="marketplace-results-clear" onClick={clearFilters} size="sm" variant="ghost">
+                {t('common.actions.clearFilters')}
+              </Button>
+            ) : null}
+          </div>
 
           {isLoading ? (
             <LoadingState
@@ -384,7 +404,7 @@ export function MarketplacePage() {
           ) : null}
 
           {hasListings ? (
-            <div className="marketplace-grid">
+            <div className="marketplace-grid marketplace-grid--discovery">
               {listings.map((listing) => (
                 <MarketplaceListingCard key={listing.id} listing={listing} />
               ))}
@@ -427,6 +447,7 @@ export function MarketplacePage() {
         </div>
         <MarketplaceFilters
           author={queryState.author}
+          className="marketplace-filters--discovery marketplace-filters--mobile"
           genre={queryState.genre}
           onClearFilters={clearFilters}
           onAuthorChange={(value) => {

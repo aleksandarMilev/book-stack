@@ -14,30 +14,34 @@ export function MarketplaceListingCard({ listing }: MarketplaceListingCardProps)
   const { t } = useTranslation();
 
   return (
-    <Card className="marketplace-listing-card" data-reveal elevated>
-      {listing.imageUrl ? (
-        <img
-          alt={t('marketplace.listingImageAlt', { title: listing.title })}
-          className="marketplace-listing-image"
-          src={listing.imageUrl}
-        />
-      ) : (
-        <div className="marketplace-listing-image-placeholder" />
-      )}
+    <Card className="marketplace-listing-card marketplace-listing-card--discovery" data-reveal elevated>
+      <div className="marketplace-listing-media">
+        {listing.imageUrl ? (
+          <img
+            alt={t('marketplace.listingImageAlt', { title: listing.title })}
+            className="marketplace-listing-image"
+            src={listing.imageUrl}
+          />
+        ) : (
+          <div className="marketplace-listing-image-placeholder" />
+        )}
+      </div>
 
       <div className="marketplace-listing-top">
-        <Badge variant="success">{t(`taxonomy.conditions.${listing.condition}`)}</Badge>
+        <Badge className="marketplace-listing-condition" variant="success">
+          {t(`taxonomy.conditions.${listing.condition}`)}
+        </Badge>
         <PriceDisplay className="marketplace-listing-price" value={listing.price} />
       </div>
 
-      <h3>{listing.title}</h3>
-      <p className="marketplace-listing-author">{listing.author}</p>
-      <p className="marketplace-listing-meta">
-        {listing.genre}
-      </p>
+      <div className="marketplace-listing-content">
+        <h3>{listing.title}</h3>
+        <p className="marketplace-listing-author">{listing.author}</p>
+        <p className="marketplace-listing-meta">{listing.genre}</p>
+      </div>
 
       <Link to={getListingDetailsRoute(listing.id)}>
-        <Button fullWidth variant="secondary">
+        <Button className="marketplace-listing-cta" fullWidth variant="secondary">
           {t('common.actions.viewListing')}
         </Button>
       </Link>
