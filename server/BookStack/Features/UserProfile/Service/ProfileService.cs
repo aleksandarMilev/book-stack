@@ -1,6 +1,7 @@
 ﻿namespace BookStack.Features.UserProfile.Service;
 
 using BookStack.Data;
+using BookStack.Infrastructure.Services.DateTimeProvider;
 using Data.Models;
 using Identity.Data.Models;
 using Infrastructure.Services.CurrentUser;
@@ -18,7 +19,8 @@ using static Shared.Constants;
 public class ProfileService(
     BookStackDbContext data,
     UserManager<UserDbModel> userManager,
-    ICurrentUserService userService,
+    ICurrentUserService currentUserService,
+    IDateTimeProvider dateTimeProvider,
     IImageWriter imageWriter,
     IStringSanitizerService stringSanitizer,
     ILogger<ProfileService> logger) : IProfileService
@@ -30,18 +32,7 @@ public class ProfileService(
             .AsNoTracking()
             .ToServiceModels()
             .SingleOrDefaultAsync(
-                p => p.Id == userService.GetId(),
-                cancellationToken);
-
-    public async Task<ProfileServiceModel?> OtherUser(
-        string userId,
-        CancellationToken cancellationToken = default)
-        => await data
-            .Profiles
-            .AsNoTracking()
-            .ToServiceModels()
-            .SingleOrDefaultAsync(
-                p => p.Id == userId,
+                p => p.Id == currentUserService.GetId(),
                 cancellationToken);
 
     public async Task<ProfileServiceModel> Create(
@@ -60,7 +51,6 @@ public class ProfileService(
            cancellationToken);
 
         data.Add(dbModel);
-
         await data.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
@@ -74,7 +64,7 @@ public class ProfileService(
         CreateProfileServiceModel serviceModel,
         CancellationToken cancellationToken = default)
     {
-        var userId = userService.GetId()!;
+        var userId = currentUserService.GetId()!;
         var dbModel = await this.GetDbModel(
             userId,
             cancellationToken);
@@ -82,13 +72,6 @@ public class ProfileService(
         if (dbModel is null)
         {
             return this.LogAndReturnNotFoundMessage(userId);
-        }
-
-        if (dbModel.UserId != userId)
-        {
-            return this.LogAndReturnUnauthorizedMessage(
-                userId,
-                dbModel.UserId);
         }
 
         var oldImagePath = dbModel.ImagePath;
@@ -158,59 +141,78 @@ public class ProfileService(
         string? userToDeleteId = null,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = userService.GetId()!;
+        var currentUserId = currentUserService.GetId()!;
         userToDeleteId ??= currentUserId;
 
-        var profile = await this.GetDbModel(
-            userToDeleteId,
-            cancellationToken);
+        var executionStrategy = data
+            .Database
+            .CreateExecutionStrategy();
 
-        if (profile is null)
+        return await executionStrategy.ExecuteAsync<Result>(async () =>
         {
-            return this.LogAndReturnNotFoundMessage(userToDeleteId);
-        }
+            await using var transaction = await data
+                .Database
+                .BeginTransactionAsync(cancellationToken);
 
-        var isNotCurrentUserProfile = profile.UserId != currentUserId;
-        var userIsNotAdmin = userService.IsAdmin();
+            var profile = await this.GetDbModel(
+                userToDeleteId,
+                cancellationToken);
 
-        if (isNotCurrentUserProfile && userIsNotAdmin)
-        {
-            return this.LogAndReturnUnauthorizedMessage(
-                currentUserId,
-                profile.UserId);
-        }
+            if (profile is null)
+            {
+                return this.LogAndReturnNotFoundMessage(userToDeleteId);
+            }
 
-        data.Remove(profile);
+            var isNotCurrentUserProfile = profile.UserId != currentUserId;
+            var userIsNotAdmin = !currentUserService.IsAdmin();
 
-        var user = await userManager
-            .FindByIdAsync(profile.UserId);
+            if (isNotCurrentUserProfile && userIsNotAdmin)
+            {
+                return this.LogAndReturnUnauthorizedMessage(
+                    currentUserId,
+                    profile.UserId);
+            }
 
-        if (user is null)
-        {
-            return false;
-        }
+            data.Remove(profile);
+            await data.SaveChangesAsync(cancellationToken);
 
-        var identityResult = await userManager
-            .DeleteAsync(user);
+            var user = await userManager.FindByIdAsync(profile.UserId);
+            if (user is null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return false;
+            }
 
-        if (!identityResult.Succeeded)
-        {
-            var identityResultErrors = identityResult
-                .Errors
-                .Select(static e => e.Description);
+            user.IsDeleted = true;
+            user.DeletedOn = dateTimeProvider.UtcNow;
+            user.DeletedBy = currentUserService.GetUsername();
+            user.LockoutEnd = DateTimeOffset.MaxValue;
 
-            return string.Join("; ", identityResultErrors);
-        }
+            var identityResult = await userManager.UpdateAsync(user);
+            if (!identityResult.Succeeded)
+            {
+                await transaction.RollbackAsync(cancellationToken);
 
-        return true;
+                var identityResultErrors = identityResult
+                    .Errors
+                    .Select(static e => e.Description);
+
+                return string.Join("; ", identityResultErrors);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        });
     }
 
     private async Task<UserProfileDbModel?> GetDbModel(
-        string id,
+        string userId,
         CancellationToken cancellationToken = default)
         => await data
             .Profiles
-            .FindAsync([id], cancellationToken);
+            .SingleOrDefaultAsync(
+                p => p.UserId == userId,
+                cancellationToken);
 
     private string LogAndReturnNotFoundMessage(string userId)
     {

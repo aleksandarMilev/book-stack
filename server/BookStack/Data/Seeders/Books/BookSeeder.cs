@@ -43,7 +43,9 @@ public sealed class BookSeeder(
             throw new InvalidOperationException(ZeroOrMoreThanOneUsersErrorMessage);
         }
 
-        var adminId = await adminService.GetId();
+        var adminIds = await adminService.GetIds();
+        var adminId = adminIds.FirstOrDefault()
+            ?? throw new InvalidOperationException("At least one admin user required to seed books!");
 
         var hasBooks = await data
             .Books

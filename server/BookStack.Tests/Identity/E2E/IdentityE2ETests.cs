@@ -1,7 +1,6 @@
 ﻿namespace BookStack.Tests.Identity.E2E;
 
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using BookStack.Data;
 using BookStack.Features.Identity.Data.Models;

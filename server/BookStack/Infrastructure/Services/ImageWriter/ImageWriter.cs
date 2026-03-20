@@ -235,6 +235,8 @@ public class ImageWriter(
                 "Error saving {resourceName} image to path {Path}",
                 resourceName,
                 filePath);
+
+            throw;
         }
     }
 
@@ -248,8 +250,6 @@ public class ImageWriter(
         }
 
         var normalizedPath = withoutLeadingSlashes.Replace('\\', '/');
-
-        // Reject directory traversal segments before path resolution.
         if (normalizedPath.Contains("../", StringComparison.Ordinal) ||
             normalizedPath.Contains("..\\", StringComparison.Ordinal))
         {

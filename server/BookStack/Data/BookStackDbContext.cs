@@ -87,7 +87,7 @@ public class BookStackDbContext(
                     return;
                 }
 
-                if (entry.Entity is IDeletableEntity entity)
+                if (entry.Entity is IEntity entity)
                 {
                     if (entry.State == EntityState.Added)
                     {

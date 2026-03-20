@@ -214,7 +214,7 @@ export function MyListingEditPage() {
 
   if (isCheckingSellerProfile || isLoading) {
     return (
-      <Container className="account-page">
+      <Container className="account-page my-listing-edit-page">
         <LoadingState
           description={t('pages.myListingEdit.loadingDescription')}
           title={t('pages.myListingEdit.loadingTitle')}
@@ -225,8 +225,8 @@ export function MyListingEditPage() {
 
   if (!hasActiveSellerProfile) {
     return (
-      <Container className="account-page">
-        <header className="marketplace-header">
+      <Container className="account-page my-listing-edit-page">
+        <header className="marketplace-header my-listing-edit-header">
           <h1>{t('pages.myListingEdit.title')}</h1>
           <p>{t('pages.myListingEdit.subtitle')}</p>
         </header>
@@ -237,7 +237,7 @@ export function MyListingEditPage() {
 
   if (loadError || !listing || !formState) {
     return (
-      <Container className="account-page">
+      <Container className="account-page my-listing-edit-page">
         <EmptyState
           action={
             <Link to={ROUTES.myListings}>
@@ -252,151 +252,155 @@ export function MyListingEditPage() {
   }
 
   return (
-    <Container className="account-page">
-      <header className="marketplace-header">
+    <Container className="account-page my-listing-edit-page">
+      <header className="marketplace-header my-listing-edit-header">
         <h1>{t('pages.myListingEdit.title')}</h1>
         <p>{t('pages.myListingEdit.subtitle')}</p>
       </header>
 
-      <Card className="seller-listing-edit-summary" elevated>
-        <div className="seller-listing-edit-summary-head">
+      <Card className="seller-listing-edit-summary my-listing-edit-summary-card" elevated>
+        <div className="seller-listing-edit-summary-head my-listing-edit-summary-head">
           <h2>{listing.title}</h2>
-          <Badge variant={getModerationBadgeVariant(moderationStatus)}>
+          <Badge className="my-listing-edit-status-badge" variant={getModerationBadgeVariant(moderationStatus)}>
             {t(`pages.myListings.status.${moderationStatus}`)}
           </Badge>
         </div>
-        <p>
+        <p className="my-listing-edit-summary-meta">
           {listing.author} • {listing.genre}
         </p>
         {listing.rejectionReason ? (
-          <p className="account-listing-rejection">
+          <p className="account-listing-rejection my-listing-edit-rejection">
             {t('pages.myListings.rejectionReasonLabel')}: {listing.rejectionReason}
           </p>
         ) : null}
-        <p className="ui-input-hint">{t('pages.myListingEdit.reapprovalNotice')}</p>
+        <p className="ui-input-hint my-listing-edit-reapproval-hint">
+          {t('pages.myListingEdit.reapprovalNotice')}
+        </p>
       </Card>
 
-      <Card className="seller-listing-form-card" elevated>
-        <form className="seller-listing-form" onSubmit={handleSubmit}>
-          <div className="seller-listing-book-create-grid">
-            <Input
-              label={t('pages.myListingEdit.priceLabel')}
-              min={0.01}
-              onChange={(event) => {
-                setFormState((previousState) =>
-                  previousState
-                    ? {
-                        ...previousState,
-                        price: event.target.value,
-                      }
-                    : previousState,
-                );
-              }}
-              step={0.01}
-              type="number"
-              value={formState.price}
-            />
-            <Input
-              label={t('pages.myListingEdit.quantityLabel')}
-              min={1}
-              onChange={(event) => {
-                setFormState((previousState) =>
-                  previousState
-                    ? {
-                        ...previousState,
-                        quantity: event.target.value,
-                      }
-                    : previousState,
-                );
-              }}
-              type="number"
-              value={formState.quantity}
-            />
-            <label className="ui-input-wrapper">
-              <span className="ui-input-label">{t('pages.myListingEdit.conditionLabel')}</span>
-              <select
-                className="ui-input"
+      <Card className="seller-listing-form-card my-listing-edit-form-card" elevated>
+        <form className="seller-listing-form my-listing-edit-form" onSubmit={handleSubmit}>
+          <section className="my-listing-edit-section">
+            <div className="seller-listing-book-create-grid my-listing-edit-fields">
+              <Input
+                label={t('pages.myListingEdit.priceLabel')}
+                min={0.01}
                 onChange={(event) => {
                   setFormState((previousState) =>
                     previousState
                       ? {
                           ...previousState,
-                          condition: event.target.value as MarketplaceListingCondition,
+                          price: event.target.value,
                         }
                       : previousState,
                   );
                 }}
-                value={formState.condition}
-              >
-                {CONDITION_OPTIONS.map((condition) => (
-                  <option key={condition} value={condition}>
-                    {t(`taxonomy.conditions.${condition}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="ui-input-wrapper seller-listing-grid-span-full">
-              <span className="ui-input-label">{t('pages.myListingEdit.descriptionLabel')}</span>
-              <textarea
-                className="ui-input seller-listing-textarea"
-                onChange={(event) => {
-                  setFormState((previousState) =>
-                    previousState
-                      ? {
-                          ...previousState,
-                          description: event.target.value,
-                        }
-                      : previousState,
-                  );
-                }}
-                value={formState.description}
+                step={0.01}
+                type="number"
+                value={formState.price}
               />
-            </label>
-            <FileUploadField
-              accept="image/*"
-              className="seller-listing-grid-span-full"
-              file={formState.image}
-              hint={t('pages.myListingEdit.imageHint')}
-              label={t('pages.myListingEdit.imageLabel')}
-              onFileChange={(nextImage) => {
-                setFormState((previousState) =>
-                  previousState
-                    ? {
-                        ...previousState,
-                        image: nextImage,
-                        removeImage: nextImage ? false : previousState.removeImage,
-                      }
-                    : previousState,
-                );
-              }}
-              showImagePreview
-            />
+              <Input
+                label={t('pages.myListingEdit.quantityLabel')}
+                min={1}
+                onChange={(event) => {
+                  setFormState((previousState) =>
+                    previousState
+                      ? {
+                          ...previousState,
+                          quantity: event.target.value,
+                        }
+                      : previousState,
+                  );
+                }}
+                type="number"
+                value={formState.quantity}
+              />
+              <label className="ui-input-wrapper">
+                <span className="ui-input-label">{t('pages.myListingEdit.conditionLabel')}</span>
+                <select
+                  className="ui-input"
+                  onChange={(event) => {
+                    setFormState((previousState) =>
+                      previousState
+                        ? {
+                            ...previousState,
+                            condition: event.target.value as MarketplaceListingCondition,
+                          }
+                        : previousState,
+                    );
+                  }}
+                  value={formState.condition}
+                >
+                  {CONDITION_OPTIONS.map((condition) => (
+                    <option key={condition} value={condition}>
+                      {t(`taxonomy.conditions.${condition}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="ui-input-wrapper seller-listing-grid-span-full">
+                <span className="ui-input-label">{t('pages.myListingEdit.descriptionLabel')}</span>
+                <textarea
+                  className="ui-input seller-listing-textarea"
+                  onChange={(event) => {
+                    setFormState((previousState) =>
+                      previousState
+                        ? {
+                            ...previousState,
+                            description: event.target.value,
+                          }
+                        : previousState,
+                    );
+                  }}
+                  value={formState.description}
+                />
+              </label>
+              <FileUploadField
+                accept="image/*"
+                className="seller-listing-grid-span-full"
+                file={formState.image}
+                hint={t('pages.myListingEdit.imageHint')}
+                label={t('pages.myListingEdit.imageLabel')}
+                onFileChange={(nextImage) => {
+                  setFormState((previousState) =>
+                    previousState
+                      ? {
+                          ...previousState,
+                          image: nextImage,
+                          removeImage: nextImage ? false : previousState.removeImage,
+                        }
+                      : previousState,
+                  );
+                }}
+                showImagePreview
+              />
 
-            <label className="auth-remember seller-listing-grid-span-full">
-              <input
-                checked={formState.removeImage}
-                onChange={(event) => {
-                  setFormState((previousState) =>
-                    previousState
-                      ? {
-                          ...previousState,
-                          removeImage: event.target.checked,
-                          image: event.target.checked ? null : previousState.image,
-                        }
-                      : previousState,
-                  );
-                }}
-                type="checkbox"
-              />
-              <span>{t('pages.myListingEdit.removeImageLabel')}</span>
-            </label>
-          </div>
+              <label className="auth-remember seller-listing-grid-span-full my-listing-edit-remove-image">
+                <input
+                  checked={formState.removeImage}
+                  onChange={(event) => {
+                    setFormState((previousState) =>
+                      previousState
+                        ? {
+                            ...previousState,
+                            removeImage: event.target.checked,
+                            image: event.target.checked ? null : previousState.image,
+                          }
+                        : previousState,
+                    );
+                  }}
+                  type="checkbox"
+                />
+                <span>{t('pages.myListingEdit.removeImageLabel')}</span>
+              </label>
+            </div>
+          </section>
 
           {submitError ? <p className="auth-error">{submitError}</p> : null}
-          {submitSuccess ? <p className="profile-success">{submitSuccess}</p> : null}
+          {submitSuccess ? <p className="profile-success my-listing-edit-success">{submitSuccess}</p> : null}
 
-          <div className="profile-actions">
-            <Button disabled={isSubmitting} type="submit">
+          <div className="profile-actions my-listing-edit-actions">
+            <Button className="my-listing-edit-submit" disabled={isSubmitting} type="submit">
               {isSubmitting ? t('pages.myListingEdit.submitting') : t('pages.myListingEdit.submit')}
             </Button>
             <Link to={ROUTES.myListings}>

@@ -9,10 +9,6 @@ public interface IProfileService : IScopedService
     Task<ProfileServiceModel?> Mine(
         CancellationToken cancellationToken = default);
 
-    Task<ProfileServiceModel?> OtherUser(
-        string id,
-        CancellationToken cancellationToken = default);
-
     Task<ProfileServiceModel> Create(
         CreateProfileServiceModel model,
         string userId,

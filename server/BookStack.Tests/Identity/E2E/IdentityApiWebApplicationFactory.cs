@@ -19,14 +19,14 @@ internal sealed class IdentityApiWebApplicationFactory : WebApplicationFactory<P
 
     public IdentityApiWebApplicationFactory()
     {
-        this.connection = new SqliteConnection("Data Source=:memory:");
+        this.connection = new("Data Source=:memory:");
         this.connection.Open();
 
         var utc = new DateTime(2026, 03, 19, 10, 00, 00, DateTimeKind.Utc);
-        this.DateTimeProvider = new FakeDateTimeProvider(utc);
+        this.DateTimeProvider = new(utc);
 
-        this.EmailSender = new FakeEmailSender();
-        this.ImageWriter = new FakeImageWriter();
+        this.EmailSender = new();
+        this.ImageWriter = new();
     }
 
     public FakeDateTimeProvider DateTimeProvider { get; }
@@ -39,7 +39,7 @@ internal sealed class IdentityApiWebApplicationFactory : WebApplicationFactory<P
     {
         builder.UseEnvironment("Testing");
 
-        builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+        builder.ConfigureAppConfiguration(static (_, configurationBuilder) =>
         {
             configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {

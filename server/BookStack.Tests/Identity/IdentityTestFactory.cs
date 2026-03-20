@@ -56,6 +56,7 @@ internal sealed class IdentityTestFactory
             this.data,
             this.UserManager,
             this.currentUserService,
+            this.dateTimeProvider,
             this.ImageWriter,
             this.StringSanitizer,
             NullLogger<ProfileService>.Instance);

@@ -5,16 +5,14 @@ using Microsoft.AspNetCore.Identity;
 
 using static Common.Constants.Names;
 
-public class AdminService(UserManager<UserDbModel> userManager) : IAdminService
+public class AdminService(
+    UserManager<UserDbModel> userManager) : IAdminService
 {
-    public async Task<string> GetId()
+    public async Task<IEnumerable<string>> GetIds()
     {
         var admins = await userManager
             .GetUsersInRoleAsync(AdminRoleName);
 
-        var admin = admins.SingleOrDefault()
-            ?? throw new InvalidOperationException("Admin user not found!");
-
-        return admin.Id;
+        return [.. admins.Select(a => a.Id)];
     }
 }

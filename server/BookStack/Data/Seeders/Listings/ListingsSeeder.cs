@@ -40,7 +40,9 @@ public sealed class ListingsSeeder(
             throw new InvalidOperationException(ZeroOrMoreThanOneSellersErrorMessage);
         }
 
-        var adminId = await adminService.GetId();
+        var adminIds = await adminService.GetIds();
+        var adminId = adminIds.FirstOrDefault()
+            ?? throw new InvalidOperationException("At least one admin user required to seed books!");
 
         var hasListings = await data
             .BookListings
@@ -66,7 +68,6 @@ public sealed class ListingsSeeder(
         }
 
         var approvedOn = dateTimeProvider.UtcNow;
-
         var listings = books
             .Select(book => CreateListing(
                 book,
@@ -190,7 +191,7 @@ public sealed class ListingsSeeder(
                 $"Good used copy of {book.Title} by {book.Author}. Clean pages and intact binding."
         };
 
-    // Will be used once the actual images are added in the wwwroot folder
+    // Will be used once the actual images are added in the wwwroot folder. Do not delete it.
     private static string GetImagePath(string title)
         => title switch
         {

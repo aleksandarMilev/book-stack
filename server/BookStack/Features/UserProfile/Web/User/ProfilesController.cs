@@ -12,16 +12,12 @@ using Shared;
 [Authorize]
 public class ProfilesController(IProfileService service) : ApiController
 {
-    [HttpGet(ApiRoutes.Mine, Name = nameof(Mine))]
+    [HttpGet(
+        ApiRoutes.Mine,
+        Name = nameof(Mine))]
     public async Task<ActionResult<ProfileServiceModel>> Mine(
         CancellationToken cancellationToken = default)
         => this.Ok(await service.Mine(cancellationToken));
-
-    [HttpGet(Common.Constants.ApiRoutes.Id)]
-    public async Task<ActionResult<ProfileServiceModel>> OtherUser(
-        string id,
-        CancellationToken cancellationToken = default)
-        => this.Ok(await service.OtherUser(id, cancellationToken));
 
     [HttpPut]
     public async Task<ActionResult> Edit(

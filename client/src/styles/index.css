@@ -2451,6 +2451,492 @@ select {
   font-weight: 600;
 }
 
+.my-listings-page {
+  gap: clamp(1.2rem, 2.5vw, var(--space-6));
+}
+
+.my-listings-page > .ui-loading-state {
+  margin-top: 0;
+}
+
+.my-listings-header-shell {
+  align-items: center;
+  background:
+    radial-gradient(circle at 96% 6%, rgba(34, 95, 84, 0.12), transparent 42%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.78), rgba(247, 239, 224, 0.5)),
+    transparent;
+  border-color: color-mix(in srgb, var(--color-border) 66%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 14px 30px rgba(44, 38, 30, 0.09);
+  gap: clamp(0.8rem, 2vw, 1.2rem);
+  padding: clamp(0.95rem, 2.3vw, 1.3rem);
+}
+
+.my-listings-header {
+  gap: var(--space-3);
+  max-width: 62ch;
+}
+
+.my-listings-header h1 {
+  font-size: clamp(2rem, 1.35rem + 1.9vw, 3.04rem);
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.my-listings-header p {
+  color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-text) 15%);
+  font-size: clamp(1.01rem, 0.95rem + 0.24vw, 1.1rem);
+  line-height: 1.74;
+  max-width: 60ch;
+}
+
+.my-listings-create-action {
+  display: inline-flex;
+}
+
+.my-listings-create-action .ui-button {
+  min-height: 2.85rem;
+  min-width: clamp(10.6rem, 18vw, 13.6rem);
+}
+
+.my-listings-toolbar {
+  align-items: center;
+  background:
+    radial-gradient(circle at 97% 5%, rgba(34, 95, 84, 0.13), transparent 42%),
+    linear-gradient(156deg, rgba(255, 255, 255, 0.97), rgba(246, 239, 226, 0.86)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 76%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 34px rgba(44, 38, 30, 0.1);
+  gap: clamp(0.72rem, 1.7vw, 1rem);
+  padding: clamp(0.84rem, 2vw, 1.15rem);
+}
+
+.my-listings-toolbar .ui-input,
+.my-listings-toolbar .marketplace-sort-select {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 244, 233, 0.86));
+  border-color: color-mix(in srgb, var(--color-border) 82%, white);
+}
+
+.my-listings-toolbar .ui-input:hover,
+.my-listings-toolbar .marketplace-sort-select:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-border));
+}
+
+.my-listings-results {
+  background:
+    radial-gradient(circle at 100% 0, rgba(34, 95, 84, 0.1), transparent 34%),
+    linear-gradient(162deg, rgba(255, 255, 255, 0.8), rgba(247, 240, 228, 0.54)),
+    transparent;
+  border-color: color-mix(in srgb, var(--color-border) 62%, transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 28px rgba(42, 36, 28, 0.08);
+  padding: clamp(0.95rem, 2.1vw, 1.35rem);
+}
+
+.my-listings-results-count {
+  margin-bottom: clamp(0.8rem, 1.7vw, 1rem);
+}
+
+.my-listings-results .ui-loading-state,
+.my-listings-results .ui-empty-state {
+  margin-top: 0;
+}
+
+.my-listings-info-card {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.97), rgba(247, 240, 227, 0.88)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 74%, white);
+  box-shadow: 0 12px 24px rgba(42, 36, 28, 0.08);
+  margin-bottom: clamp(0.75rem, 1.7vw, 1rem);
+}
+
+.my-listings-info-card p {
+  color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text) 16%);
+  line-height: 1.66;
+}
+
+.my-listings-grid {
+  gap: clamp(0.85rem, 1.8vw, 1.15rem);
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.my-listings-entry {
+  background:
+    radial-gradient(circle at 100% 0, rgba(29, 104, 91, 0.1), transparent 36%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(247, 240, 227, 0.9)),
+    var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, white);
+  box-shadow: 0 14px 30px rgba(44, 38, 30, 0.1);
+  gap: clamp(0.72rem, 1.6vw, 0.98rem);
+  min-height: 100%;
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal);
+}
+
+.my-listings-entry::before {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 25%, transparent), transparent);
+  border-radius: 999px;
+  content: '';
+  height: 2px;
+  left: clamp(1rem, 1.8vw, 1.2rem);
+  position: absolute;
+  right: clamp(3rem, 6vw, 4.6rem);
+  top: clamp(0.8rem, 1.7vw, 0.95rem);
+}
+
+.my-listings-entry:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  box-shadow: 0 18px 36px rgba(41, 35, 28, 0.12);
+  transform: translateY(-2px);
+}
+
+.my-listings-entry:focus-within {
+  border-color: var(--color-focus);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-focus) 16%, transparent),
+    0 18px 36px rgba(41, 35, 28, 0.12);
+}
+
+.my-listings-entry-image,
+.my-listings-entry-image-placeholder {
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, white);
+  border-radius: var(--radius-md);
+}
+
+.my-listings-entry-head {
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.my-listings-status-badge {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.52);
+  letter-spacing: 0.07em;
+  padding: 0.34rem 0.68rem;
+}
+
+.my-listings-entry-price {
+  text-align: end;
+}
+
+.my-listings-entry-price .price-display-primary {
+  font-size: clamp(1.28rem, 1rem + 0.62vw, 1.62rem);
+}
+
+.my-listings-entry-title {
+  color: color-mix(in srgb, var(--color-text) 90%, var(--color-primary) 10%);
+  font-size: 1.22rem;
+  line-height: 1.32;
+}
+
+.my-listings-entry-author {
+  color: color-mix(in srgb, var(--color-text) 90%, var(--color-primary) 10%);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.my-listings-entry-meta {
+  color: color-mix(in srgb, var(--color-text-muted) 86%, var(--color-text) 14%);
+}
+
+.my-listings-rejection {
+  background: color-mix(in srgb, var(--color-danger) 9%, var(--color-surface));
+  border-left: 3px solid color-mix(in srgb, var(--color-danger) 50%, transparent);
+  border-radius: var(--radius-sm);
+  color: color-mix(in srgb, var(--color-danger) 90%, #6f2d26);
+  line-height: 1.56;
+  padding: 0.46rem 0.6rem;
+}
+
+.my-listings-entry-actions {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 72%, white);
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-3);
+}
+
+.my-listings-action-view,
+.my-listings-action-edit,
+.my-listings-action-delete {
+  min-width: 7.5rem;
+}
+
+.my-listing-create-page {
+  gap: clamp(1.2rem, 2.5vw, var(--space-6));
+}
+
+.my-listing-create-page > .ui-loading-state {
+  margin-top: 0;
+}
+
+.my-listing-create-header {
+  gap: var(--space-3);
+  max-width: 64ch;
+}
+
+.my-listing-create-header h1 {
+  font-size: clamp(2rem, 1.35rem + 1.9vw, 3.04rem);
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.my-listing-create-header p {
+  color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-text) 15%);
+  font-size: clamp(1.01rem, 0.95rem + 0.24vw, 1.1rem);
+  line-height: 1.74;
+  max-width: 60ch;
+}
+
+.my-listing-create-form-card {
+  background:
+    radial-gradient(circle at 98% 2%, rgba(34, 95, 84, 0.12), transparent 38%),
+    linear-gradient(162deg, rgba(255, 255, 255, 0.98), rgba(246, 239, 225, 0.9)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 72%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 34px rgba(43, 37, 29, 0.11);
+  padding: clamp(1rem, 2.2vw, 1.4rem);
+}
+
+.my-listing-create-form {
+  gap: clamp(0.9rem, 2vw, 1.2rem);
+}
+
+.my-listing-create-section {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.97), rgba(247, 240, 227, 0.88)),
+    var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 24px rgba(42, 36, 28, 0.08);
+  gap: clamp(0.82rem, 1.8vw, 1.05rem);
+  padding: clamp(0.85rem, 2vw, 1.1rem);
+}
+
+.my-listing-create-section-head {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 70ch;
+}
+
+.my-listing-create-section-head h2 {
+  color: color-mix(in srgb, var(--color-text) 90%, var(--color-primary) 10%);
+  font-size: clamp(1.12rem, 1rem + 0.4vw, 1.32rem);
+  line-height: 1.3;
+}
+
+.my-listing-create-section-head p {
+  color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-text) 15%);
+  line-height: 1.66;
+  margin: 0;
+}
+
+.my-listing-create-section-head .my-listing-create-currency-hint {
+  color: color-mix(in srgb, var(--color-text-muted) 82%, var(--color-primary) 18%);
+  margin-top: 0.08rem;
+}
+
+.my-listing-create-mode-switch {
+  gap: var(--space-2);
+}
+
+.my-listing-create-book-search {
+  background: color-mix(in srgb, var(--color-surface) 88%, white);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, white);
+  border-radius: var(--radius-md);
+  gap: var(--space-3);
+  padding: clamp(0.72rem, 1.8vw, 0.92rem);
+}
+
+.my-listing-create-book-search-action {
+  justify-self: start;
+  min-width: 8.8rem;
+}
+
+.my-listing-create-book-results {
+  gap: var(--space-2);
+}
+
+.my-listing-create-book-result {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.99), rgba(248, 241, 229, 0.88)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 72%, white);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.82rem;
+}
+
+.my-listing-create-book-result:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  box-shadow: 0 10px 18px rgba(42, 36, 28, 0.09);
+}
+
+.my-listing-create-book-grid,
+.my-listing-create-listing-grid {
+  gap: clamp(0.7rem, 1.7vw, 1rem);
+}
+
+.my-listing-create-missing-hint {
+  color: color-mix(in srgb, var(--color-text-muted) 82%, var(--color-primary) 18%);
+  line-height: 1.62;
+}
+
+.my-listing-create-actions {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 72%, white);
+  gap: var(--space-2);
+  margin-top: 0.2rem;
+  padding-top: clamp(0.75rem, 1.8vw, 0.95rem);
+}
+
+.my-listing-create-submit {
+  min-width: clamp(13rem, 26vw, 16.8rem);
+}
+
+.my-listing-create-success-card {
+  background:
+    radial-gradient(circle at 96% 6%, rgba(34, 95, 84, 0.14), transparent 40%),
+    linear-gradient(158deg, rgba(255, 255, 255, 0.98), rgba(246, 239, 225, 0.9)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 76%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 32px rgba(43, 37, 29, 0.11);
+  gap: clamp(0.72rem, 1.8vw, 1rem);
+  max-width: 44rem;
+  padding: clamp(1rem, 2.4vw, 1.45rem);
+}
+
+.my-listing-edit-page {
+  gap: clamp(1.2rem, 2.5vw, var(--space-6));
+}
+
+.my-listing-edit-page > .ui-loading-state,
+.my-listing-edit-page .ui-empty-state {
+  margin-top: 0;
+}
+
+.my-listing-edit-header {
+  gap: var(--space-3);
+  max-width: 64ch;
+}
+
+.my-listing-edit-header h1 {
+  font-size: clamp(2rem, 1.35rem + 1.9vw, 3.04rem);
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.my-listing-edit-header p {
+  color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-text) 15%);
+  font-size: clamp(1.01rem, 0.95rem + 0.24vw, 1.1rem);
+  line-height: 1.74;
+  max-width: 60ch;
+}
+
+.my-listing-edit-summary-card {
+  background:
+    radial-gradient(circle at 98% 4%, rgba(34, 95, 84, 0.13), transparent 38%),
+    linear-gradient(158deg, rgba(255, 255, 255, 0.97), rgba(247, 240, 227, 0.9)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 74%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 14px 30px rgba(42, 36, 28, 0.1);
+  gap: clamp(0.7rem, 1.8vw, 1rem);
+  padding: clamp(0.95rem, 2.2vw, 1.28rem);
+}
+
+.my-listing-edit-summary-head {
+  gap: var(--space-3);
+}
+
+.my-listing-edit-summary-head h2 {
+  color: color-mix(in srgb, var(--color-text) 90%, var(--color-primary) 10%);
+  font-size: clamp(1.18rem, 1.02rem + 0.5vw, 1.38rem);
+  line-height: 1.3;
+}
+
+.my-listing-edit-status-badge {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.52);
+  letter-spacing: 0.07em;
+  padding: 0.34rem 0.68rem;
+}
+
+.my-listing-edit-summary-meta {
+  color: color-mix(in srgb, var(--color-text-muted) 84%, var(--color-text) 16%);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.my-listing-edit-rejection {
+  margin: 0;
+}
+
+.my-listing-edit-reapproval-hint {
+  background: color-mix(in srgb, var(--color-primary-soft) 14%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, white);
+  border-radius: var(--radius-md);
+  color: color-mix(in srgb, var(--color-text-muted) 82%, var(--color-text) 18%);
+  line-height: 1.62;
+  margin: 0;
+  padding: 0.56rem 0.68rem;
+}
+
+.my-listing-edit-form-card {
+  background:
+    radial-gradient(circle at 98% 2%, rgba(34, 95, 84, 0.12), transparent 38%),
+    linear-gradient(162deg, rgba(255, 255, 255, 0.98), rgba(246, 239, 225, 0.9)),
+    var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-border) 72%, white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 34px rgba(43, 37, 29, 0.11);
+  padding: clamp(1rem, 2.2vw, 1.4rem);
+}
+
+.my-listing-edit-form {
+  gap: clamp(0.9rem, 2vw, 1.2rem);
+}
+
+.my-listing-edit-section {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.97), rgba(247, 240, 227, 0.88)),
+    var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 24px rgba(42, 36, 28, 0.08);
+  display: grid;
+  gap: clamp(0.82rem, 1.8vw, 1.05rem);
+  padding: clamp(0.85rem, 2vw, 1.1rem);
+}
+
+.my-listing-edit-fields {
+  gap: clamp(0.7rem, 1.7vw, 1rem);
+}
+
+.my-listing-edit-remove-image {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-surface) 86%, white);
+  border: 1px solid color-mix(in srgb, var(--color-border) 74%, white);
+  border-radius: var(--radius-md);
+  padding: 0.56rem 0.64rem;
+}
+
+.my-listing-edit-success {
+  margin: 0;
+}
+
+.my-listing-edit-actions {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 72%, white);
+  gap: var(--space-2);
+  margin-top: 0.2rem;
+  padding-top: clamp(0.75rem, 1.8vw, 0.95rem);
+}
+
+.my-listing-edit-submit {
+  min-width: clamp(12.8rem, 24vw, 16rem);
+}
+
 .profile-page {
   display: grid;
   gap: var(--space-5);
@@ -3868,6 +4354,26 @@ select {
     grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(9.8rem, 0.82fr));
   }
 
+  .my-listings-toolbar {
+    grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(9.8rem, 0.82fr));
+  }
+
+  .my-listing-create-book-search {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .my-listing-create-book-search > .ui-input-wrapper,
+  .my-listing-create-book-search > .auth-error,
+  .my-listing-create-book-search > .my-listing-create-book-results,
+  .my-listing-create-book-search > .ui-input-hint {
+    grid-column: 1 / -1;
+  }
+
+  .my-listing-create-missing-hint {
+    grid-column: 1 / -1;
+  }
+
   .marketplace-toolbar-controls {
     grid-template-columns: repeat(2, minmax(8.7rem, 1fr)) auto;
     justify-self: end;
@@ -4067,6 +4573,92 @@ select {
   .seller-sold-orders-details-item .order-details-item-image,
   .seller-sold-orders-details-item .order-details-item-image-placeholder {
     width: 4.2rem;
+  }
+
+  .my-listings-header-shell {
+    align-items: stretch;
+  }
+
+  .my-listings-create-action,
+  .my-listings-create-action .ui-button {
+    width: 100%;
+  }
+
+  .my-listings-toolbar {
+    gap: var(--space-3);
+  }
+
+  .my-listings-entry-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .my-listings-entry-price {
+    text-align: left;
+  }
+
+  .my-listings-entry-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-listings-entry-actions a,
+  .my-listings-entry-actions .ui-button {
+    width: 100%;
+  }
+
+  .my-listing-create-form-card {
+    padding: clamp(0.92rem, 2.2vw, 1.18rem);
+  }
+
+  .my-listing-create-section {
+    padding: clamp(0.78rem, 2vw, 1rem);
+  }
+
+  .my-listing-create-mode-switch {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-listing-create-mode-switch .ui-button {
+    width: 100%;
+  }
+
+  .my-listing-create-book-search-action {
+    width: 100%;
+  }
+
+  .my-listing-create-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-listing-create-actions a,
+  .my-listing-create-actions .ui-button {
+    width: 100%;
+  }
+
+  .my-listing-edit-form-card {
+    padding: clamp(0.92rem, 2.2vw, 1.18rem);
+  }
+
+  .my-listing-edit-section {
+    padding: clamp(0.78rem, 2vw, 1rem);
+  }
+
+  .my-listing-edit-summary-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .my-listing-edit-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-listing-edit-actions a,
+  .my-listing-edit-actions .ui-button {
+    width: 100%;
   }
 }
 

@@ -234,7 +234,7 @@ export function MyListingCreatePage() {
 
   if (isCheckingSellerProfile) {
     return (
-      <Container className="account-page">
+      <Container className="account-page my-listing-create-page">
         <LoadingState
           description={t('pages.myListingCreate.loadingSellerDescription')}
           title={t('pages.myListingCreate.loadingSellerTitle')}
@@ -245,8 +245,8 @@ export function MyListingCreatePage() {
 
   if (!hasActiveSellerProfile) {
     return (
-      <Container className="account-page">
-        <header className="marketplace-header">
+      <Container className="account-page my-listing-create-page">
+        <header className="marketplace-header my-listing-create-header">
           <h1>{t('pages.myListingCreate.title')}</h1>
           <p>{t('pages.myListingCreate.subtitle')}</p>
         </header>
@@ -257,16 +257,16 @@ export function MyListingCreatePage() {
 
   if (createdListingId && formSuccess) {
     return (
-      <Container className="account-page">
-        <header className="marketplace-header">
+      <Container className="account-page my-listing-create-page">
+        <header className="marketplace-header my-listing-create-header">
           <h1>{t('pages.myListingCreate.title')}</h1>
           <p>{t('pages.myListingCreate.subtitle')}</p>
         </header>
-        <Card className="seller-listing-success-card" elevated>
+        <Card className="seller-listing-success-card my-listing-create-success-card" elevated>
           <h2>{t('pages.myListingCreate.successTitle')}</h2>
           <p>{formSuccess}</p>
           <p>{t('pages.myListingCreate.moderationNotice')}</p>
-          <div className="profile-actions">
+          <div className="profile-actions my-listing-create-actions">
             <Link to={ROUTES.myListings}>
               <Button>{t('pages.myListingCreate.goToMyListings')}</Button>
             </Link>
@@ -280,19 +280,21 @@ export function MyListingCreatePage() {
   }
 
   return (
-    <Container className="account-page">
-      <header className="marketplace-header">
+    <Container className="account-page my-listing-create-page">
+      <header className="marketplace-header my-listing-create-header">
         <h1>{t('pages.myListingCreate.title')}</h1>
         <p>{t('pages.myListingCreate.subtitle')}</p>
       </header>
 
-      <Card className="seller-listing-form-card" elevated>
-        <form className="seller-listing-form" onSubmit={handleSubmit}>
-          <section className="seller-listing-section">
-            <h2>{t('pages.myListingCreate.bookStepTitle')}</h2>
-            <p>{t('pages.myListingCreate.bookStepDescription')}</p>
+      <Card className="seller-listing-form-card my-listing-create-form-card" elevated>
+        <form className="seller-listing-form my-listing-create-form" onSubmit={handleSubmit}>
+          <section className="seller-listing-section my-listing-create-section my-listing-create-section--book">
+            <div className="my-listing-create-section-head">
+              <h2>{t('pages.myListingCreate.bookStepTitle')}</h2>
+              <p>{t('pages.myListingCreate.bookStepDescription')}</p>
+            </div>
 
-            <div className="seller-listing-mode-switch">
+            <div className="seller-listing-mode-switch my-listing-create-mode-switch">
               <Button
                 onClick={() => {
                   setCreateMode('existingBook');
@@ -316,7 +318,7 @@ export function MyListingCreatePage() {
             </div>
 
             {createMode === 'existingBook' ? (
-              <div className="seller-listing-book-search">
+              <div className="seller-listing-book-search my-listing-create-book-search">
                 <Input
                   label={t('pages.myListingCreate.bookSearchLabel')}
                   onChange={(event) => {
@@ -326,6 +328,7 @@ export function MyListingCreatePage() {
                   value={bookSearchQuery}
                 />
                 <Button
+                  className="my-listing-create-book-search-action"
                   disabled={isSearchingBooks}
                   onClick={() => {
                     void handleBookSearch();
@@ -341,10 +344,10 @@ export function MyListingCreatePage() {
                 {bookSearchError ? <p className="auth-error">{bookSearchError}</p> : null}
 
                 {bookSearchResults.length > 0 ? (
-                  <div className="seller-book-results">
+                  <div className="seller-book-results my-listing-create-book-results">
                     {bookSearchResults.map((book) => (
                       <button
-                        className={`seller-book-result ${selectedBookId === book.id ? 'seller-book-result--selected' : ''}`}
+                        className={`seller-book-result my-listing-create-book-result ${selectedBookId === book.id ? 'seller-book-result--selected' : ''}`}
                         key={book.id}
                         onClick={() => {
                           setSelectedBookId(book.id);
@@ -376,7 +379,7 @@ export function MyListingCreatePage() {
                 ) : null}
               </div>
             ) : (
-              <div className="seller-listing-book-create-grid">
+              <div className="seller-listing-book-create-grid my-listing-create-book-grid">
                 <Input
                   label={t('pages.myListingCreate.bookTitleLabel')}
                   onChange={(event) => {
@@ -453,19 +456,23 @@ export function MyListingCreatePage() {
                     value={bookFormState.description}
                   />
                 </label>
-                <p className="ui-input-hint">{t('pages.myListingCreate.missingBookFlowHint')}</p>
+                <p className="ui-input-hint my-listing-create-missing-hint">
+                  {t('pages.myListingCreate.missingBookFlowHint')}
+                </p>
               </div>
             )}
           </section>
 
-          <section className="seller-listing-section">
-            <h2>{t('pages.myListingCreate.listingStepTitle')}</h2>
-            <p>{t('pages.myListingCreate.listingStepDescription')}</p>
-            <p className="ui-input-hint">
-              {t('pages.myListingCreate.currencyHint', { currency: DEFAULT_CURRENCY })}
-            </p>
+          <section className="seller-listing-section my-listing-create-section my-listing-create-section--listing">
+            <div className="my-listing-create-section-head">
+              <h2>{t('pages.myListingCreate.listingStepTitle')}</h2>
+              <p>{t('pages.myListingCreate.listingStepDescription')}</p>
+              <p className="ui-input-hint my-listing-create-currency-hint">
+                {t('pages.myListingCreate.currencyHint', { currency: DEFAULT_CURRENCY })}
+              </p>
+            </div>
 
-            <div className="seller-listing-book-create-grid">
+            <div className="seller-listing-book-create-grid my-listing-create-listing-grid">
               <Input
                 label={t('pages.myListingCreate.priceLabel')}
                 min={0.01}
@@ -545,8 +552,8 @@ export function MyListingCreatePage() {
 
           {formError ? <p className="auth-error">{formError}</p> : null}
 
-          <div className="profile-actions">
-            <Button disabled={isSubmitting} type="submit">
+          <div className="profile-actions my-listing-create-actions">
+            <Button className="my-listing-create-submit" disabled={isSubmitting} type="submit">
               {isSubmitting
                 ? t('pages.myListingCreate.submitting')
                 : t('pages.myListingCreate.submit')}

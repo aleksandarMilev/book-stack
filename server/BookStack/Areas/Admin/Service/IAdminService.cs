@@ -4,5 +4,5 @@ using Infrastructure.Services.ServiceLifetimes;
 
 public interface IAdminService : IScopedService
 {
-    Task<string> GetId();
+    Task<IEnumerable<string>> GetIds();
 }

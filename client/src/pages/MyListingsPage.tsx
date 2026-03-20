@@ -169,7 +169,7 @@ export function MyListingsPage() {
 
   if (isCheckingSellerProfile) {
     return (
-      <Container className="account-page">
+      <Container className="account-page my-listings-page">
         <LoadingState
           description={t('pages.myListings.loadingSellerDescription')}
           title={t('pages.myListings.loadingSellerTitle')}
@@ -180,9 +180,9 @@ export function MyListingsPage() {
 
   if (!hasActiveSellerProfile) {
     return (
-      <Container className="account-page">
-        <header className="account-page-header">
-          <div className="marketplace-header">
+      <Container className="account-page my-listings-page">
+        <header className="account-page-header my-listings-header-shell">
+          <div className="marketplace-header my-listings-header">
             <h1>{t('pages.myListings.title')}</h1>
             <p>{t('pages.myListings.subtitle')}</p>
           </div>
@@ -193,18 +193,18 @@ export function MyListingsPage() {
   }
 
   return (
-    <Container className="account-page">
-      <header className="account-page-header">
-        <div className="marketplace-header">
+    <Container className="account-page my-listings-page">
+      <header className="account-page-header my-listings-header-shell">
+        <div className="marketplace-header my-listings-header">
           <h1>{t('pages.myListings.title')}</h1>
           <p>{t('pages.myListings.subtitle')}</p>
         </div>
-        <Link to={ROUTES.myListingCreate}>
+        <Link className="my-listings-create-action" to={ROUTES.myListingCreate}>
           <Button>{t('pages.myListings.createCta')}</Button>
         </Link>
       </header>
 
-      <section className="marketplace-toolbar account-toolbar">
+      <section className="marketplace-toolbar account-toolbar my-listings-toolbar">
         <Input
           label={t('pages.myListings.searchLabel')}
           onChange={(event) => {
@@ -255,13 +255,13 @@ export function MyListingsPage() {
         </label>
       </section>
 
-      <div className="marketplace-results" ref={resultsSectionRef}>
-        <p className="marketplace-results-count">
+      <div className="marketplace-results my-listings-results" ref={resultsSectionRef}>
+        <p className="marketplace-results-count my-listings-results-count">
           {t('pages.myListings.resultsCount', { count: totalItems })}
         </p>
 
         {hasOnlyPendingListings ? (
-          <Card className="seller-listings-info-card">
+          <Card className="seller-listings-info-card my-listings-info-card">
             <p>{t('pages.myListings.pendingModerationHint')}</p>
           </Card>
         ) : null}
@@ -294,49 +294,52 @@ export function MyListingsPage() {
         ) : null}
 
         {hasListings ? (
-          <div className="account-listing-grid">
+          <div className="account-listing-grid my-listings-grid">
             {listings.map((listing) => {
               const approvalStatus = getApprovalStatus(listing);
 
               return (
-                <Card className="account-listing-card" key={listing.id}>
+                <Card className="account-listing-card my-listings-entry" key={listing.id}>
                   {listing.imageUrl ? (
                     <img
                       alt={t('marketplace.listingImageAlt', { title: listing.title })}
-                      className="marketplace-listing-image"
+                      className="marketplace-listing-image my-listings-entry-image"
                       src={listing.imageUrl}
                     />
                   ) : (
-                    <div className="marketplace-listing-image-placeholder" />
+                    <div className="marketplace-listing-image-placeholder my-listings-entry-image-placeholder" />
                   )}
-                  <div className="account-listing-head">
-                    <Badge variant={getStatusBadgeVariant(approvalStatus)}>
+                  <div className="account-listing-head my-listings-entry-head">
+                    <Badge className="my-listings-status-badge" variant={getStatusBadgeVariant(approvalStatus)}>
                       {t(`pages.myListings.status.${approvalStatus}`)}
                     </Badge>
-                    <PriceDisplay value={listing.price} />
+                    <div className="my-listings-entry-price">
+                      <PriceDisplay value={listing.price} />
+                    </div>
                   </div>
-                  <h3>{listing.title}</h3>
-                  <p className="marketplace-listing-author">{listing.author}</p>
-                  <p className="marketplace-listing-meta">{listing.genre}</p>
+                  <h3 className="my-listings-entry-title">{listing.title}</h3>
+                  <p className="marketplace-listing-author my-listings-entry-author">{listing.author}</p>
+                  <p className="marketplace-listing-meta my-listings-entry-meta">{listing.genre}</p>
 
                   {approvalStatus === 'rejected' && listing.rejectionReason ? (
-                    <p className="account-listing-rejection">
+                    <p className="account-listing-rejection my-listings-rejection">
                       {t('pages.myListings.rejectionReasonLabel')}: {listing.rejectionReason}
                     </p>
                   ) : null}
 
-                  <div className="account-listing-actions">
+                  <div className="account-listing-actions my-listings-entry-actions">
                     <Link to={getListingDetailsRoute(listing.id)}>
-                      <Button size="sm" variant="secondary">
+                      <Button className="my-listings-action-view" size="sm" variant="secondary">
                         {t('common.actions.viewListing')}
                       </Button>
                     </Link>
                     <Link to={getMyListingEditRoute(listing.id)}>
-                      <Button size="sm" variant="ghost">
+                      <Button className="my-listings-action-edit" size="sm" variant="ghost">
                         {t('pages.myListings.editAction')}
                       </Button>
                     </Link>
                     <Button
+                      className="my-listings-action-delete"
                       disabled={deletingListingId === listing.id}
                       onClick={() => {
                         void handleDeleteListing(listing.id);
