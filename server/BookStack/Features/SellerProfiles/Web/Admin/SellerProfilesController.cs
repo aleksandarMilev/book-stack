@@ -7,21 +7,18 @@ using Models;
 using Service;
 using Service.Models;
 
-public class SellerProfilesController(
-    ISellerProfileService service) : AdminApiController
+public class SellerProfilesController(ISellerProfileService service) : AdminApiController
 {
-    private readonly ISellerProfileService _service = service;
-
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SellerProfileServiceModel>>> All(
         CancellationToken cancellationToken = default)
-        => this.Ok(await this._service.All(cancellationToken));
+        => this.Ok(await service.All(cancellationToken));
 
     [HttpGet(Common.Constants.ApiRoutes.Id)]
     public async Task<ActionResult<SellerProfileServiceModel>> ByUserId(
         string id,
         CancellationToken cancellationToken = default)
-        => this.Ok(await this._service.ByUserId(id, cancellationToken));
+        => this.Ok(await service.ByUserId(id, cancellationToken));
 
     [HttpPut(ApiRoutes.Status)]
     public async Task<ActionResult> ChangeStatus(
@@ -29,7 +26,7 @@ public class SellerProfilesController(
         ChangeSellerProfileStatusWebModel webModel,
         CancellationToken cancellationToken = default)
     {
-        var result = await this._service.ChangeStatus(
+        var result = await service.ChangeStatus(
             id,
             webModel.IsActive,
             cancellationToken);

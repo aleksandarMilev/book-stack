@@ -10,15 +10,12 @@ using Service.Models;
 using Shared;
 
 [Authorize]
-public class SellerProfilesController(
-    ISellerProfileService service) : ApiController
+public class SellerProfilesController(ISellerProfileService service) : ApiController
 {
-    private readonly ISellerProfileService _service = service;
-
     [HttpGet(ApiRoutes.Mine)]
     public async Task<ActionResult<SellerProfileServiceModel>> Mine(
         CancellationToken cancellationToken = default)
-        => this.Ok(await this._service.Mine(cancellationToken));
+        => this.Ok(await service.Mine(cancellationToken));
 
     [HttpPut(ApiRoutes.Mine)]
     public async Task<ActionResult<SellerProfileServiceModel>> UpsertMine(
@@ -26,7 +23,7 @@ public class SellerProfilesController(
         CancellationToken cancellationToken = default)
     {
         var serviceModel = webModel.ToUpsertServiceModel();
-        var result = await this._service.UpsertMine(
+        var result = await service.UpsertMine(
             serviceModel,
             cancellationToken);
 
