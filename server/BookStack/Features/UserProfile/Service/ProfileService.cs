@@ -1,10 +1,10 @@
-﻿namespace BookStack.Features.UserProfile.Service;
+namespace BookStack.Features.UserProfile.Service;
 
 using BookStack.Data;
-using BookStack.Infrastructure.Services.DateTimeProvider;
 using Data.Models;
 using Identity.Data.Models;
 using Infrastructure.Services.CurrentUser;
+using Infrastructure.Services.DateTimeProvider;
 using Infrastructure.Services.ImageWriter;
 using Infrastructure.Services.Result;
 using Infrastructure.Services.StringSanitizer;
@@ -16,6 +16,13 @@ using Shared;
 using static Common.Constants;
 using static Shared.Constants;
 
+/// <summary>
+/// Implements user-profile read, update, and delete workflows.
+/// </summary>
+/// <remarks>
+/// This service owns business behavior for "my profile" operations, image replace/remove behavior, and
+/// coordinated soft-delete of both <see cref="UserProfileDbModel"/> and linked <see cref="UserDbModel"/> records.
+/// </remarks>
 public class ProfileService(
     BookStackDbContext data,
     UserManager<UserDbModel> userManager,
@@ -25,6 +32,13 @@ public class ProfileService(
     IStringSanitizerService stringSanitizer,
     ILogger<ProfileService> logger) : IProfileService
 {
+    /// <summary>
+    /// Returns the profile for the current authenticated user.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// A profile service model for the current user, or <see langword="null"/> when no visible profile exists.
+    /// </returns>
     public async Task<ProfileServiceModel?> Mine(
         CancellationToken cancellationToken = default)
         => await data
@@ -35,6 +49,16 @@ public class ProfileService(
                 p => p.Id == currentUserService.GetId(),
                 cancellationToken);
 
+    /// <summary>
+    /// Creates a profile for the supplied user id.
+    /// </summary>
+    /// <param name="serviceModel">Profile data to persist.</param>
+    /// <param name="userId">Identifier of the user that will own the profile.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>The created profile model.</returns>
+    /// <remarks>
+    /// This method is used by trusted internal flows, such as identity registration.
+    /// </remarks>
     public async Task<ProfileServiceModel> Create(
         CreateProfileServiceModel serviceModel,
         string userId,
@@ -60,6 +84,17 @@ public class ProfileService(
         return dbModel.ToServiceModel();
     }
 
+    /// <summary>
+    /// Updates the current authenticated user's profile.
+    /// </summary>
+    /// <param name="serviceModel">Updated profile data with optional image remove/replace intent.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// A success result when the profile was updated; otherwise a failure result with an error message.
+    /// </returns>
+    /// <remarks>
+    /// If a new image is uploaded or image removal is requested, the previous non-default image is deleted when safe.
+    /// </remarks>
     public async Task<Result> Edit(
         CreateProfileServiceModel serviceModel,
         CancellationToken cancellationToken = default)
@@ -103,7 +138,7 @@ public class ProfileService(
 
         await data.SaveChangesAsync(cancellationToken);
 
-        var shouldDeleteOldImage = 
+        var shouldDeleteOldImage =
             willDeleteOld &&
             !string.Equals(
                 oldImagePath,
@@ -137,6 +172,19 @@ public class ProfileService(
         return true;
     }
 
+    /// <summary>
+    /// Soft-deletes a profile and the linked identity user.
+    /// </summary>
+    /// <param name="userToDeleteId">
+    /// Optional target user id. When not provided, the current authenticated user's profile is deleted.
+    /// </param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// A success result when delete operations complete; otherwise a failure result with an error message.
+    /// </returns>
+    /// <remarks>
+    /// Non-admin users can delete only their own profile. Administrators can target other users.
+    /// </remarks>
     public async Task<Result> Delete(
         string? userToDeleteId = null,
         CancellationToken cancellationToken = default)

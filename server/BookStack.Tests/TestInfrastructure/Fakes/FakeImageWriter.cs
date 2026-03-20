@@ -5,6 +5,14 @@ using BookStack.Infrastructure.Services.ImageWriter.Models;
 
 internal sealed class FakeImageWriter : IImageWriter
 {
+    public List<WriteCallRecord> WriteCalls { get; } = [];
+
+    public List<DeleteCallRecord> DeleteCalls { get; } = [];
+
+    public Queue<string> NextUploadedImagePaths { get; } = [];
+
+    public bool DeleteResult { get; set; } = true;
+
     public Task Write(
         string resourceName,
         IImageDbModel dbModel,
@@ -12,9 +20,18 @@ internal sealed class FakeImageWriter : IImageWriter
         string? defaultImagePath = null,
         CancellationToken cancellationToken = default)
     {
+        this.WriteCalls.Add(new(
+            resourceName,
+            serviceModel.Image is not null,
+            defaultImagePath));
+
         if (serviceModel.Image is not null)
         {
-            dbModel.ImagePath = $"/images/{resourceName}/fake-upload.jpg";
+            var uploadedImagePath = this.NextUploadedImagePaths.Count > 0
+                ? this.NextUploadedImagePaths.Dequeue()
+                : $"/images/{resourceName}/fake-upload.jpg";
+
+            dbModel.ImagePath = uploadedImagePath;
             return Task.CompletedTask;
         }
 
@@ -30,5 +47,22 @@ internal sealed class FakeImageWriter : IImageWriter
         string resourceName,
         string? imagePath,
         string? defaultImagePath = null)
-        => true;
+    {
+        this.DeleteCalls.Add(new(
+            resourceName,
+            imagePath,
+            defaultImagePath));
+
+        return this.DeleteResult;
+    }
+
+    public sealed record WriteCallRecord(
+        string ResourceName,
+        bool HasImage,
+        string? DefaultImagePath);
+
+    public sealed record DeleteCallRecord(
+        string ResourceName,
+        string? ImagePath,
+        string? DefaultImagePath);
 }
