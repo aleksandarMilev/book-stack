@@ -266,7 +266,7 @@ export function MyListingEditPage() {
           </Badge>
         </div>
         <p className="my-listing-edit-summary-meta">
-          {listing.author} • {listing.genre}
+          {listing.author} - {listing.genre}
         </p>
         {listing.rejectionReason ? (
           <p className="account-listing-rejection my-listing-edit-rejection">

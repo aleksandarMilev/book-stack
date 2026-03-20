@@ -20,7 +20,7 @@ const renderGuard = (level: 'authenticated' | 'seller' | 'admin') =>
   render(
     <MemoryRouter initialEntries={['/protected']}>
       <Routes>
-        <Route path="/" element={<p>home-page</p>} />
+        <Route path="/" element={<HomeStateProbe />} />
         <Route path="/login" element={<p>login-page</p>} />
         <Route
           path="/seller/profile"
@@ -66,6 +66,19 @@ function LoginStateProbe() {
   return (
     <>
       <p>login-page</p>
+      <p>reason:{state?.reason ?? '-'}</p>
+      <p>from:{state?.from ?? '-'}</p>
+    </>
+  );
+}
+
+function HomeStateProbe() {
+  const location = useLocation();
+  const state = location.state as { reason?: string; from?: string } | null;
+
+  return (
+    <>
+      <p>home-page</p>
       <p>reason:{state?.reason ?? '-'}</p>
       <p>from:{state?.from ?? '-'}</p>
     </>
@@ -220,5 +233,7 @@ describe('RouteAccessGuard', () => {
     renderGuard('admin');
 
     expect(screen.getByText('home-page')).toBeInTheDocument();
+    expect(screen.getByText('reason:adminAccessRequired')).toBeInTheDocument();
+    expect(screen.getByText('from:/protected')).toBeInTheDocument();
   });
 });

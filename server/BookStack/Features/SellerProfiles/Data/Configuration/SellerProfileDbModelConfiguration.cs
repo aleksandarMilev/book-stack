@@ -6,8 +6,19 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using static Shared.Constants.Validation;
 
+/// <summary>
+/// Configures the EF Core model for <see cref="SellerProfileDbModel"/>.
+/// </summary>
+/// <remarks>
+/// Seller profiles are keyed by <see cref="SellerProfileDbModel.UserId"/>, include defaults for payment-support
+/// and activation flags, and are hidden by a global query filter when either the profile or linked user is soft-deleted.
+/// </remarks>
 public sealed class SellerProfileDbModelConfiguration : IEntityTypeConfiguration<SellerProfileDbModel>
 {
+    /// <summary>
+    /// Configures schema constraints, defaults, indexes, and query-filter behavior for seller profiles.
+    /// </summary>
+    /// <param name="builder">Entity type builder for <see cref="SellerProfileDbModel"/>.</param>
     public void Configure(EntityTypeBuilder<SellerProfileDbModel> builder)
     {
         builder

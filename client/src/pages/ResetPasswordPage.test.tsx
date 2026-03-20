@@ -45,9 +45,11 @@ describe('ResetPasswordPage', () => {
         newPassword: 'Password123',
       });
     });
+    expect(await screen.findByText('Password reset complete')).toBeInTheDocument();
     expect(
       await screen.findByText('Password reset successful. You can now sign in with your new password.'),
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go to login' })).toBeInTheDocument();
   });
 
   it('shows reset error when API request fails', async () => {
@@ -60,6 +62,7 @@ describe('ResetPasswordPage', () => {
     await user.type(screen.getByLabelText('Confirm new password'), 'Password123');
     await user.click(screen.getByRole('button', { name: 'Reset password' }));
 
+    expect(await screen.findByText('Could not reset password')).toBeInTheDocument();
     expect(
       await screen.findByText('Could not reset your password. Please request a new reset link and try again.'),
     ).toBeInTheDocument();
@@ -68,14 +71,34 @@ describe('ResetPasswordPage', () => {
   it('shows invalid-link state when email or token is missing', async () => {
     renderResetPasswordPage('/identity/reset-password');
 
+    expect(await screen.findByText('Recovery link')).toBeInTheDocument();
     expect(await screen.findByText('This password reset link is invalid.')).toBeInTheDocument();
     expect(
       screen.getByText('Please request a new password reset link and try again.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Request a new reset link' })).toHaveAttribute(
-      'href',
-      '/identity/forgot-password',
-    );
+    expect(screen.getByRole('button', { name: 'Request a new reset link' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Request a new reset link' })).toHaveAttribute('href', '/identity/forgot-password');
     expect(screen.queryByRole('button', { name: 'Reset password' })).not.toBeInTheDocument();
+  });
+
+  it('shows route-context notice when opened with session-expired reason', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/identity/reset-password',
+            search: '?email=user%40example.com&token=encoded-token',
+            state: { reason: 'sessionExpired' },
+          },
+        ]}
+      >
+        <Routes>
+          <Route element={<ResetPasswordPage />} path="/identity/reset-password" />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Session expired')).toBeInTheDocument();
+    expect(screen.getByText('Your session has expired. Please sign in again.')).toBeInTheDocument();
   });
 });

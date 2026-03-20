@@ -58,6 +58,24 @@ describe('SellerProfilePage', () => {
     expect(screen.queryByLabelText('Seller profile is active')).not.toBeInTheDocument();
   });
 
+  it('shows seller route-access notice when redirected from seller-protected routes', async () => {
+    useAuthStore.setState({ session: createSession() });
+    vi.mocked(sellerProfilesApi.getMine).mockResolvedValue(null);
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/seller/profile', state: { reason: 'sellerProfileRequired' } }]}>
+        <SellerProfilePage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Seller access requires profile setup')).toBeInTheDocument();
+    expect(
+      screen.getByText('Complete or reactivate your seller profile to continue with seller tools.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Browse marketplace' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue setup' })).toBeInTheDocument();
+  });
+
   it('renders seller profile onboarding and form actions in Bulgarian locale', async () => {
     useAuthStore.setState({ session: createSession() });
     vi.mocked(sellerProfilesApi.getMine).mockResolvedValue(null);

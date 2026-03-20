@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
 import { HomePage } from '@/pages/HomePage';
 
-const renderHomePage = () =>
+const renderHomePage = (initialState?: { from?: string; reason?: string }) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/', ...(initialState ? { state: initialState } : {}) }]}>
       <HomePage />
     </MemoryRouter>,
   );
@@ -42,5 +42,20 @@ describe('HomePage', () => {
 
     const conversionTrustItems = document.querySelectorAll('.home-conversion-trust-item');
     expect(conversionTrustItems).toHaveLength(3);
+  });
+
+  it('shows admin access notice when redirected from an admin route', () => {
+    renderHomePage({ from: '/admin', reason: 'adminAccessRequired' });
+
+    expect(screen.getByText('Administrator access required')).toBeInTheDocument();
+    expect(
+      screen.getByText('This section is available only to administrator accounts.'),
+    ).toBeInTheDocument();
+
+    const marketplaceLinks = screen.getAllByRole('link', { name: 'Browse marketplace' });
+    expect(marketplaceLinks.some((link) => link.getAttribute('href') === '/marketplace')).toBe(
+      true,
+    );
+    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profile');
   });
 });

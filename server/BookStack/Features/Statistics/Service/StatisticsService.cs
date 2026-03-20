@@ -20,7 +20,7 @@ public class StatisticsService(
                 "Unauthorized statistics access attempt. UserId={UserId}",
                 currentUserService.GetId());
 
-            return new AdminStatisticsServiceModel();
+            return new();
         }
 
         var totalUsers = await data

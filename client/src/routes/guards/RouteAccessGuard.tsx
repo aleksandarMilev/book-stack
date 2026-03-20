@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router-dom';
 
-import { LoadingState } from '@/components/ui';
+import { Badge, Card, Container } from '@/components/ui';
 import { useSellerProfileStore } from '@/features/sellerProfiles/store/sellerProfile.store';
 import type { RouteAccessLevel } from '@/routes/access';
 import { canAccessLevel, hasActiveSellerCapability, isSellerCapabilityResolving } from '@/routes/access';
@@ -57,10 +57,21 @@ export function RouteAccessGuard({ level, children }: RouteAccessGuardProps) {
 
     if (isSellerCapabilityResolving(sellerCapabilityContext)) {
       return (
-        <LoadingState
-          description={t('pages.routeAccess.sellerLoadingDescription')}
-          title={t('pages.routeAccess.sellerLoadingTitle')}
-        />
+        <Container className="route-access-page route-access-page--loading">
+          <Card className="route-access-card route-access-card--loading" elevated>
+            <div className="route-access-card-head">
+              <Badge className="route-access-card-badge" variant="accent">
+                {t('pages.routeAccess.sellerLoadingBadge')}
+              </Badge>
+              <h1>{t('pages.routeAccess.sellerLoadingTitle')}</h1>
+              <p>{t('pages.routeAccess.sellerLoadingDescription')}</p>
+            </div>
+            <div aria-live="polite" className="route-access-loading-indicator" role="status">
+              <span aria-hidden className="ui-spinner" />
+              <p>{t('pages.routeAccess.sellerLoadingHint')}</p>
+            </div>
+          </Card>
+        </Container>
       );
     }
   } else if (canAccessLevel(level, capabilities)) {
@@ -69,6 +80,8 @@ export function RouteAccessGuard({ level, children }: RouteAccessGuardProps) {
 
   const isRedirectingToLogin = !isAuthenticated && level !== 'public';
   const isRedirectingToSellerProfile = level === 'seller' && isAuthenticated;
+  const isRedirectingToHomeForAdmin =
+    level === 'admin' && isAuthenticated && !capabilities.canAccessAdminArea;
 
   return (
     <Navigate
@@ -79,6 +92,7 @@ export function RouteAccessGuard({ level, children }: RouteAccessGuardProps) {
           ? { reason: session ? 'sessionExpired' : 'authRequired' }
           : {}),
         ...(isRedirectingToSellerProfile ? { reason: 'sellerProfileRequired' } : {}),
+        ...(isRedirectingToHomeForAdmin ? { reason: 'adminAccessRequired' } : {}),
       }}
       to={getRedirectPath(level, isAuthenticated)}
     />

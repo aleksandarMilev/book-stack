@@ -40,6 +40,7 @@ describe('ForgotPasswordPage', () => {
     await waitFor(() => {
       expect(authService.forgotPassword).toHaveBeenCalledWith('user@example.com');
     });
+    expect(await screen.findByText('Reset link requested')).toBeInTheDocument();
     expect(
       await screen.findByText('If an account exists for this email, a password reset link has been sent.'),
     ).toBeInTheDocument();
@@ -54,6 +55,22 @@ describe('ForgotPasswordPage', () => {
     await user.type(screen.getByLabelText('Email'), 'user@example.com');
     await user.click(screen.getByRole('button', { name: 'Send reset link' }));
 
+    expect(await screen.findByText('Could not send reset link')).toBeInTheDocument();
     expect(await screen.findByText('Could not request a password reset. Please try again.')).toBeInTheDocument();
+  });
+
+  it('shows route-context notice when opened with auth-required reason', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/identity/forgot-password', state: { reason: 'authRequired' } }]}
+      >
+        <Routes>
+          <Route element={<ForgotPasswordPage />} path="/identity/forgot-password" />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Sign in required')).toBeInTheDocument();
+    expect(screen.getByText('Please sign in to continue.')).toBeInTheDocument();
   });
 });

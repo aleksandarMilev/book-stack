@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import { Badge, Button, Card, Container, Section } from '@/components/ui';
 import { ROUTES } from '@/routes/paths';
@@ -12,9 +12,36 @@ const conversionTrustKeys = ['statOne', 'statTwo', 'statThree'] as const;
 
 export function HomePage() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const routeState = location.state as { from?: string; reason?: string } | null;
+  const showAdminAccessNotice = routeState?.reason === 'adminAccessRequired';
 
   return (
     <div className="home-page">
+      {showAdminAccessNotice ? (
+        <Container className="route-access-page route-access-page--home">
+          <Card className="route-access-card route-access-card--blocked route-access-card--admin" elevated>
+            <div className="route-access-card-head">
+              <Badge className="route-access-card-badge" variant="warning">
+                {t('pages.routeAccess.adminBlockedBadge')}
+              </Badge>
+              <h2>{t('pages.routeAccess.adminBlockedTitle')}</h2>
+              <p>{t('pages.routeAccess.adminBlockedDescription')}</p>
+            </div>
+            <div className="route-access-card-note">
+              <p>{t('pages.routeAccess.adminBlockedHint')}</p>
+            </div>
+            <div className="route-access-card-actions">
+              <Link to={ROUTES.marketplace}>
+                <Button>{t('common.actions.browseMarketplace')}</Button>
+              </Link>
+              <Link to={ROUTES.profile}>
+                <Button variant="secondary">{t('nav.account.profile')}</Button>
+              </Link>
+            </div>
+          </Card>
+        </Container>
+      ) : null}
       <section className="home-hero">
         <Container className="home-hero-grid">
           <div className="home-hero-content" data-reveal>

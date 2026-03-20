@@ -22,12 +22,14 @@ describe('LoginPage route guard context hints', () => {
   it('shows auth required hint when redirected from protected route', async () => {
     renderLoginRoute({ from: '/profile', reason: 'authRequired' });
 
+    expect(await screen.findByText('Sign in required')).toBeInTheDocument();
     expect(await screen.findByText('Please sign in to continue.')).toBeInTheDocument();
   });
 
   it('shows session expired hint when redirected due expired session', async () => {
     renderLoginRoute({ from: '/my-orders?page=2', reason: 'sessionExpired' });
 
+    expect(await screen.findByText('Session expired')).toBeInTheDocument();
     expect(await screen.findByText('Your session has expired. Please sign in again.')).toBeInTheDocument();
   });
 

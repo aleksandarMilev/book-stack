@@ -15,9 +15,9 @@ vi.mock('@/features/auth/services/auth.service', () => ({
   },
 }));
 
-const renderRegisterPage = () =>
+const renderRegisterPage = (initialState?: { reason?: string; from?: string }) =>
   render(
-    <MemoryRouter initialEntries={['/register']}>
+    <MemoryRouter initialEntries={[{ pathname: '/register', ...(initialState ? { state: initialState } : {}) }]}>
       <Routes>
         <Route element={<RegisterPage />} path="/register" />
       </Routes>
@@ -55,5 +55,12 @@ describe('RegisterPage', () => {
         image: null,
       });
     });
+  });
+
+  it('shows route-context notice when register is opened with auth-required reason', async () => {
+    renderRegisterPage({ from: '/profile', reason: 'authRequired' });
+
+    expect(await screen.findByText('Sign in required')).toBeInTheDocument();
+    expect(screen.getByText('Please sign in to continue.')).toBeInTheDocument();
   });
 });

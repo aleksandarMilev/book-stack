@@ -20,6 +20,7 @@ export function Input({ className, label, hint, error, id, ...props }: InputProp
       {label ? <span className="ui-input-label">{label}</span> : null}
       <input
         aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
+        aria-invalid={Boolean(error)}
         className={classNames('ui-input', error && 'ui-input--error', className)}
         id={fieldId}
         {...props}
